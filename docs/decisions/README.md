@@ -12,3 +12,4 @@ from [adr-template.md](adr-template.md).
 | [0005](0005-a-product-reports-usage-and-cmokit-decides-when-credits-run-out.md) | A product reports usage to CMOkit, and CMOkit decides when credits run out | Proposed |
 | [0006](0006-cmokit-keeps-its-state-in-its-own-postgres-database.md) | CMOkit keeps its state in a Postgres database of its own, on the product's instance | Proposed |
 | [0007](0007-typescript-on-node-for-everything.md) | TypeScript on Node for everything | Proposed |
+| [0008](0008-lifecycle-ships-as-one-image-configured-by-environment.md) | Lifecycle work ships as one image, coupled to its environment by variables alone | Proposed |
