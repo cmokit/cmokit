@@ -45,6 +45,16 @@ A GitHub release publishes every package whose version is not yet on npm, by tru
 - **Name things for the job, not the vendor.** A bought tool sits behind an interface named for what
   it does: experiments, analytics, messaging, payments. (`NFR-03`)
 
+## Deployment
+
+- **One lifecycle image, explicit entrypoints.** The service is the default command; `cmokit migrate`
+  runs from the same image. Migrations never run at startup. (ADR-0008)
+- **The environment reaches lifecycle code through variables alone.** No cloud metadata, no cloud SDK,
+  no configuration a deployment supplies any other way. Every variable is listed in the deployment
+  reference; changing the shape of that list needs a record. (ADR-0008)
+- **Images pin their bases by digest and run without privileges.** The local `compose.yaml` is shaped
+  like production; development differences go in `compose.dev.yaml` only. (ADR-0008)
+
 ## Secrets
 
 Supplied by the deploying environment only. Never committed, logged, or sent to a browser. Never
