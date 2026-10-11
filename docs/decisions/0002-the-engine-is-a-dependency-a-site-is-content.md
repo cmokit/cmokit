@@ -20,8 +20,8 @@ The site is static, built with Astro and deployed by GitHub Actions to GitHub Pa
 Cloudflare proxy. The parts CMOkit supplies are its configuration and a command line, an Astro
 integration (variant data, the analytics snippet, the conversion form), a server part in two pieces
 deployed apart (ADR-0003) — the edge (variant resolution, the server-side conversion) and the
-lifecycle (lead capture, the payment processor's events, calls to the product) — reusable deployment
-workflows, and an agent plugin for the weekly loop.
+lifecycle (lead capture, the payment processor's and the product's events, credit balances, calls to
+the product) — reusable deployment workflows, and an agent plugin for the weekly loop.
 
 ## Decision Drivers
 

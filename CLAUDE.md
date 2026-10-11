@@ -22,10 +22,20 @@ A GitHub release publishes every package whose version is not yet on npm, by tru
 - **CMOkit is a dependency, never a site.** No adopter's content, copy or design lives here; the
   starter is the one example site, and it holds only placeholder content. (ADR-0002)
 - **Handlers use the web-standard `Request` and `Response` only.** No Cloudflare- or host-specific API
-  inside a handler; those belong in the adapters. Handlers keep no state of their own. (ADR-0003)
-- **No product-specific code.** A product is reached by configured calls to its published API, as an
-  OAuth client, and through its identity provider by OpenID Connect. CMOkit accepts no events from a
-  product. (ADR-0004)
+  inside a handler; those belong in the adapters. Edge work runs only as a Worker and keeps no state;
+  lifecycle work runs only as a container, inside the product's audit boundary. An edge handler never imports lifecycle code or the
+  database client. (ADR-0003)
+- **State is a Postgres database of CMOkit's own, and is only balances and event keys.** The database
+  sits on the product's existing instance; CMOkit's role reaches that database alone and owns
+  nothing outside it.
+  Balances are append-only grants and debits; each event is acted on once, by its key. Tests run the
+  same SQL on PGlite. (ADR-0006)
+- **No product-specific code.** A product's lifecycle is reached by configured calls to its published
+  API, as an OAuth client, and through its identity provider by OpenID Connect or OAuth. Every call
+  names the entity it acts on. (ADR-0004)
+- **A product sends only usage.** Signed, rolled-up usage events, naming member, entity and an
+  idempotency key, are the only thing CMOkit accepts from a product. CMOkit decides when an entity's
+  credits run out and makes the configured suspend call. (ADR-0005)
 - **Name things for the job, not the vendor.** A bought tool sits behind an interface named for what
   it does: experiments, analytics, messaging, payments. (`NFR-03`)
 
