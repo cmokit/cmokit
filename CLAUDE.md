@@ -8,6 +8,12 @@ change. Index: `docs/decisions/README.md`. If a task appears to require breaking
 Every kind of document has one home (ADR-0001). Derivation runs vision → requirements → decision
 records → these rules, and citation never runs against it. Documents state what is true now.
 
+## Language and checks
+
+Everything is TypeScript on Node 24 or later, written only in syntax Node can strip, so scripts run
+with `node` directly. No second language without a record. `npm run check` type-checks and checks the
+decision records; CI runs it on every pull request. (ADR-0007)
+
 ## Packages
 
 `packages/*` are npm workspaces, each published on its own: `@cmokit/cli` (configuration and the
