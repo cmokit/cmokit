@@ -17,10 +17,11 @@ top of it, or something that depends on it. The answer decides how a site gets C
 an agent proposing variants writes, and what an adopter owns.
 
 The site is static, built with Astro and deployed by GitHub Actions to GitHub Pages behind a
-Cloudflare proxy. The parts CMOkit supplies are an Astro integration (variant data, the analytics
-snippet, the conversion form), a server part (variant resolution at the edge, lead capture,
-server-side events, the subscription lifecycle), reusable deployment workflows, and an agent plugin
-for the weekly loop.
+Cloudflare proxy. The parts CMOkit supplies are its configuration and a command line, an Astro
+integration (variant data, the analytics snippet, the conversion form), a server part in two pieces
+deployed apart (ADR-0003) — the edge (variant resolution, the server-side conversion) and the
+lifecycle (lead capture, the payment processor's events, calls to the product) — reusable deployment
+workflows, and an agent plugin for the weekly loop.
 
 ## Decision Drivers
 
@@ -39,18 +40,21 @@ for the weekly loop.
 Chosen option: "CMOkit as published packages a site depends on, with a starter that creates a new
 site", because it is the only option in which a fix reaches every site as a version change.
 
-> CMOkit is published as packages: the Astro integration and the server part on npm, the deployment
-> workflows as reusable GitHub Actions workflows, and the weekly loop as an agent plugin. A site is a
-> repository of the adopter's own, holding content and configuration and depending on those
-> packages. A starter creates a new site, and is not depended on after.
+> CMOkit is published as packages. On npm: `@cmokit/cli` (configuration and the `cmokit` command),
+> `@cmokit/astro` (the Astro integration), `@cmokit/edge` and `@cmokit/lifecycle` (the two pieces of
+> the server part, one package each so that neither carries the other's dependencies), and
+> `create-cmokit` (the starter). The deployment workflows are reusable GitHub Actions workflows, and
+> the weekly loop is an agent plugin. A site is a repository of the adopter's own, holding content and
+> configuration and depending on those packages. The starter creates a new site, and is not depended
+> on after.
 
 ### Consequences
 
 * Good, because a fix reaches every site through a version change.
 * Good, because the adopter's repository holds only their content, which is where the weekly loop
   writes.
-* Bad, because the integration's options and the server part's configuration are a published
-  interface with compatibility obligations of their own.
+* Bad, because the configuration and the integration's options are a published interface with
+  compatibility obligations of their own.
 * Neutral, because a site that needs something CMOkit does not do adds it in its own repository.
 
 ### Confirmation
@@ -78,6 +82,10 @@ fresh site fails before it is published.
   and the weekly loop writes into a tree it does not own.
 
 ## More Information
+
+The unscoped name `cmokit` cannot be published: npm refuses it as too close to existing package
+names, for everyone. A site reaches the `cmokit` command through `@cmokit/cli`, which the starter
+installs.
 
 **Reversal cost.** Moderate: moving from packages to a template means every site copies the engine in.
 

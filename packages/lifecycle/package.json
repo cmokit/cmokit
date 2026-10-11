@@ -1,0 +1,17 @@
+{
+  "name": "@cmokit/lifecycle",
+  "version": "0.0.0",
+  "description": "The lifecycle, as a container: lead capture, the payment processor's events and the configured calls to the product.",
+  "license": "Apache-2.0",
+  "author": "Growth Science LLC",
+  "homepage": "https://github.com/cmokit/cmokit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmokit/cmokit.git",
+    "directory": "packages/lifecycle"
+  },
+  "bugs": "https://github.com/cmokit/cmokit/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}
