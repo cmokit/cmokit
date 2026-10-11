@@ -1,7 +1,20 @@
 {
   "name": "cmokit-workspace",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "check": "npm run typecheck && npm run check:decisions",
+    "typecheck": "tsc",
+    "check:decisions": "node scripts/check-decisions.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2"
+  }
 }
