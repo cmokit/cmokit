@@ -8,6 +8,15 @@ change. Index: `docs/decisions/README.md`. If a task appears to require breaking
 Every kind of document has one home (ADR-0001). Derivation runs vision → requirements → decision
 records → these rules, and citation never runs against it. Documents state what is true now.
 
+## Packages
+
+`packages/*` are npm workspaces, each published on its own: `@cmokit/cli` (configuration and the
+`cmokit` command), `@cmokit/astro` (the Astro integration), `@cmokit/edge` (the Worker),
+`@cmokit/lifecycle` (the container) and `create-cmokit` (the starter). `@cmokit/edge` never depends
+on `@cmokit/lifecycle`.
+A GitHub release publishes every package whose version is not yet on npm, by trusted publishing from
+`.github/workflows/publish.yml`; nothing publishes from a laptop once a package exists. (ADR-0002)
+
 ## Boundaries
 
 - **CMOkit is a dependency, never a site.** No adopter's content, copy or design lives here; the

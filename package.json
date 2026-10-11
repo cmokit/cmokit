@@ -1,0 +1,7 @@
+{
+  "name": "cmokit-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}

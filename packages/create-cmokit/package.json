@@ -1,0 +1,17 @@
+{
+  "name": "create-cmokit",
+  "version": "0.0.0",
+  "description": "Creates a new CMOkit site: npm create cmokit.",
+  "license": "Apache-2.0",
+  "author": "Growth Science LLC",
+  "homepage": "https://github.com/cmokit/cmokit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmokit/cmokit.git",
+    "directory": "packages/create-cmokit"
+  },
+  "bugs": "https://github.com/cmokit/cmokit/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}

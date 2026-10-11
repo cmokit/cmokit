@@ -1,0 +1,34 @@
+# Publishes every package whose version is not yet on npm, when a GitHub release is published.
+# Authenticates by npm trusted publishing (OIDC): no npm token is stored anywhere, and each
+# version is published with provenance.
+name: publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - name: Publish new versions
+        run: |
+          for dir in packages/*/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            version=$(node -p "require('./${dir}package.json').version")
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already published"
+            else
+              (cd "$dir" && npm publish)
+            fi
+          done

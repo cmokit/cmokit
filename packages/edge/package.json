@@ -1,0 +1,17 @@
+{
+  "name": "@cmokit/edge",
+  "version": "0.0.0",
+  "description": "The edge, as a Cloudflare Worker in front of a CMOkit site: variant resolution and the server-side conversion. Keeps no state.",
+  "license": "Apache-2.0",
+  "author": "Growth Science LLC",
+  "homepage": "https://github.com/cmokit/cmokit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmokit/cmokit.git",
+    "directory": "packages/edge"
+  },
+  "bugs": "https://github.com/cmokit/cmokit/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}
