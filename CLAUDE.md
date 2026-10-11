@@ -20,8 +20,10 @@ decision records; CI runs it on every pull request. (ADR-0007)
 `cmokit` command), `@cmokit/astro` (the Astro integration), `@cmokit/edge` (the Worker),
 `@cmokit/lifecycle` (the container) and `create-cmokit` (the starter). `@cmokit/edge` never depends
 on `@cmokit/lifecycle`.
-A GitHub release publishes every package whose version is not yet on npm, by trusted publishing from
-`.github/workflows/publish.yml`; nothing publishes from a laptop once a package exists. (ADR-0002)
+A GitHub release stages every package whose version is not yet on npm, by trusted publishing from
+`.github/workflows/publish.yml`, and a maintainer approves each staged version under two-factor
+authentication; the trusted publisher cannot publish directly. Nothing publishes from a laptop once
+a package exists. (ADR-0002)
 
 ## Boundaries
 
