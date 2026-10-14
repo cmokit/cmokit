@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/lifecycle",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The lifecycle, as a container inside the product's audit boundary: lead capture, the payment processor's events, the product's usage events, credit balances in Postgres, and the configured calls to the product.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",
