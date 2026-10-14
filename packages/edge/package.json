@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/edge",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The edge, as a Cloudflare Worker in front of a CMOkit site: variant resolution and the server-side conversion. Keeps no state.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",

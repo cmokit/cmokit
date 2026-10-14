@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/astro",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "The Astro integration: variant data, the analytics snippet and the conversion form for a CMOkit site.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",
