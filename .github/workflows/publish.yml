@@ -21,7 +21,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
       # Staged publishing needs npm 11.15.0 or later.
       - run: npm install -g npm@latest
       - name: Stage new versions
