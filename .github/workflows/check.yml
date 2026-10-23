@@ -1,5 +1,6 @@
-# Type-checks the repository and checks the decision records (ADR-0001, ADR-0007) on every pull
-# request and every push to main.
+# On every pull request and every push to main: type-checks, checks the decision records and the
+# package boundaries, runs the tests, builds every package, and builds the starter site against the
+# built packages (ADR-0001, ADR-0002, ADR-0007, ADR-0011).
 name: check
 
 on:
@@ -21,3 +22,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:starter

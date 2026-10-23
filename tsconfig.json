@@ -11,9 +11,21 @@
     "types": [
       "node"
     ],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "lib": [
+      "es2024",
+      "dom",
+      "dom.iterable"
+    ],
+    "customConditions": [
+      "cmokit-source"
+    ]
   },
   "include": [
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "packages/create-cmokit/template/*.ts",
+    "packages/create-cmokit/template/edge/*.ts"
   ]
 }

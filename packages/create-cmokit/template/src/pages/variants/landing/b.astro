@@ -1,0 +1,15 @@
+---
+// Variant `b` of the `landing` experiment. Visitors assigned `b` see this at `/`; this page's own
+// address redirects there. Preview it with `/?cmokit_variant=b`.
+import Page from '../../../layouts/Page.astro';
+---
+
+<Page title="Product name">
+  <h1>Headline for variant b</h1>
+  <p>A different sentence on what the product does for whom.</p>
+  <form data-cmokit-convert="signup">
+    <input type="email" name="email" placeholder="you@example.com" required />
+    <button type="submit">Start free</button>
+  </form>
+  <p class="thanks">Thanks. We'll be in touch.</p>
+</Page>

@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cmokit-site-edge",
+  "main": "edge/worker.ts",
+  "compatibility_date": "2026-10-01",
+  // The Worker runs in front of the site's own domain, whose DNS record is proxied by Cloudflare and
+  // points at GitHub Pages. Replace example.com with that domain.
+  "routes": [{ "pattern": "example.com/*", "zone_name": "example.com" }],
+  "observability": { "enabled": true }
+}

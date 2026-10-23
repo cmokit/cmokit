@@ -1,0 +1,27 @@
+---
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
+      form { display: flex; gap: 0.5rem; margin-top: 2rem; }
+      input { flex: 1; padding: 0.5rem; }
+      button { padding: 0.5rem 1rem; }
+      form[data-cmokit-state='done'] { display: none; }
+      form[data-cmokit-state='done'] + .thanks { display: block; }
+      .thanks { display: none; }
+    </style>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
