@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // `npm create cmokit <directory>`: copies the starter site into a new directory.
 
+import { realpathSync } from 'node:fs';
 import { cp, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +26,8 @@ export async function create(target: string, template = fileURLToPath(new URL('.
   return into;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+// npm runs the command through a symlink in node_modules/.bin, so compare real paths.
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) {
   const target = process.argv[2];
   if (!target) {
     console.error('Usage: npm create cmokit <directory>');
