@@ -1,0 +1,14 @@
+---
+// The page under the `landing` experiment, and its control variant.
+import Page from '../layouts/Page.astro';
+---
+
+<Page title="Product name">
+  <h1>Headline for the control</h1>
+  <p>One sentence on what the product does for whom.</p>
+  <form data-cmokit-convert="signup">
+    <input type="email" name="email" placeholder="you@example.com" required />
+    <button type="submit">Get early access</button>
+  </form>
+  <p class="thanks">Thanks. We'll be in touch.</p>
+</Page>

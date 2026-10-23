@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/astro",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "The Astro integration: variant data, the analytics snippet and the conversion form for a CMOkit site.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",
@@ -11,6 +11,33 @@
     "directory": "packages/astro"
   },
   "bugs": "https://github.com/cmokit/cmokit/issues",
+  "type": "module",
+  "exports": {
+    ".": {
+      "cmokit-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "cmokit-source": "./src/client.ts",
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@cmokit/cli": "^0.1.0",
+    "posthog-js": "^1.438.21"
+  },
+  "peerDependencies": {
+    "astro": ">=7"
+  },
   "publishConfig": {
     "access": "public"
   }

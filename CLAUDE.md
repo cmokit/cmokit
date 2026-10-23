@@ -12,7 +12,8 @@ records → these rules, and citation never runs against it. Documents state wha
 
 Everything is TypeScript on Node 24 or later, written only in syntax Node can strip, so scripts run
 with `node` directly. No second language without a record. `npm run check` type-checks and checks the
-decision records; CI runs it on every pull request. (ADR-0007)
+decision records and the package boundaries, and `npm test` runs every package's tests with Node's
+test runner; CI runs both on every pull request. (ADR-0007)
 
 ## Packages
 
@@ -20,6 +21,9 @@ decision records; CI runs it on every pull request. (ADR-0007)
 `cmokit` command), `@cmokit/astro` (the Astro integration), `@cmokit/edge` (the Worker),
 `@cmokit/lifecycle` (the container) and `create-cmokit` (the starter). `@cmokit/edge` never depends
 on `@cmokit/lifecycle`.
+Each package's source is `src/`, built to `dist/` for publishing. Its exports name `src/` first under
+the `cmokit-source` condition, which the repository's type check and tests use, so nothing is built
+to be tested; CI builds the starter site against the built packages. (ADR-0011)
 A GitHub release stages every package whose version is not yet on npm, by trusted publishing from
 `.github/workflows/publish.yml`, and a maintainer approves each staged version under two-factor
 authentication; the trusted publisher cannot publish directly. Nothing publishes from a laptop once
@@ -38,6 +42,12 @@ a package exists. (ADR-0002)
   nothing outside it.
   Balances are append-only grants and debits; each event is acted on once, by its key. Tests run the
   same SQL on PGlite. (ADR-0006)
+- **A variant is a page; the edge only chooses.** An experiment's variants are static pages the build
+  checks and lists in its manifest. The edge stores no assignment: the experiments tool decides, the
+  visitor's cookie remembers, and any failure serves the control unassigned. Agents always get the
+  control and are never exposed. (ADR-0009)
+- **One identity.** The edge's visitor cookie is the analytics tool's distinct id, in the edge and the
+  browser alike; the browser evaluates no flags and records no exposures. (ADR-0010)
 - **No product-specific code.** A product's lifecycle is reached by configured calls to its published
   API, as an OAuth client, and through its identity provider by OpenID Connect or OAuth. Every call
   names the entity it acts on. (ADR-0004)
@@ -45,7 +55,8 @@ a package exists. (ADR-0002)
   idempotency key, are the only thing CMOkit accepts from a product. CMOkit decides when an entity's
   credits run out and makes the configured suspend call. (ADR-0005)
 - **Name things for the job, not the vendor.** A bought tool sits behind an interface named for what
-  it does: experiments, analytics, messaging, payments. (`NFR-03`)
+  it does: experiments, analytics, messaging, payments. The edge handler names no tool; only its
+  adapters and the Worker that wires them do. (`NFR-03`, ADR-0010)
 
 ## Deployment
 

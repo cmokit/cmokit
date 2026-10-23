@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/cli",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Configuration and command line for CMOkit: defineConfig for a cmokit.config.ts, and the cmokit command to check, migrate, apply, pull and run locally.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",
@@ -11,6 +11,21 @@
     "directory": "packages/cli"
   },
   "bugs": "https://github.com/cmokit/cmokit/issues",
+  "type": "module",
+  "exports": {
+    ".": {
+      "cmokit-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
   "publishConfig": {
     "access": "public"
   }

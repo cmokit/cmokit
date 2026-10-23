@@ -6,15 +6,21 @@
     "node": ">=24"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/create-cmokit/template"
   ],
   "scripts": {
-    "check": "npm run typecheck && npm run check:decisions",
+    "check": "npm run typecheck && npm run check:decisions && npm run check:boundaries",
     "typecheck": "tsc",
-    "check:decisions": "node scripts/check-decisions.ts"
+    "check:decisions": "node scripts/check-decisions.ts",
+    "check:boundaries": "node scripts/check-boundaries.ts",
+    "test": "node --conditions=cmokit-source --test \"packages/*/test/*.test.ts\"",
+    "build": "npm run build -w @cmokit/cli && npm run build -w @cmokit/edge -w @cmokit/astro -w create-cmokit",
+    "build:starter": "npm run build -w cmokit-site"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "astro": "^7.4.2",
     "typescript": "^7.0.2"
   }
 }
