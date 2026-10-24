@@ -47,6 +47,10 @@ a package exists. (ADR-0002)
   edge stores no assignment: the experiments tool decides, the visitor's cookie remembers, and any
   failure serves the control unassigned. Agents always get the control and are never exposed.
   (ADR-0009)
+- **The configuration runs experiments.** An experiment's plan and status live in CMOkit's
+  configuration, and the deploy makes the experiments tool match; nothing is started or ended in the
+  tool by hand. The tool's administrative key is read by the command line alone, never the edge.
+  (ADR-0013)
 - **One identity.** The edge's visitor cookie is the analytics tool's distinct id, in the edge and the
   browser alike; the browser evaluates no flags and records no exposures. (ADR-0010)
 - **No product-specific code.** A product's lifecycle is reached by configured calls to its published

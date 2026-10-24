@@ -17,3 +17,4 @@ from [adr-template.md](adr-template.md).
 | [0010](0010-experiments-and-analytics-run-on-posthog.md) | Experiments and analytics run on PostHog, behind interfaces named for each job | Proposed |
 | [0011](0011-packages-publish-javascript-built-from-their-source.md) | Packages publish JavaScript built from their TypeScript, and the repository runs the source | Proposed |
 | [0012](0012-billing-runs-on-autumn-over-stripe.md) | Billing runs on Autumn over Stripe, behind an interface named for the job | Proposed |
+| [0013](0013-experiments-are-declared-in-configuration-and-synced-to-the-tool.md) | Experiments are declared in CMOkit's configuration, and the deploy makes the experiments tool match | Proposed |

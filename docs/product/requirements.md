@@ -32,6 +32,8 @@ requirements cite no decision record.
 | **EXP-02** | Whether a variant wins is decided by the experimentation tool's statistics, not by CMOkit. | Must | Proposed |
 | **EXP-03** | A variant can be retired by a content change alone. | Should | Proposed |
 | **EXP-04** | Visits by agents are labeled as such and kept out of experiment results. | Must | Proposed |
+| **EXP-05** | A person or an agent plans, starts, reads and ends an experiment from CMOkit — its configuration, its command line and its MCP server — without opening the experimentation tool. | Must | Proposed |
+| **EXP-06** | Starting or ending an experiment is a reviewed change to the configuration, which a person approves like any other. | Must | Proposed |
 
 ## Measurement — `MSR-`
 
