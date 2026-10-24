@@ -12,10 +12,11 @@ decision-makers: [Geoff]
 ## Context and Problem Statement
 
 Lifecycle work runs as a Cloudflare Worker by default, or as a container that scales to zero inside an
-audited product's boundary (ADR-0003). It keeps no database (ADR-0006), so it has one thing to run:
-the service that receives the billing tool's webhook events and the product's usage events and calls
-the product. A deployment has to configure it the same way on either runtime, and a contributor or
-an agent has to run it locally with no account (`NFR-04`, `AGT-06`). A deployment that runs the
+audited product's boundary (ADR-0003). Its one store, the credit ledger, stays on Cloudflare either
+way (ADR-0006), so a container has one thing to run: the service that receives the payment
+processor's webhook events and the product's usage events and calls the product. A deployment has
+to configure it the same way on either runtime, and a contributor or an agent has to run it locally
+with no account (`NFR-04`, `AGT-06`). A deployment that runs the
 container builds and deploys it in a pipeline it already runs and audits.
 
 ## Decision Drivers
@@ -50,9 +51,10 @@ choice about the cloud in the deployment.
 > The build has separate stages for dependencies, tests and runtime; the runtime stage carries no
 > build tools and runs as a user without privileges.
 >
-> **Local and CI.** A `compose.yaml` runs the image as production does, with stand-ins for the billing
-> tool and the product. A `compose.dev.yaml` overlay holds only what development adds, applied
-> explicitly. The Worker runs locally under Wrangler with the same variables.
+> **Local and CI.** A `compose.yaml` runs the image as production does, with stand-ins for the payment
+> processor, the ledger and the product. A `compose.dev.yaml` overlay holds only what development
+> adds, applied explicitly. The Worker runs locally under Wrangler with the same variables, and its
+> Durable Objects with it.
 >
 > **In the product's cloud.** The container runs on a platform that scales to zero, with ingress from
 > inside the boundary and from its load balancer only. A merge in the deploying repository builds the

@@ -11,7 +11,7 @@ requirements cite no decision record.
 | A page builder or CMS | Pages are made with whatever builds the site: a static site generator, a CMS or anything else. |
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
 | Ad buying and bidding | Spend is an input to cost of acquisition, not something CMOkit manages. |
-| Billing records | The billing tool and the payment processor are the system of record for subscriptions, invoices, charges and credit balances. |
+| Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOkit counts credits, in the product's units, and keeps nothing about money. |
 | The product itself | CMOkit reaches a product through its published API and its identity provider, and receives from it only usage. |
 | Software with no hosted part | A skill or tool that runs entirely on a user's machine cannot have its access revoked. CMOkit gates only what a product hosts. |
 
@@ -64,14 +64,14 @@ requirements cite no decision record.
 | **SUB-03** | A customer manages its payment method, invoices and cancellation in a self-service customer portal, without contacting anyone. | Must | Proposed |
 | **SUB-04** | A subscription that becomes unpaid after dunning, or is canceled and reaches the end of its billing period, revokes the customer's access in the product; reactivating the subscription restores it. | Must | Proposed |
 | **SUB-05** | Plans, prices, entitlements, trial length and the grace period after a failed payment are configuration, not code. | Must | Proposed |
-| **SUB-06** | Every webhook event from the billing tool or payment processor is verified before it is acted on, and acting on it twice has the effect of acting once. | Must | Proposed |
+| **SUB-06** | Every webhook event from the payment processor is verified before it is acted on, and acting on it twice has the effect of acting once. | Must | Proposed |
 | **SUB-07** | Lifecycle events — trial started, trial converted, payment failed, subscription canceled, subscription reactivated — reach analytics and messaging. | Must | Proposed |
 
 ## Customers and users — `CUS-`
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
-| **CUS-01** | A customer is who pays: one customer at the billing tool, with one or more users. A person may be a user of several customers. A product without organizations has customers of one user. | Must | Proposed |
+| **CUS-01** | A customer is who pays: one customer at the payment processor, with one or more users. A person may be a user of several customers. A product without organizations has customers of one user. | Must | Proposed |
 | **CUS-02** | Every subscription, credit grant, credit balance and change of access belongs to a customer. | Must | Proposed |
 | **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. | Must | Proposed |
 | **CUS-04** | Revenue from a customer is attributed to the channel and variant of the person who converted it. A user who joins later is attributed to the invitation that brought them. | Must | Proposed |
@@ -124,7 +124,7 @@ requirements cite no decision record.
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
 | **NFR-01** | A site adopts CMOkit by adding a dependency and configuration, and upgrades by changing a version. | Must | Proposed |
-| **NFR-02** | A deployment whose product is audited can run every part of CMOkit that holds a credential or state inside the product's existing audit boundary. | Must | Proposed |
+| **NFR-02** | A deployment whose product is audited can run every part of CMOkit that holds a credential to the product inside the product's existing audit boundary. | Must | Proposed |
 | **NFR-03** | Every bought tool sits behind an interface, so a business can use another vendor for the same job. | Should | Proposed |
 | **NFR-04** | A business can run CMOkit's whole test suite with no account at any bought tool. | Must | Proposed |
 | **NFR-05** | Every secret is supplied by the deploying environment, never committed and never logged. | Must | Proposed |

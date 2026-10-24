@@ -20,8 +20,9 @@ A site may be built with any static site generator or CMS and hosted anywhere (`
 CMOkit supplies are its configuration and a command line, a browser script the edge serves and any
 site includes with one tag, integrations for site builders that want one (the first is Astro's), a
 server part in two pieces deployed apart (ADR-0003) — the edge (variant resolution, the server-side
-conversion) and the lifecycle (lead capture, the billing tool's events, the product's usage events,
-the calls to the product) — reusable deployment workflows, and an agent plugin for the weekly loop.
+conversion) and the lifecycle (lead capture, the payment processor's events, the credit ledger, the
+product's usage events, the calls to the product) — reusable deployment workflows, and an agent
+plugin for the weekly loop.
 
 ## Decision Drivers
 

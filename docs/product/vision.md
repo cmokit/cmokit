@@ -21,9 +21,10 @@ the page.
   works whatever the site is built with and wherever it is hosted, and a business upgrades CMOkit the
   way it upgrades any other dependency.
 * **Build little, buy the rest.** A variant is a page of the site, which an agent writes as easily as
-  a person. CMOkit itself is a small server part. Experimentation, analytics, messaging, billing and
-  payment are bought, because each carries statistical, deliverability, regulatory or card risk that
-  is not worth owning.
+  a person. CMOkit itself is a small server part. Experimentation, analytics, messaging,
+  subscriptions and payment are bought, because each carries statistical, deliverability, regulatory
+  or card risk that is not worth owning. A credit balance carries none, so CMOkit counts credits
+  itself.
 * **The loop is closed by an agent.** Every week, an agent reads what converted and what it earned,
   and proposes the next variants as a change to the site. A person approves the change.
 * **From visit to revenue.** The funnel does not stop at a captured email. It runs through the free
@@ -52,7 +53,8 @@ the page.
 * A data warehouse or a BI tool. Revenue and conversion are read where the bought tools already put
   them.
 * An ad platform or a bidding tool.
-* A billing system of record. The bought billing tool and the payment processor are that.
+* A billing system of record. The payment processor is that, for every subscription, invoice and
+  charge; CMOkit counts only credits.
 
 ## Who it is for
 

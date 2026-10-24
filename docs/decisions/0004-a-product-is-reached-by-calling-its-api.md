@@ -17,9 +17,10 @@ access revoked, one whose credit balance is exhausted has its metered features b
 reactivates or tops up has its access restored. CMOkit and the product have to exchange those facts,
 and someone has to decide which side starts each exchange.
 
-The events that drive the lifecycle start at the billing tool, which sends them to CMOkit as signed
-webhook events and retries them. What CMOkit needs from the product is mostly an action (give access,
-revoke it, block metered features, restore access) and occasionally a current fact (does this
+The events that drive the lifecycle start at the payment processor, which sends them to CMOkit as
+signed webhook events and retries them, and at the credit ledger, which delivers its own actions
+until each is acknowledged (ADR-0006). What CMOkit needs from the product is mostly an action (give
+access, revoke it, block metered features, restore access) and occasionally a current fact (does this
 customer still exist before renewal). Products differ in everything else, and CMOkit must contain
 no code specific to one (`PRD-02`).
 
@@ -42,7 +43,8 @@ ADR-0005, and this record covers the lifecycle alone.
 ## Decision Outcome
 
 Chosen option: "CMOkit calls the product's API, configured per lifecycle event", because the events
-already arrive at CMOkit from the billing tool, and calling out needs nothing of a product but its API.
+already arrive at CMOkit from the payment processor and the ledger, and calling out needs nothing of
+a product but its API.
 
 > CMOkit signs a new user in through the product's identity provider by OpenID Connect, or
 > authorizes their agent client by OAuth, and authenticates to the product's API as an OAuth client.
@@ -53,16 +55,17 @@ already arrive at CMOkit from the billing tool, and calling out needs nothing of
 ### Consequences
 
 * Good, because a product needs only a published API and a standard identity provider.
-* Good, because the billing tool's retries carry CMOkit's, so CMOkit keeps no queue.
+* Good, because the payment processor's retries carry CMOkit's, and the ledger's outbox carries its
+  own, so CMOkit keeps no queue.
 * Bad, because a fact the product knows first, such as a customer deleting its account, reaches
   CMOkit only when CMOkit next asks. CMOkit asks before each renewal.
-* Bad, because a call the product refuses for good, after the billing tool stops retrying, needs a
-  person, so it is alerted.
+* Bad, because a call the product refuses for good, after its retries stop, needs a person, so it is
+  alerted.
 
 ### Confirmation
 
-Tests drive each lifecycle event against a replay of the billing tool and a stand-in product, assert the
-configured call, and repeat it to show acting twice has the effect of acting once.
+Tests drive each lifecycle event against a replay of the payment processor and a stand-in product,
+assert the configured call, and repeat it to show acting twice has the effect of acting once.
 
 ## Pros and Cons of the Options
 
@@ -77,8 +80,8 @@ configured call, and repeat it to show acting twice has the effect of acting onc
 * Bad, because every product must build signing, retries and delivery to CMOkit for lifecycle facts
   CMOkit mostly already has. (Usage, which CMOkit cannot have otherwise, is sent this way; see
   ADR-0005.)
-* Bad, because the lifecycle's events start at the billing tool, not the product, so the product would
-  mostly relay what CMOkit already knows.
+* Bad, because the lifecycle's events start at the payment processor, not the product, so the product
+  would mostly relay what CMOkit already knows.
 
 ### A shared queue both sides read and write
 

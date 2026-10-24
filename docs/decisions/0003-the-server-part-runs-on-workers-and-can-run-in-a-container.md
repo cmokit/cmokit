@@ -17,13 +17,14 @@ CMOkit has one server part. It has two kinds of work:
   (`SRV-03`), and recording the conversion server-side (`MSR-03`). It must sit in the request path
   between the visitor and the site.
 * **Lifecycle work, off the request path:** capturing leads with a secret that can write to the
-  messaging tool (`LEAD-02`), receiving the billing tool's signed webhook events (`SUB-06`) and the
-  product's usage events (`CRD-01`), and calling the product with a client credential that can revoke
-  its customers' access (`PRD-03`).
+  messaging tool (`LEAD-02`), receiving the payment processor's signed webhook events (`SUB-06`) and
+  the product's usage events (`CRD-01`), keeping each customer's credit ledger, and calling the
+  product with a client credential that can revoke its customers' access (`PRD-03`).
 
 Edge work keeps no state: a visitor's variant is a cookie in their own browser, the variants are
-pages of the site, and the server-side conversion is passed on to analytics. Lifecycle work keeps no
-state of its own either; subscriptions and credit balances are the billing tool's (ADR-0006).
+pages of the site, and the server-side conversion is passed on to analytics. Lifecycle work's one
+store is the credit ledger, a Durable Object per customer on Cloudflare (ADR-0006); subscriptions and
+invoices are the payment processor's (ADR-0012).
 
 CMOkit's adopters are small businesses. Their traffic and their events are few and uneven, so every
 part must scale to zero (`NFR-06`). The edge already puts Cloudflare in every visitor's request path,
@@ -69,9 +70,11 @@ its credentials at home.
 > work runs as a Cloudflare Worker by default. A deployment that must keep its credentials inside the
 > product's audit boundary runs lifecycle work instead as a container, on a container platform of the
 > product's own cloud that scales to zero, such as Cloud Run, AWS Lambda or Azure Container Apps.
-> There, lifecycle's public endpoints — the billing tool's webhook events, and lead capture, which the
-> edge proxies from the site's own domain — are reached through the boundary's own front door, and the
-> product reaches the usage endpoint from inside the boundary only.
+> There, lifecycle's public endpoints — the payment processor's webhook events, and lead capture, which
+> the edge proxies from the site's own domain — are reached through the boundary's own front door, and
+> the product reaches the usage endpoint from inside the boundary only. The credit ledger stays on
+> Cloudflare either way, and a container reaches it through a Worker with a secret the deployment
+> supplies.
 
 ### Consequences
 
@@ -84,6 +87,8 @@ its credentials at home.
 * Bad, because an adopter running lifecycle work on Cloudflare adds Cloudflare to its controls over
   that credential, and, holding leads' contact details there, lists Cloudflare among its
   subprocessors.
+* Bad, because even a container deployment keeps customers' balances and usage on Cloudflare, so an
+  adopter that cannot hold them there cannot use CMOkit's credits.
 * Bad, because a container that has scaled to zero starts cold for the first event after a quiet
   spell. Lifecycle work is off the visitor's request path and its senders retry, so a cold start
   delays an event rather than losing it.

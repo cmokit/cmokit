@@ -39,9 +39,12 @@ a package exists. (ADR-0002)
   boundary, and its handlers are tested on both. An edge handler never imports lifecycle code.
   (ADR-0003)
 - **Everything scales to zero.** No part of CMOkit is an always-on server or database. (ADR-0003)
-- **CMOkit keeps no database.** Credit grants, balances and usage are the billing tool's, reached
-  through the billing interface; every action CMOkit takes on an event sets a state, so acting twice
-  is acting once. No package depends on a database client. (ADR-0006)
+- **Credits are CMOkit's ledger; money is the payment processor's.** Each customer's credit grants,
+  usage and balance, in the product's units, are kept in a Durable Object of its own, written against
+  a SQL interface and tested on Node's SQLite. All of CMOkit's storage is on Cloudflare, whichever
+  runtime runs lifecycle work, and none of it is about money. Every action CMOkit takes on an event
+  sets a state, so acting twice is acting once. No package depends on a database client. (ADR-0006,
+  ADR-0012)
 - **A variant is a page; the edge only chooses.** An experiment's variants are pages of the site, on
   whatever host or CMS it uses, and the experiments are configuration deployed with the edge. The
   edge stores no assignment: the experiments tool decides, the visitor's cookie remembers, and any
@@ -57,11 +60,11 @@ a package exists. (ADR-0002)
   API, as an OAuth client, and through its identity provider by OpenID Connect or OAuth. Every call
   names the customer it acts on. (ADR-0004)
 - **A product sends only usage.** Signed, aggregated usage events, naming user, customer and an
-  idempotency key, are the only thing CMOkit accepts from a product. CMOkit records them at the
-  billing tool and in analytics, and makes the configured calls when the tool reports a balance low,
-  exhausted or restored. (ADR-0005)
+  idempotency key, are the only thing CMOkit accepts from a product. CMOkit debits them from the
+  customer's ledger under their key and records them in analytics, and makes the configured calls
+  when the balance falls low, is exhausted or is restored. (ADR-0005)
 - **Name things for the job, not the vendor.** A bought tool sits behind an interface named for what
-  it does: experiments, analytics, messaging, billing. No handler names a tool; only the adapters and
+  it does: experiments, analytics, messaging, payments. No handler names a tool; only the adapters and
   the Worker that wires them do. (`NFR-03`, ADR-0010, ADR-0012)
 
 ## Deployment
