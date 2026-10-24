@@ -9,7 +9,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit is an Astro integration, a Cloudflare Worker, a Node container, a command line, a starter,
+CMOkit is an Astro integration, Cloudflare Workers, a command line, a starter,
 an MCP server, and the scripts and checks that keep its documents honest. Every one of those runs
 JavaScript or has its best-supported toolchain in it: Astro and Workers are JavaScript runtimes, and
 npm is where CMOkit is published. Something has to decide whether everything is written in one
@@ -77,7 +77,7 @@ the build. The repository holds no manifest for another language's package manag
 ### TypeScript on Deno or Bun
 
 * Good, because both run TypeScript natively, with more of its syntax.
-* Bad, because Astro, the container and npm publishing are all Node first, so a second runtime would
+* Bad, because Astro, the command line and npm publishing are all Node first, so a second runtime would
   sit beside Node rather than replace it.
 
 ## More Information

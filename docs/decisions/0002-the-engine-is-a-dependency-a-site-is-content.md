@@ -16,17 +16,18 @@ decide how a business's site relates to CMOkit's code: whether a site is a copy 
 top of it, or something that depends on it. The answer decides how a site gets CMOkit's fixes, where
 an agent proposing variants writes, and what an adopter owns.
 
-The site is static, built with Astro and deployed by GitHub Actions to GitHub Pages behind a
-Cloudflare proxy. The parts CMOkit supplies are its configuration and a command line, an Astro
-integration (variant data, the analytics snippet, the conversion form), a server part in two pieces
-deployed apart (ADR-0003) — the edge (variant resolution, the server-side conversion) and the
-lifecycle (lead capture, the payment processor's and the product's events, credit balances, calls to
-the product) — reusable deployment workflows, and an agent plugin for the weekly loop.
+A site may be built with any static site generator or CMS and hosted anywhere (`SRV-01`). The parts
+CMOkit supplies are its configuration and a command line, a browser script the edge serves and any
+site includes with one tag, integrations for site builders that want one (the first is Astro's), a
+server part in two pieces deployed apart (ADR-0003) — the edge (variant resolution, the server-side
+conversion) and the lifecycle (lead capture, the payment processor's events, the credit ledger, the
+product's usage events, the calls to the product) — reusable deployment workflows, and an agent
+plugin for the weekly loop.
 
 ## Decision Drivers
 
 * An adopter gets CMOkit's fixes by changing a version, not by merging (`NFR-01`).
-* A variant is a content change in the adopter's repository (`SRV-02`, `LOOP-01`).
+* A variant is a content change in the adopter's site (`SRV-02`, `LOOP-01`).
 * An adopter owns everything that is theirs, and nothing that is not.
 
 ## Considered Options
@@ -44,9 +45,10 @@ site", because it is the only option in which a fix reaches every site as a vers
 > `@cmokit/astro` (the Astro integration), `@cmokit/edge` and `@cmokit/lifecycle` (the two pieces of
 > the server part, one package each so that neither carries the other's dependencies), and
 > `create-cmokit` (the starter). The deployment workflows are reusable GitHub Actions workflows, and
-> the weekly loop is an agent plugin. A site is a repository of the adopter's own, holding content and
-> configuration and depending on those packages. The starter creates a new site, and is not depended
-> on after.
+> the weekly loop is an agent plugin. A site is the adopter's own, built and hosted however they
+> choose. Its CMOkit configuration lives in a repository of the adopter's own that depends on those
+> packages and deploys the edge; for a site kept in git it is the site's own repository. The starter
+> creates a new site, and is not depended on after.
 
 ### Consequences
 
