@@ -7,19 +7,20 @@ decision-makers: [Geoff]
 
 # ADR-0004: A product's lifecycle is reached by calling its API, not by events it sends
 
-**Requirements served:** `SUB-04`, `ENT-02`, `ENT-03`, `CRD-03`, `PRD-01`, `PRD-02`, `PRD-03`, `PRD-04`.
+**Requirements served:** `SUB-04`, `CUS-02`, `CUS-03`, `CRD-03`, `PRD-01`, `PRD-02`, `PRD-03`, `PRD-04`.
 
 ## Context and Problem Statement
 
-A subscription's lifecycle changes what an entity's members may do in the product: a new entity is
-let in with the person who paid as its first member, a lapsed one is paused, one whose credits have
-run out is suspended, a returning one is resumed. CMOkit and the product have to exchange those
-facts, and someone has to decide which side starts each exchange.
+A subscription's lifecycle changes what a customer's users may do in the product: a new customer is
+given access with the person who paid as its first user, one whose subscription lapses has its
+access revoked, one whose credit balance is exhausted has its metered features blocked, and one that
+reactivates or tops up has its access restored. CMOkit and the product have to exchange those facts,
+and someone has to decide which side starts each exchange.
 
-The events that drive the lifecycle start at the payment processor, which sends them to CMOkit
-signed and retried, or at CMOkit itself when an entity's credits run out. What CMOkit needs from the
-product is mostly an action (let in, pause, suspend, resume) and occasionally a current fact (does
-this entity still exist before renewal). Products differ in everything else, and CMOkit must contain
+The events that drive the lifecycle start at the billing tool, which sends them to CMOkit as signed
+webhook events and retries them. What CMOkit needs from the product is mostly an action (give access,
+revoke it, block metered features, restore access) and occasionally a current fact (does this
+customer still exist before renewal). Products differ in everything else, and CMOkit must contain
 no code specific to one (`PRD-02`).
 
 Usage is a different exchange: only the product sees it, so it starts there. It is decided in
@@ -41,26 +42,26 @@ ADR-0005, and this record covers the lifecycle alone.
 ## Decision Outcome
 
 Chosen option: "CMOkit calls the product's API, configured per lifecycle event", because the events
-already arrive at CMOkit from the processor, and calling out needs nothing of a product but its API.
+already arrive at CMOkit from the billing tool, and calling out needs nothing of a product but its API.
 
-> CMOkit signs a new member in through the product's identity provider by OpenID Connect, or
+> CMOkit signs a new user in through the product's identity provider by OpenID Connect, or
 > authorizes their agent client by OAuth, and authenticates to the product's API as an OAuth client.
-> For each lifecycle event, configuration names the call to make, and every call names the entity it
+> For each lifecycle event, configuration names the call to make, and every call names the customer it
 > acts on. The product sends CMOkit no lifecycle event. A call that fails is retried from the retry of
 > the event that caused it, and is safe to repeat.
 
 ### Consequences
 
 * Good, because a product needs only a published API and a standard identity provider.
-* Good, because the processor's retries carry CMOkit's, so CMOkit keeps no queue.
-* Bad, because a fact the product knows first, such as an entity deleting its account, reaches
+* Good, because the billing tool's retries carry CMOkit's, so CMOkit keeps no queue.
+* Bad, because a fact the product knows first, such as a customer deleting its account, reaches
   CMOkit only when CMOkit next asks. CMOkit asks before each renewal.
-* Bad, because a call the product refuses for good, after the processor stops retrying, needs a
+* Bad, because a call the product refuses for good, after the billing tool stops retrying, needs a
   person, so it is alerted.
 
 ### Confirmation
 
-Tests drive each lifecycle event against a replay of the processor and a stand-in product, assert the
+Tests drive each lifecycle event against a replay of the billing tool and a stand-in product, assert the
 configured call, and repeat it to show acting twice has the effect of acting once.
 
 ## Pros and Cons of the Options
@@ -76,7 +77,7 @@ configured call, and repeat it to show acting twice has the effect of acting onc
 * Bad, because every product must build signing, retries and delivery to CMOkit for lifecycle facts
   CMOkit mostly already has. (Usage, which CMOkit cannot have otherwise, is sent this way; see
   ADR-0005.)
-* Bad, because the lifecycle's events start at the processor, not the product, so the product would
+* Bad, because the lifecycle's events start at the billing tool, not the product, so the product would
   mostly relay what CMOkit already knows.
 
 ### A shared queue both sides read and write

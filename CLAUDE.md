@@ -19,7 +19,7 @@ test runner; CI runs both on every pull request. (ADR-0007)
 
 `packages/*` are npm workspaces, each published on its own: `@cmokit/cli` (configuration and the
 `cmokit` command), `@cmokit/astro` (the Astro integration), `@cmokit/edge` (the Worker),
-`@cmokit/lifecycle` (the container) and `create-cmokit` (the starter). `@cmokit/edge` never depends
+`@cmokit/lifecycle` (the lifecycle) and `create-cmokit` (the starter). `@cmokit/edge` never depends
 on `@cmokit/lifecycle`.
 Each package's source is `src/`, built to `dist/` for publishing. Its exports name `src/` first under
 the `cmokit-source` condition, which the repository's type check and tests use, so nothing is built
@@ -34,34 +34,34 @@ a package exists. (ADR-0002)
 - **CMOkit is a dependency, never a site.** No adopter's content, copy or design lives here; the
   starter is the one example site, and it holds only placeholder content. (ADR-0002)
 - **Handlers use the web-standard `Request` and `Response` only.** No Cloudflare- or host-specific API
-  inside a handler; those belong in the adapters. Edge work runs only as a Worker and keeps no state;
-  lifecycle work runs only as a container, inside the product's audit boundary. An edge handler never imports lifecycle code or the
-  database client. (ADR-0003)
-- **State is a Postgres database of CMOkit's own, and is only balances and event keys.** The database
-  sits on the product's existing instance; CMOkit's role reaches that database alone and owns
-  nothing outside it.
-  Balances are append-only grants and debits; each event is acted on once, by its key. Tests run the
-  same SQL on PGlite. (ADR-0006)
-- **A variant is a page; the edge only chooses.** An experiment's variants are static pages the build
-  checks and lists in its manifest. The edge stores no assignment: the experiments tool decides, the
-  visitor's cookie remembers, and any failure serves the control unassigned. Agents always get the
-  control and are never exposed. (ADR-0009)
+  inside a handler; those belong in the adapters. Edge work runs only as a Worker and keeps no state.
+  Lifecycle work runs as a Worker, or as a container that scales to zero inside an audited product's
+  boundary, and its handlers are tested on both. An edge handler never imports lifecycle code.
+  (ADR-0003)
+- **Everything scales to zero.** No part of CMOkit is an always-on server or database. (ADR-0003)
+- **CMOkit keeps no database.** Credit grants, balances and usage are the billing tool's, reached
+  through the billing interface; every action CMOkit takes on an event sets a state, so acting twice
+  is acting once. No package depends on a database client. (ADR-0006)
+- **A variant is a page; the edge only chooses.** An experiment's variants are pages of the site, on
+  whatever host or CMS it uses, and the experiments are configuration deployed with the edge. The
+  edge stores no assignment: the experiments tool decides, the visitor's cookie remembers, and any
+  failure serves the control unassigned. Agents always get the control and are never exposed.
+  (ADR-0009)
 - **One identity.** The edge's visitor cookie is the analytics tool's distinct id, in the edge and the
   browser alike; the browser evaluates no flags and records no exposures. (ADR-0010)
 - **No product-specific code.** A product's lifecycle is reached by configured calls to its published
   API, as an OAuth client, and through its identity provider by OpenID Connect or OAuth. Every call
-  names the entity it acts on. (ADR-0004)
-- **A product sends only usage.** Signed, rolled-up usage events, naming member, entity and an
-  idempotency key, are the only thing CMOkit accepts from a product. CMOkit decides when an entity's
-  credits run out and makes the configured suspend call. (ADR-0005)
+  names the customer it acts on. (ADR-0004)
+- **A product sends only usage.** Signed, aggregated usage events, naming user, customer and an
+  idempotency key, are the only thing CMOkit accepts from a product. CMOkit records them at the
+  billing tool and in analytics, and makes the configured calls when the tool reports a balance low,
+  exhausted or restored. (ADR-0005)
 - **Name things for the job, not the vendor.** A bought tool sits behind an interface named for what
-  it does: experiments, analytics, messaging, payments. The edge handler names no tool; only its
-  adapters and the Worker that wires them do. (`NFR-03`, ADR-0010)
+  it does: experiments, analytics, messaging, billing. No handler names a tool; only the adapters and
+  the Worker that wires them do. (`NFR-03`, ADR-0010, ADR-0012)
 
 ## Deployment
 
-- **One lifecycle image, explicit entrypoints.** The service is the default command; `cmokit migrate`
-  runs from the same image. Migrations never run at startup. (ADR-0008)
 - **The environment reaches lifecycle code through variables alone.** No cloud metadata, no cloud SDK,
   no configuration a deployment supplies any other way. Every variable is listed in the deployment
   reference; changing the shape of that list needs a record. (ADR-0008)
