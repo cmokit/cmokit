@@ -34,17 +34,16 @@ a package exists. (ADR-0002)
 - **CMOkit is a dependency, never a site.** No adopter's content, copy or design lives here; the
   starter is the one example site, and it holds only placeholder content. (ADR-0002)
 - **Handlers use the web-standard `Request` and `Response` only.** No Cloudflare- or host-specific API
-  inside a handler; those belong in the adapters. Edge work runs only as a Worker and keeps no state.
-  Lifecycle work runs as a Worker, or as a container that scales to zero inside an audited product's
-  boundary, and its handlers are tested on both. An edge handler never imports lifecycle code.
-  (ADR-0003)
+  inside a handler; those belong in the adapters. Handlers are tested with Node's test runner, adapters
+  under Wrangler. An edge handler never imports lifecycle code. (ADR-0003)
+- **Everything runs on Cloudflare.** Edge and lifecycle work are Workers, and their only store is
+  Durable Objects. CMOkit runs nowhere else. Edge work keeps no state. (ADR-0003, ADR-0006)
 - **Everything scales to zero.** No part of CMOkit is an always-on server or database. (ADR-0003)
 - **Credits are CMOkit's ledger; money is the payment processor's.** Each customer's credit grants,
   usage and balance, in the product's units, are kept in a Durable Object of its own, written against
-  a SQL interface and tested on Node's SQLite. All of CMOkit's storage is on Cloudflare, whichever
-  runtime runs lifecycle work, and none of it is about money. Every action CMOkit takes on an event
-  sets a state, so acting twice is acting once. No package depends on a database client. (ADR-0006,
-  ADR-0012)
+  a SQL interface and tested on Node's SQLite. None of CMOkit's storage is about money. Every action
+  CMOkit takes on an event sets a state, so acting twice is acting once. No package depends on a
+  database client. (ADR-0006, ADR-0012)
 - **A variant is a page; the edge only chooses.** An experiment's variants are pages of the site, on
   whatever host or CMS it uses, and the experiments are configuration deployed with the edge. The
   edge stores no assignment: the experiments tool decides, the visitor's cookie remembers, and any
@@ -69,11 +68,10 @@ a package exists. (ADR-0002)
 
 ## Deployment
 
-- **The environment reaches lifecycle code through variables alone.** No cloud metadata, no cloud SDK,
-  no configuration a deployment supplies any other way. Every variable is listed in the deployment
-  reference; changing the shape of that list needs a record. (ADR-0008)
-- **Images pin their bases by digest and run without privileges.** The local `compose.yaml` is shaped
-  like production; development differences go in `compose.dev.yaml` only. (ADR-0008)
+- **The environment reaches the Workers through variables and secrets alone.** CMOkit's reviewed
+  configuration is bundled at deploy and holds no secret; everything else is a Worker variable or
+  secret the deploy sets, read only by the adapters. Every one is listed in the deployment reference;
+  changing the shape of that list needs a record. (ADR-0008)
 
 ## Secrets
 

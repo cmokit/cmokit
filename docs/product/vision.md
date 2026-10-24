@@ -40,9 +40,8 @@ the page.
   subscription and its balance. CMOkit uses the vocabulary every billing system already uses.
 * **Costs nothing while nothing happens.** A small business's traffic is low and uneven. Every part of
   CMOkit scales to zero, so a quiet month costs what its bought tools charge and nothing more.
-* **Inside the audit boundary when there is one.** A business whose product is audited can run the
-  part of CMOkit that holds credentials inside its own boundary. A business that is not audited needs
-  no boundary at all.
+* **One vendor to run it.** Everything CMOkit runs and stores is on Cloudflare, which already sits in
+  front of the site. There is one account to secure and one vendor to list.
 * **The product is someone else's.** The business's product is reached through its own published API.
   CMOkit asks the product for a few general things — give this customer access, revoke it, restore it
   — and learns from it only how much each user used.

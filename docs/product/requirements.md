@@ -13,6 +13,7 @@ requirements cite no decision record.
 | Ad buying and bidding | Spend is an input to cost of acquisition, not something CMOkit manages. |
 | Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOkit counts credits, in the product's units, and keeps nothing about money. |
 | The product itself | CMOkit reaches a product through its published API and its identity provider, and receives from it only usage. |
+| Running in an adopter's own cloud | CMOkit runs on Cloudflare. An audited adopter relies on Cloudflare's own audit reports for it, and one that cannot use Cloudflare cannot use CMOkit's lifecycle. |
 | Software with no hosted part | A skill or tool that runs entirely on a user's machine cannot have its access revoked. CMOkit gates only what a product hosts. |
 
 ## Serving — `SRV-`
@@ -124,7 +125,6 @@ requirements cite no decision record.
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
 | **NFR-01** | A site adopts CMOkit by adding a dependency and configuration, and upgrades by changing a version. | Must | Proposed |
-| **NFR-02** | A deployment whose product is audited can run every part of CMOkit that holds a credential to the product inside the product's existing audit boundary. | Must | Proposed |
 | **NFR-03** | Every bought tool sits behind an interface, so a business can use another vendor for the same job. | Should | Proposed |
 | **NFR-04** | A business can run CMOkit's whole test suite with no account at any bought tool. | Must | Proposed |
 | **NFR-05** | Every secret is supplied by the deploying environment, never committed and never logged. | Must | Proposed |

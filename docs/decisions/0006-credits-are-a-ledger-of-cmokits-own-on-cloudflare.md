@@ -72,8 +72,8 @@ crossing exact, and costs nothing while the customer is idle.
 > object's alarm delivers the outbox until each action is acknowledged. Every action sets a state, so
 > delivering it twice is delivering it once.
 >
-> **All storage on Cloudflare.** The ledger is CMOkit's only store, and it runs on Cloudflare whichever
-> runtime runs the rest of lifecycle work (ADR-0003). No package depends on a database client.
+> **All storage on Cloudflare.** The ledger is CMOkit's only store, beside the Workers that use it
+> (ADR-0003). No package depends on a database client.
 >
 > **Written apart from its runtime.** The ledger's logic is written against a small SQL interface. The
 > Durable Object's storage implements it in production, and Node's built-in SQLite in tests and local
@@ -90,8 +90,8 @@ crossing exact, and costs nothing while the customer is idle.
 * Good, because no vendor sits between an adopter and its Stripe account.
 * Bad, because CMOkit owns the correctness of something access depends on, so the ledger's tests must
   cover repeated events, concurrent debits, expiry order and every crossing.
-* Bad, because customers' balances and usage are held by Cloudflare even for a deployment that runs
-  the rest of lifecycle work in its own cloud.
+* Bad, because customers' balances and usage are held by Cloudflare, which an audited adopter lists
+  among its subprocessors.
 * Bad, because a usage event is kept as long as its key must be recognised, so a customer's storage
   grows with its usage, slowly.
 
