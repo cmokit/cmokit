@@ -20,7 +20,7 @@ export default function cmokit(config: Config): AstroIntegration {
         const options: ClientOptions = {
           key: site.analytics.posthog.key,
           apiHost: command === 'dev' ? host : RELAY_PATH,
-          uiHost: uiHost(host),
+          uiHost: site.analytics.posthog.app,
           flags: site.experiments.filter((e) => e.status === 'running').map((e) => e.flag),
           convert: command === 'dev' ? 'browser' : CONVERT_PATH,
         };
@@ -37,11 +37,4 @@ export default function cmokit(config: Config): AstroIntegration {
       },
     },
   };
-}
-
-/** PostHog's app host for an ingestion host: us.i.posthog.com is reached at us.posthog.com. */
-function uiHost(host: string): string {
-  const url = new URL(host);
-  url.hostname = url.hostname.replace(/^([a-z]+)\.i\./, '$1.');
-  return url.origin;
 }

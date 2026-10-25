@@ -42,3 +42,23 @@ test('resolving fills in the default host and normalizes paths', () => {
   assert.deepEqual(m.experiments[0].variants, { b: '/v/b/' });
   assert.equal(m.experiments[0].status, 'draft');
 });
+
+test('a split names the control and every variant, in whole percentages summing to 100', () => {
+  const at = (split: Record<string, number>) => problems({ ...valid, experiments: [{ ...valid.experiments![0], split }] });
+  assert.deepEqual(at({ control: 70, b: 30 }), []);
+  assert.match(at({ control: 100 })[0], /split must name exactly control, b/);
+  assert.match(at({ control: 60, b: 30 })[0], /summing to 100/);
+  assert.match(at({ control: 50.5, b: 49.5 })[0], /whole percentages/);
+});
+
+test('an even split gives the remainder to the first variants', () => {
+  const three = resolve({ ...valid, experiments: [{ ...valid.experiments![0], variants: { b: '/b/', c: '/c/' } }] });
+  assert.deepEqual(three.experiments[0].split, { control: 34, b: 33, c: 33 });
+});
+
+test('the project id is a positive whole number, and the app host follows the ingestion host', () => {
+  assert.match(problems({ ...valid, analytics: { posthog: { key: 'k', project: 0 } } })[0], /numeric id/);
+  const eu = resolve({ ...valid, analytics: { posthog: { key: 'k', host: 'https://eu.i.posthog.com', project: 7 } } });
+  assert.equal(eu.analytics.posthog.app, 'https://eu.posthog.com');
+  assert.equal(eu.analytics.posthog.project, 7);
+});
