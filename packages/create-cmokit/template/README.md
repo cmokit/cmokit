@@ -19,7 +19,8 @@ A push to `main` then deploys the site and the edge, and creates the `landing` e
 PostHog as a draft. To start it, change its `status` to `running` in a pull request, and merge it.
 `npx cmokit experiments plan` estimates how long it must run first, and
 `npx cmokit experiments results` reads how it is doing; both read the key from
-`POSTHOG_PERSONAL_API_KEY` in your shell.
+`POSTHOG_PERSONAL_API_KEY` in your shell. A coding agent started in this directory finds the same
+as tools of the `cmokit` MCP server in `.mcp.json`.
 
 ## Work on it
 

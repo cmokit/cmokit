@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cmokit": {
+      "command": "npx",
+      "args": ["cmokit", "mcp"]
+    }
+  }
+}
