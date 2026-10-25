@@ -1,15 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Manifest } from '@cmokit/cli';
+import type { Resolved, Status } from '@cmokit/cli';
 import { createEdge, parseCookies, type AnalyticsEvent, type EdgeOptions } from '../src/index.ts';
 
 const BROWSER = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 Safari/605.1.15';
 
-const MANIFEST: Manifest = {
-  version: 1,
+const config = (status: Status): Resolved => ({
   analytics: { posthog: { key: 'phc_test', host: 'https://ph.example' } },
-  experiments: [{ flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' } }],
-};
+  experiments: [{ flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' }, goal: 'signup', status }],
+});
 
 const PAGES: Record<string, string> = {
   '/': 'control page',
@@ -18,7 +17,7 @@ const PAGES: Record<string, string> = {
 };
 
 interface Setup {
-  manifest?: Manifest | undefined;
+  status?: Status;
   variant?: () => Promise<string | undefined>;
   pages?: Record<string, string>;
 }
@@ -29,14 +28,14 @@ function setup(s: Setup = {}) {
   const work: Promise<unknown>[] = [];
   const pages = s.pages ?? PAGES;
   const options: EdgeOptions = {
-    manifest: async () => ('manifest' in s ? s.manifest : MANIFEST),
+    config: config(s.status ?? 'running'),
     origin: async (request) => {
       const path = new URL(request.url).pathname;
       return path in pages
         ? new Response(pages[path], { headers: { 'content-type': 'text/html', 'cache-control': 'max-age=600' } })
         : new Response('not found', { status: 404 });
     },
-    tools: () => ({
+    tools: {
       experiments: {
         variantFor: async (visitor, flag) => {
           asked.push(`${visitor}:${flag}`);
@@ -47,7 +46,7 @@ function setup(s: Setup = {}) {
         capture: async (event) => void events.push(event),
         relay: async (_request, path) => new Response(`relayed ${path}`),
       },
-    }),
+    },
     background: (p) => void work.push(p),
     newVisitor: () => 'visitor-1',
   };
@@ -114,7 +113,7 @@ test('an unreachable tool serves the control unassigned', async () => {
   assert.equal(edge.events.length, 0);
 });
 
-test('a variant the manifest does not know is treated as no answer', async () => {
+test('a variant the configuration does not know is treated as no answer', async () => {
   const edge = setup({ variant: async () => 'retired' });
   const { body } = await edge.get('/', { cookie: 'cmokit_id=v9; cmokit_x_landing=old' });
   assert.equal(body, 'control page');
@@ -129,11 +128,25 @@ test('a missing variant page serves the control unassigned', async () => {
   assert.equal(edge.events.length, 0);
 });
 
-test('an unreadable manifest passes the request through', async () => {
-  const edge = setup({ manifest: undefined });
-  const { body } = await edge.get('/');
-  assert.equal(body, 'control page');
-  assert.deepEqual(edge.asked, []);
+for (const status of ['draft', 'ended'] as const) {
+  test(`a ${status} experiment serves its page to everyone, unassigned and unrecorded`, async () => {
+    const edge = setup({ status });
+    const fresh = await edge.get('/');
+    assert.equal(fresh.body, 'control page');
+    assert.deepEqual(fresh.cookies.map((c) => c.split(';')[0]), ['cmokit_id=visitor-1']);
+    const assigned = await edge.get('/', { cookie: 'cmokit_id=v9; cmokit_x_landing=b' });
+    assert.equal(assigned.body, 'control page');
+    assert.deepEqual(edge.asked, []);
+    assert.equal(edge.events.length, 0);
+    assert.equal((await edge.get('/variants/landing/b/')).response.status, 302);
+    assert.equal((await edge.get('/?cmokit_variant=b')).body, 'variant b page');
+  });
+}
+
+test('a conversion carries only running experiments\' variants', async () => {
+  const edge = setup({ status: 'ended' });
+  await edge.post('/_cmokit/convert', { name: 'signup' }, { cookie: 'cmokit_id=v9; cmokit_x_landing=b' });
+  assert.equal(edge.events[0].properties['$feature/landing'], undefined);
 });
 
 test('agents get the control, no cookie and no exposure, and are labeled', async () => {

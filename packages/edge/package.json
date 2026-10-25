@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/edge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The edge, as a Cloudflare Worker in front of a CMOkit site: variant resolution and the server-side conversion. Keeps no state.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",
@@ -37,7 +37,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@cmokit/cli": "^0.1.0"
+    "@cmokit/cli": "^0.2.0"
   },
   "publishConfig": {
     "access": "public"

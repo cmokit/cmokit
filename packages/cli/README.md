@@ -1,14 +1,18 @@
 # @cmokit/cli
 
-A CMOkit site's configuration: `defineConfig` for its `cmokit.config.ts`, which the Astro
-integration checks at build and publishes as the manifest the edge reads.
+A CMOkit site's configuration: `defineConfig` for its `cmokit.config.ts`, which is bundled into the
+edge when it is deployed. Each experiment declares its goal and its status: `draft`, `running` or
+`ended`. Only a running experiment assigns visitors.
 
 ```ts
 import { defineConfig } from '@cmokit/cli';
 
 export default defineConfig({
   analytics: { posthog: { key: 'phc_…' } },
-  experiments: [{ flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' } }],
+  experiments: [{
+    flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' },
+    goal: 'signup', status: 'running',
+  }],
 });
 ```
 

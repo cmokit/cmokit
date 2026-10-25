@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Configuration and command line for CMOkit: defineConfig for a cmokit.config.ts, and the cmokit command to check, migrate, apply, pull and run locally.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",

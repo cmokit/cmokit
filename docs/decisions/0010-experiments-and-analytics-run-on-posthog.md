@@ -52,8 +52,8 @@ judges them and holds the funnel they are judged by, over an API the edge calls 
 * Good, because relaying the browser's events through the site's own address keeps blockers of
   analytics domains from losing them.
 * Bad, because one vendor holding both jobs makes leaving it two migrations at once.
-* Neutral, because the project key the adapters use is public by design, so the manifest and the
-  page may carry it.
+* Neutral, because the project key the adapters use is public by design, so the edge's bundled
+  configuration and the page may carry it.
 
 ### Confirmation
 
