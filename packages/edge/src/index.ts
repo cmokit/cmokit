@@ -6,10 +6,14 @@
 import {
   CONTROL,
   CONVERT_PATH,
+  EMAIL,
   EVENT_NAME,
+  LEADS_PATH,
+  LEAD_COOKIE,
   PREVIEW_PARAM,
   RELAY_PATH,
   VISITOR_COOKIE,
+  leadKey,
   normalizePath,
   variantCookie,
   type Experiment,
@@ -37,9 +41,33 @@ export interface Analytics {
   relay(request: Request, path: string): Promise<Response>;
 }
 
+/** A lead the edge captured from a form that carried an email address. */
+export interface CapturedLead {
+  key: string;
+  email: string;
+  visitor: string;
+  /** The conversion event that captured it. */
+  event: string;
+  /** The site's origin, where the lead's unsubscribe link points. */
+  origin: string;
+  /** The visitor's variants and channel, as analytics properties. */
+  properties: Record<string, unknown>;
+}
+
+/** The lifecycle, which keeps each lead's sequence of messages (ADR-0014). */
+export interface Lifecycle {
+  capture(lead: CapturedLead): Promise<void>;
+  /** A later conversion by a captured lead, which may end its sequence. */
+  event(key: string, name: string): Promise<void>;
+  /** Passes on a public request under LEADS_PATH: an unsubscribe, or the sending service's events. */
+  forward(request: Request): Promise<Response>;
+}
+
 export interface Tools {
   experiments: Experiments;
   analytics: Analytics;
+  /** Absent when the site sends no messages. */
+  lifecycle?: Lifecycle;
 }
 
 export interface EdgeOptions {
@@ -54,6 +82,9 @@ export interface EdgeOptions {
 }
 
 const YEAR = 60 * 60 * 24 * 365;
+
+/** The lifecycle's routes the public may reach through the edge. */
+const PUBLIC_LEADS = new Set([`${LEADS_PATH}/unsubscribe`, `${LEADS_PATH}/events`]);
 
 /**
  * The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. Each
@@ -75,7 +106,12 @@ export function createEdge(options: EdgeOptions): (request: Request) => Promise<
   return async (request) => {
     const url = new URL(request.url);
     try {
-      if (url.pathname === CONVERT_PATH) return await convert(request, running, options.tools, later);
+      if (url.pathname === CONVERT_PATH) return await convert(request, running, options, later);
+      if (url.pathname.startsWith(`${LEADS_PATH}/`)) {
+        const lifecycle = options.tools.lifecycle;
+        if (!lifecycle || !PUBLIC_LEADS.has(url.pathname)) return new Response('Not found', { status: 404 });
+        return await lifecycle.forward(request);
+      }
       if (url.pathname.startsWith(`${RELAY_PATH}/`)) {
         return await options.tools.analytics.relay(request, url.pathname.slice(RELAY_PATH.length));
       }
@@ -184,29 +220,50 @@ async function serve(
 async function convert(
   request: Request,
   running: Experiment[],
-  tools: Tools,
+  options: EdgeOptions,
   later: (work: Promise<unknown>) => void,
 ): Promise<Response> {
   if (request.method !== 'POST') return new Response(null, { status: 405, headers: { allow: 'POST' } });
   const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) return new Response(null, { status: 403 });
+  const site = new URL(request.url).origin;
+  if (origin && origin !== site) return new Response(null, { status: 403 });
 
   const cookies = parseCookies(request.headers.get('cookie'));
   const visitor = cookies[VISITOR_COOKIE];
   if (!visitor || isAgent(request)) return new Response(null, { status: 204 });
 
-  const body = await request.json().catch(() => ({})) as { name?: unknown };
+  const body = await request.json().catch(() => ({})) as { name?: unknown; email?: unknown };
   const name = typeof body.name === 'string' && EVENT_NAME.test(body.name) ? body.name : 'conversion';
-  const variants: Record<string, string> = {};
+  const email = typeof body.email === 'string' && EMAIL.test(body.email.trim()) ? body.email.trim() : undefined;
+  const properties: Record<string, unknown> = {};
   for (const experiment of running) {
     const variant = cookies[variantCookie(experiment.flag)];
-    if (variant) variants[`$feature/${experiment.flag}`] = variant;
+    if (variant) properties[`$feature/${experiment.flag}`] = variant;
   }
   const page = request.headers.get('referer');
+  if (page) {
+    properties.$current_url = page;
+    const query = URL.canParse(page) ? new URL(page).searchParams : new URLSearchParams();
+    for (const [key, value] of query) if (CAMPAIGN_PARAMS.has(key)) properties[key] = value;
+  }
+  const { tools, config } = options;
   later(tools.analytics.capture({ name, visitor, properties: {
-    ...variants, ...(page ? { $current_url: page } : {}), source: 'edge',
+    ...properties, source: 'edge', ...(email ? { $set: { email } } : {}),
   } }));
-  return new Response(null, { status: 204 });
+
+  // A form with an address captures a lead into the sequence its event starts; a later conversion by
+  // the same visitor may end it.
+  const set: string[] = [];
+  if (tools.lifecycle) {
+    if (email && config.sequences.some((s) => s.start === name)) {
+      const key = await leadKey(email);
+      later(tools.lifecycle.capture({ key, email, visitor, event: name, origin: site, properties }));
+      set.push(cookie(LEAD_COOKIE, key));
+    } else if (cookies[LEAD_COOKIE] && config.sequences.some((s) => s.stop.includes(name))) {
+      later(tools.lifecycle.event(cookies[LEAD_COOKIE], name));
+    }
+  }
+  return withCookies(new Response(null, { status: 204 }), set);
 }
 
 function visitProperties(request: Request, url: URL): Record<string, unknown> {

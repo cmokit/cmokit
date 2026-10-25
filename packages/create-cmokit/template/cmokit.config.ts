@@ -27,4 +27,28 @@ export default defineConfig({
       status: 'draft',
     },
   ],
+  // How messages to leads are sent, through SendGrid. Replace these with your own.
+  messaging: {
+    // An address on a domain authenticated in SendGrid (Settings → Sender Authentication).
+    from: 'hello@example.com',
+    fromName: 'Product name',
+    // The postal address every message carries, as anti-spam law requires.
+    address: 'Your company, street, city, postcode, country',
+    // The unsubscribe group every message belongs to (Suppressions → Unsubscribe Groups).
+    sendgrid: { unsubscribeGroup: 12345 },
+  },
+  // Each sequence sends a lead its messages in order, starting when a form with an email field
+  // records the `start` event, and ending at a `stop` event, an unsubscribe or a bounce. Each message
+  // is messages/<template>.md, sent `after` the one before it: 0m, 12h, 3d.
+  sequences: [
+    {
+      name: 'welcome',
+      start: 'signup',
+      stop: ['trial_started'],
+      messages: [
+        { template: 'welcome', after: '0m' },
+        { template: 'follow-up', after: '3d' },
+      ],
+    },
+  ],
 });

@@ -6,5 +6,7 @@
   // The Worker runs in front of the site's own domain, whose DNS record is proxied by Cloudflare and
   // points at GitHub Pages. Replace example.com with that domain.
   "routes": [{ "pattern": "example.com/*", "zone_name": "example.com" }],
+  // The lifecycle Worker in lifecycle/, which sends leads their messages. Deployed first.
+  "services": [{ "binding": "LIFECYCLE", "service": "cmokit-site-lifecycle" }],
   "observability": { "enabled": true }
 }

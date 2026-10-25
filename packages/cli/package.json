@@ -1,6 +1,6 @@
 {
   "name": "@cmokit/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Configuration and command line for CMOkit: defineConfig for a cmokit.config.ts, and the cmokit command and MCP server, which make the experiments tool match it and read its estimates and results.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",

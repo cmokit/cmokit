@@ -33,7 +33,23 @@ landing-page experiments on PostHog.
   zero. All of them read `POSTHOG_PERSONAL_API_KEY` from the shell; if it is not set, ask the person
   to set it there. Never ask for the key itself.
 
+## Messages to leads
+
+- A form with an email field whose `data-cmokit-convert` event starts a sequence in
+  `cmokit.config.ts` captures the visitor as a lead. The lead is then sent the sequence's messages
+  in order, each `after` the one before, until one of its `stop` events, an unsubscribe or a
+  bounce. The form says what will be sent; keep it saying so.
+- Each message is `messages/<template>.md`: a `subject` in its front matter, then markdown
+  (paragraphs, links, bold and italic). A new template is also added to `messages/index.ts`.
+  `npm run build` fails if a sequence names a template that is missing or has no subject.
+- Changing a message is a pull request, like changing a page. CMOkit adds why it was sent, the
+  unsubscribe link and the postal address to every message, so a template needs none of them.
+- Sends, opens, clicks and unsubscribes are PostHog events (`message_sent`, `message_opened`,
+  `message_clicked`, `message_unsubscribed`, `sequence_ended`) under the visitor's id, with the
+  variant and channel they came from.
+
 ## Deployment
 
-A push to `main` builds the site, deploys it to GitHub Pages, and deploys the edge with
-`wrangler deploy`. The Worker's route is in `wrangler.jsonc`.
+A push to `main` builds the site, deploys it to GitHub Pages, then deploys the lifecycle Worker
+(`lifecycle/wrangler.jsonc`) and the edge (`wrangler.jsonc`, whose route is the site's domain). The
+lifecycle goes first, since the edge's service binding names it.

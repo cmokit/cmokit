@@ -1,6 +1,7 @@
 // The browser script on every page. It starts PostHog with the visitor's CMOkit identity and variants
 // from the edge's cookies, so the browser evaluates no flags and records no exposures of its own
-// (ADR-0010), and records a conversion when a form marked `data-cmokit-convert` is submitted.
+// (ADR-0010), and records a conversion when a form marked `data-cmokit-convert` is submitted. A form
+// with an email field also captures the visitor as a lead, server-side (ADR-0014).
 
 import { posthog } from 'posthog-js';
 import { VISITOR_COOKIE, variantCookie } from '@cmokit/cli';
@@ -44,6 +45,7 @@ export function start(options: ClientOptions): void {
     if (!form) return;
     event.preventDefault();
     const name = form.dataset.cmokitConvert || 'conversion';
+    const email = form.querySelector<HTMLInputElement>('input[type="email"]')?.value.trim() || undefined;
     const done = () => {
       form.dataset.cmokitState = 'done';
       form.dispatchEvent(new CustomEvent('cmokit:converted', { bubbles: true, detail: { name } }));
@@ -56,7 +58,7 @@ export function start(options: ClientOptions): void {
     fetch(options.convert, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, ...(email ? { email } : {}) }),
       keepalive: true,
     }).finally(done);
   });

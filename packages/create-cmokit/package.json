@@ -1,6 +1,6 @@
 {
   "name": "create-cmokit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Creates a new CMOkit site: npm create cmokit.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",

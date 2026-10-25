@@ -1,8 +1,10 @@
 # @cmokit/cli
 
 A CMOkit site's configuration: `defineConfig` for its `cmokit.config.ts`, which is bundled into the
-edge when it is deployed. Each experiment declares its goal and its status: `draft`, `running` or
-`ended`. Only a running experiment assigns visitors.
+edge and the lifecycle when they are deployed. Each experiment declares its goal and its status:
+`draft`, `running` or `ended`. Only a running experiment assigns visitors. Each sequence declares
+the event that captures a lead into it, the events that end it, and its messages, each a template
+in `messages/` sent some time after the one before.
 
 ```ts
 import { defineConfig } from '@cmokit/cli';
@@ -12,6 +14,14 @@ export default defineConfig({
   experiments: [{
     flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' },
     goal: 'signup', status: 'running',
+  }],
+  messaging: {
+    from: 'hello@example.com', address: 'Company, street, city, country',
+    sendgrid: { unsubscribeGroup: 12345 },
+  },
+  sequences: [{
+    name: 'welcome', start: 'signup', stop: ['trial_started'],
+    messages: [{ template: 'welcome', after: '0m' }, { template: 'follow-up', after: '3d' }],
   }],
 });
 ```

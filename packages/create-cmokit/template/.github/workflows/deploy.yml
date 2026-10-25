@@ -1,9 +1,12 @@
-# Builds the site and deploys it to GitHub Pages on every push to main, then deploys the edge Worker,
-# then makes PostHog's experiments match cmokit.config.ts. The edge deploys once the repository has
-# the variable CLOUDFLARE_ACCOUNT_ID and the secret CLOUDFLARE_API_TOKEN (a token with the "Edit
-# Cloudflare Workers" template). The experiments sync once it also has the secret
-# POSTHOG_PERSONAL_API_KEY (a personal API key scoped to the project, with experiment:write,
-# feature_flag:write, query:read and experiment_saved_metric:read).
+# Builds the site and deploys it to GitHub Pages on every push to main, then deploys the lifecycle
+# Worker and the edge Worker, then makes PostHog's experiments match cmokit.config.ts. The Workers
+# deploy once the repository has the variable CLOUDFLARE_ACCOUNT_ID and the secret
+# CLOUDFLARE_API_TOKEN (a token with the "Edit Cloudflare Workers" template). Leads are sent their
+# messages once it also has the secret SENDGRID_API_KEY (a SendGrid API key with Mail Send and
+# Suppressions access) and the variable SENDGRID_WEBHOOK_KEY (the signed event webhook's verification
+# key). The experiments sync once it has the secret POSTHOG_PERSONAL_API_KEY (a personal API key
+# scoped to the project, with experiment:write, feature_flag:write, query:read and
+# experiment_saved_metric:read).
 name: deploy
 
 on:
@@ -51,6 +54,19 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # The lifecycle first, since the edge's service binding names it.
+      - name: Deploy the lifecycle
+        run: |
+          secrets="$RUNNER_TEMP/lifecycle-secrets.json"
+          node -e 'const k = process.env.SENDGRID_API_KEY; require("fs").writeFileSync(process.argv[1], JSON.stringify(k ? { SENDGRID_API_KEY: k } : {}))' "$secrets"
+          npx wrangler deploy --config lifecycle/wrangler.jsonc --secrets-file "$secrets" ${SENDGRID_WEBHOOK_KEY:+--var "SENDGRID_WEBHOOK_KEY:$SENDGRID_WEBHOOK_KEY"}
+          rm "$secrets"
+          if [ -z "$SENDGRID_API_KEY" ]; then echo "::notice::Leads are not sent messages; set the secret SENDGRID_API_KEY."; fi
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          SENDGRID_WEBHOOK_KEY: ${{ vars.SENDGRID_WEBHOOK_KEY }}
       - run: npx wrangler deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

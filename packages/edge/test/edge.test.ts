@@ -10,6 +10,7 @@ const config = (status: Status): Resolved => ({
   experiments: [{
     flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' }, goal: 'signup', split: { control: 50, b: 50 }, status,
   }],
+  sequences: [],
 });
 
 const PAGES: Record<string, string> = {
