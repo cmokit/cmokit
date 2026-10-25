@@ -27,10 +27,11 @@ landing-page experiments on PostHog.
   goal in PostHog is that event.
 - Before starting an experiment, `npx cmokit experiments plan` estimates how long it must run, from
   the page's recent traffic and the goal's conversion rate there. `npx cmokit experiments results`
-  reads each experiment's results. Which variant wins is PostHog's call: a variant has won when
-  `results` calls it significant and its whole lift interval is above zero. Both read
-  `POSTHOG_PERSONAL_API_KEY` from the shell; if it is not set, ask the person to set it there.
-  Never ask for the key itself.
+  reads each experiment's results. The `cmokit` MCP server in `.mcp.json` offers both as tools, with
+  `experiments_preview_sync` to see what the next deploy would do. Which variant wins is PostHog's
+  call: a variant has won when `results` calls it significant and its whole lift interval is above
+  zero. All of them read `POSTHOG_PERSONAL_API_KEY` from the shell; if it is not set, ask the person
+  to set it there. Never ask for the key itself.
 
 ## Deployment
 

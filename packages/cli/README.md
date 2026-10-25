@@ -49,6 +49,21 @@ win (or p-value) and whether PostHog judges it significant.
 POSTHOG_PERSONAL_API_KEY=… npx cmokit experiments results [<flag>] [--json]
 ```
 
+## `cmokit mcp`
+
+An MCP server on stdio, for an agent working on the site. Its tools are `experiments_plan` and
+`experiments_results`, which answer as the commands above do, in words and as data, and
+`experiments_preview_sync`, which says what the next deploy would change. None of them changes
+anything: an agent starts or ends an experiment by changing its status in `cmokit.config.ts`, for a
+person to approve. A site's `.mcp.json`:
+
+```json
+{ "mcpServers": { "cmokit": { "command": "npx", "args": ["cmokit", "mcp"] } } }
+```
+
+The server reads the key from the environment the agent was started in, so the key never passes
+through the agent.
+
 Every command needs `analytics.posthog.project` in the configuration, and a PostHog personal API key
 scoped to that project with `experiment:write`, `feature_flag:write`, `query:read` and `experiment_saved_metric:read`, in
 `POSTHOG_PERSONAL_API_KEY`. The deploy supplies it to `sync` as a secret.
