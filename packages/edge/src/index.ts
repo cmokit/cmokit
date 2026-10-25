@@ -55,6 +55,18 @@ export interface EdgeOptions {
 
 const YEAR = 60 * 60 * 24 * 365;
 
+/**
+ * The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. Each
+ * exposure records those its page was requested with, so the channel reaches analytics even when the
+ * browser's script is blocked.
+ */
+export const CAMPAIGN_PARAMS: ReadonlySet<string> = new Set([
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_name', 'utm_term',
+  'gclid', 'gad_source', 'gclsrc', 'dclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'twclid',
+  'li_fat_id', 'mc_cid', 'igshid', 'ttclid', 'rdt_cid', 'irclid', '_kx', 'epik', 'qclid', 'sccid',
+  'oppref', 'bfcid',
+]);
+
 export function createEdge(options: EdgeOptions): (request: Request) => Promise<Response> {
   const newVisitor = options.newVisitor ?? (() => crypto.randomUUID());
   const later = (work: Promise<unknown>) => options.background(work.catch(() => undefined));
@@ -161,7 +173,11 @@ async function serve(
   options: EdgeOptions,
 ): Promise<Response> {
   if (variant === CONTROL) return options.origin(request);
+  // The variant's page gets the query the page was requested with, as the control does.
   const target = new URL(experiment.variants[variant], url);
+  const query = new URLSearchParams(url.search);
+  query.delete(PREVIEW_PARAM);
+  target.search = query.toString();
   return options.origin(new Request(target, { method: request.method, headers: request.headers }));
 }
 
@@ -197,7 +213,7 @@ function visitProperties(request: Request, url: URL): Record<string, unknown> {
   const properties: Record<string, unknown> = { $current_url: url.href, $pathname: url.pathname };
   const referrer = request.headers.get('referer');
   if (referrer) properties.$referrer = referrer;
-  for (const [key, value] of url.searchParams) if (key.startsWith('utm_')) properties[key] = value;
+  for (const [key, value] of url.searchParams) if (CAMPAIGN_PARAMS.has(key)) properties[key] = value;
   return properties;
 }
 

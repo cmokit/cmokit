@@ -28,10 +28,12 @@ function setup(s: Setup = {}) {
   const events: AnalyticsEvent[] = [];
   const asked: string[] = [];
   const work: Promise<unknown>[] = [];
+  const fetched: string[] = [];
   const pages = s.pages ?? PAGES;
   const options: EdgeOptions = {
     config: config(s.status ?? 'running'),
     origin: async (request) => {
+      fetched.push(request.url);
       const path = new URL(request.url).pathname;
       return path in pages
         ? new Response(pages[path], { headers: { 'content-type': 'text/html', 'cache-control': 'max-age=600' } })
@@ -56,6 +58,7 @@ function setup(s: Setup = {}) {
   return {
     events,
     asked,
+    fetched,
     async get(path: string, headers: Record<string, string> = {}) {
       const response = await handle(new Request(`https://site.example${path}`, {
         headers: { accept: 'text/html', 'user-agent': BROWSER, ...headers },
@@ -88,6 +91,27 @@ test('a new visitor is assigned, served their variant at the page address, and e
   assert.equal(edge.events[0].properties.$feature_flag, 'landing');
   assert.equal(edge.events[0].properties.$feature_flag_response, 'b');
   assert.equal(edge.events[0].properties.utm_source, 'news');
+});
+
+test('a variant\'s page gets the query its page was requested with, and the exposure its channel', async () => {
+  const edge = setup();
+  await edge.get('/?utm_source=ads&gclid=abc&fbclid=def&plan=pro&utm_x=1');
+  assert.deepEqual(edge.fetched, ['https://site.example/variants/landing/b/?utm_source=ads&gclid=abc&fbclid=def&plan=pro&utm_x=1']);
+  const { properties } = edge.events[0];
+  assert.equal(properties.utm_source, 'ads');
+  assert.equal(properties.gclid, 'abc');
+  assert.equal(properties.fbclid, 'def');
+  assert.equal('plan' in properties, false, 'a parameter naming no channel is only in the URL');
+  assert.equal('utm_x' in properties, false);
+  assert.equal(properties.$current_url, 'https://site.example/?utm_source=ads&gclid=abc&fbclid=def&plan=pro&utm_x=1');
+});
+
+test('a preview\'s variant page gets the query without the preview parameter', async () => {
+  const edge = setup();
+  await edge.get('/?cmokit_variant=b&plan=pro');
+  assert.deepEqual(edge.fetched, ['https://site.example/variants/landing/b/?plan=pro']);
+  await edge.get('/?cmokit_variant=control&plan=pro');
+  assert.equal(edge.fetched[1], 'https://site.example/?cmokit_variant=control&plan=pro', 'the control is the request itself');
 });
 
 test('a returning visitor keeps their variant without asking the tool', async () => {
