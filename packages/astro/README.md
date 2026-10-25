@@ -1,9 +1,8 @@
 # @cmokit/astro
 
 The Astro integration. It checks the site's CMOkit configuration, adds the analytics script to
-every page, records a conversion when a form marked `data-cmokit-convert="<event>"` is
-submitted, and publishes the manifest the edge reads. The build fails if a configured variant's
-page was not built.
+every page, and records a conversion when a form marked `data-cmokit-convert="<event>"` is
+submitted. The build fails if a draft or running experiment's page was not built.
 
 ```ts
 // astro.config.ts

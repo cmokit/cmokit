@@ -10,9 +10,9 @@
     "edge:deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@cmokit/astro": "^0.1.0",
-    "@cmokit/cli": "^0.1.0",
-    "@cmokit/edge": "^0.1.0",
+    "@cmokit/astro": "^0.2.0",
+    "@cmokit/cli": "^0.2.0",
+    "@cmokit/edge": "^0.2.0",
     "astro": "^7.4.2"
   },
   "devDependencies": {

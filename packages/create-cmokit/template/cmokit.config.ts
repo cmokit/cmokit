@@ -7,13 +7,17 @@ export default defineConfig({
   },
   experiments: [
     {
-      // A multivariate feature flag in PostHog with variants `control` and `b`, attached to an
-      // experiment whose goal is the `signup` event.
+      // The experiment's feature flag in PostHog, with variants `control` and `b`.
       flag: 'landing',
       // The page under experiment. It is the control.
       path: '/',
       // Every other variant, as the page that holds it.
       variants: { b: '/variants/landing/b/' },
+      // The conversion event that decides the experiment: a form's `data-cmokit-convert`.
+      goal: 'signup',
+      // `draft` serves everyone the page itself; `running` assigns visitors their variants; `ended`
+      // serves everyone the page itself again.
+      status: 'draft',
     },
   ],
 });

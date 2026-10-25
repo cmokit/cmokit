@@ -1,17 +1,19 @@
 // The edge's handler, on web-standard Request and Response only (ADR-0003). It serves each visitor
 // their variant of a page under experiment (ADR-0009), records exposures and conversions, and relays
-// the browser's analytics. It keeps no state: a visitor's identity and variants live in their cookies.
+// the browser's analytics. Its experiments are the configuration deployed with it, and only a running
+// one is served. It keeps no state: a visitor's identity and variants live in their cookies.
 
 import {
   CONTROL,
   CONVERT_PATH,
+  EVENT_NAME,
   PREVIEW_PARAM,
   RELAY_PATH,
   VISITOR_COOKIE,
   normalizePath,
   variantCookie,
   type Experiment,
-  type Manifest,
+  type Resolved,
 } from '@cmokit/cli';
 import { isAgent } from './agents.ts';
 
@@ -41,33 +43,29 @@ export interface Tools {
 }
 
 export interface EdgeOptions {
-  /** The site's manifest, or undefined when it cannot be read. */
-  manifest(): Promise<Manifest | undefined>;
-  /** Fetches from the static site. */
+  /** The site's configuration, resolved. */
+  config: Resolved;
+  /** Fetches from the site. */
   origin(request: Request): Promise<Response>;
-  /** The tools the manifest configures. */
-  tools(manifest: Manifest): Tools;
+  tools: Tools;
   /** Runs work after the response is sent. */
   background(work: Promise<unknown>): void;
   newVisitor?(): string;
 }
 
 const YEAR = 60 * 60 * 24 * 365;
-const EVENT_NAME = /^[a-z0-9_]{1,64}$/;
 
 export function createEdge(options: EdgeOptions): (request: Request) => Promise<Response> {
   const newVisitor = options.newVisitor ?? (() => crypto.randomUUID());
   const later = (work: Promise<unknown>) => options.background(work.catch(() => undefined));
+  const running = options.config.experiments.filter((e) => e.status === 'running');
 
   return async (request) => {
     const url = new URL(request.url);
     try {
-      if (url.pathname === CONVERT_PATH || url.pathname.startsWith(`${RELAY_PATH}/`)) {
-        const manifest = await options.manifest();
-        if (!manifest) return new Response(null, { status: 503 });
-        const tools = options.tools(manifest);
-        if (url.pathname === CONVERT_PATH) return await convert(request, manifest, tools, later);
-        return await tools.analytics.relay(request, url.pathname.slice(RELAY_PATH.length));
+      if (url.pathname === CONVERT_PATH) return await convert(request, running, options.tools, later);
+      if (url.pathname.startsWith(`${RELAY_PATH}/`)) {
+        return await options.tools.analytics.relay(request, url.pathname.slice(RELAY_PATH.length));
       }
       if (!isPage(request)) return await options.origin(request);
       return await page(request, url, options, newVisitor, later);
@@ -89,26 +87,24 @@ async function page(
   newVisitor: () => string,
   later: (work: Promise<unknown>) => void,
 ): Promise<Response> {
-  const manifest = await options.manifest();
+  const { experiments } = options.config;
   const path = normalizePath(url.pathname);
-  const experiment = manifest?.experiments.find((e) => e.path === path);
+  const experiment = experiments.find((e) => e.path === path);
   const cookies = parseCookies(request.headers.get('cookie'));
   const agent = isAgent(request);
+  const previewing = url.searchParams.has(PREVIEW_PARAM);
 
-  if (manifest) {
-    const owner = manifest.experiments.find((e) => Object.values(e.variants).some((v) => normalizePath(v) === path));
-    if (owner && !url.searchParams.has(PREVIEW_PARAM)) {
-      return redirect(new URL(owner.path + url.search, url));
-    }
-  }
+  const owner = experiments.find((e) => Object.values(e.variants).some((v) => normalizePath(v) === path));
+  if (owner && !previewing) return redirect(new URL(owner.path + url.search, url));
 
-  if (!manifest || !experiment) {
+  // A draft or ended experiment's page is served as the site has it, except to a preview.
+  if (!experiment || (experiment.status !== 'running' && !previewing)) {
     const response = await options.origin(request);
     if (agent || cookies[VISITOR_COOKIE]) return response;
     return withCookies(response, [visitorCookie(newVisitor())]);
   }
 
-  const tools = options.tools(manifest);
+  const { tools } = options;
   const known = (variant: string | undefined) =>
     variant !== undefined && (variant === CONTROL || variant in experiment.variants) ? variant : undefined;
 
@@ -171,7 +167,7 @@ async function serve(
 
 async function convert(
   request: Request,
-  manifest: Manifest,
+  running: Experiment[],
   tools: Tools,
   later: (work: Promise<unknown>) => void,
 ): Promise<Response> {
@@ -186,7 +182,7 @@ async function convert(
   const body = await request.json().catch(() => ({})) as { name?: unknown };
   const name = typeof body.name === 'string' && EVENT_NAME.test(body.name) ? body.name : 'conversion';
   const variants: Record<string, string> = {};
-  for (const experiment of manifest.experiments) {
+  for (const experiment of running) {
     const variant = cookies[variantCookie(experiment.flag)];
     if (variant) variants[`$feature/${experiment.flag}`] = variant;
   }

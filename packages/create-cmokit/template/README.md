@@ -6,7 +6,8 @@ A static Astro site with landing-page experiments, made with `npm create cmokit`
 
 1. **PostHog.** Create a project and put its project key in `cmokit.config.ts`. Create a
    multivariate feature flag `landing` with variants `control` and `b`, and an experiment on that
-   flag whose goal is the `signup` event.
+   flag whose goal is the `signup` event. Then set the experiment's `status` to `running` in
+   `cmokit.config.ts`.
 2. **GitHub Pages.** Push this repository to GitHub. Under Settings → Pages, set the source to
    GitHub Actions and the custom domain to your domain. Add that domain to `public/CNAME`.
 3. **Cloudflare.** Point your domain's DNS at GitHub Pages with the record proxied, and set SSL/TLS
