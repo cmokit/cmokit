@@ -18,3 +18,5 @@ from [adr-template.md](adr-template.md).
 | [0011](0011-packages-publish-javascript-built-from-their-source.md) | Packages publish JavaScript built from their TypeScript, and the repository runs the source | Proposed |
 | [0012](0012-money-runs-on-stripe-alone.md) | Money runs on Stripe alone, behind a payments interface | Proposed |
 | [0013](0013-experiments-are-declared-in-configuration-and-synced-to-the-tool.md) | Experiments are declared in CMOkit's configuration, and the deploy makes the experiments tool match | Proposed |
+| [0014](0014-lead-messages-are-sequences-of-cmokits-own.md) | A lead's messages are a sequence declared in CMOkit's configuration, kept in a Durable Object per lead | Proposed |
+| [0015](0015-email-is-sent-through-sendgrid.md) | Email is sent through SendGrid, behind the messaging interface | Proposed |

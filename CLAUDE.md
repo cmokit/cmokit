@@ -53,6 +53,10 @@ a package exists. (ADR-0002)
   configuration, and the deploy makes the experiments tool match; nothing is started or ended in the
   tool by hand. The tool's administrative key is read by the command line alone, never the edge.
   (ADR-0013)
+- **A lead's messages are configuration.** A sequence and its messages live in the site's
+  repository, and each lead's place in it in a Durable Object of its own; the sending service only
+  sends, and keeps unsubscribes and suppressions. Its key is a Worker secret, never in a browser.
+  (ADR-0014, ADR-0015)
 - **One identity.** The edge's visitor cookie is the analytics tool's distinct id, in the edge and the
   browser alike; the browser evaluates no flags and records no exposures. (ADR-0010)
 - **No product-specific code.** A product's lifecycle is reached by configured calls to its published
