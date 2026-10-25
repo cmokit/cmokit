@@ -28,8 +28,30 @@ cannot be made to match, such as a running one whose variants changed.
 POSTHOG_PERSONAL_API_KEY=… npx cmokit experiments sync [--dry-run]
 ```
 
-It needs `analytics.posthog.project` in the configuration, and a PostHog personal API key scoped to
-that project with `experiment:write` and `feature_flag:write`, which the deploy supplies as a secret.
+## `cmokit experiments plan`
+
+Estimates how long each experiment that is not ended must run. It reads how many visitors reached
+the experiment's page over the last weeks and what share of them sent its goal, and asks PostHog how
+many visitors it needs to detect a given relative lift (`--effect`, in percent; PostHog's default
+otherwise).
+
+```
+POSTHOG_PERSONAL_API_KEY=… npx cmokit experiments plan [<flag>] [--effect <percent>] [--json]
+```
+
+## `cmokit experiments results`
+
+Reads each experiment's results on its goal, as PostHog computes them: for each variant, the
+visitors exposed and converted and, against the control, the interval of its lift, its chance to
+win (or p-value) and whether PostHog judges it significant.
+
+```
+POSTHOG_PERSONAL_API_KEY=… npx cmokit experiments results [<flag>] [--json]
+```
+
+Every command needs `analytics.posthog.project` in the configuration, and a PostHog personal API key
+scoped to that project with `experiment:write`, `feature_flag:write`, `query:read` and `experiment_saved_metric:read`, in
+`POSTHOG_PERSONAL_API_KEY`. The deploy supplies it to `sync` as a secret.
 
 Part of [CMOkit](https://github.com/cmokit/cmokit), an opinionated, open-source growth engine for
 subscription businesses.

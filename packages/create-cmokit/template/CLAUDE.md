@@ -25,7 +25,12 @@ landing-page experiments on PostHog.
 - A form marked `data-cmokit-convert="<event>"` records that event as a conversion for the
   visitor, server-side, and gets `data-cmokit-state="done"` when it has been sent. The experiment's
   goal in PostHog is that event.
-- Which variant wins is PostHog's call, read from the experiment's results.
+- Before starting an experiment, `npx cmokit experiments plan` estimates how long it must run, from
+  the page's recent traffic and the goal's conversion rate there. `npx cmokit experiments results`
+  reads each experiment's results. Which variant wins is PostHog's call: a variant has won when
+  `results` calls it significant and its whole lift interval is above zero. Both read
+  `POSTHOG_PERSONAL_API_KEY` from the shell; if it is not set, ask the person to set it there.
+  Never ask for the key itself.
 
 ## Deployment
 

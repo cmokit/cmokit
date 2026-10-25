@@ -22,7 +22,8 @@ PostHog's API covers every step: an experiment is created with its flag key, var
 `launch` activates its flag and starts it; `end` stops it; `ship_variant` gives one variant all of the
 flag; `archive` retires it; and `calculate_running_time` estimates how long it must run. Writing
 needs a personal API key scoped to the project, with `experiment:write` and `feature_flag:write`;
-reading results also needs `query:read`. That key can change what every visitor is served, so it is a
+reading results and the traffic a running time is estimated from also needs `query:read` and
+`experiment_saved_metric:read`. That key can change what every visitor is served, so it is a
 secret of the deploying environment (`NFR-05`), and never reaches the edge or a browser.
 
 ## Decision Drivers
@@ -58,7 +59,7 @@ configuration is then the one place an experiment is decided, and the tool only 
 > cannot be made to match, such as a running one whose variants, split or goal changed.
 >
 > `cmokit experiments plan` estimates the running time from the goal's baseline and a minimum
-> detectable effect. `cmokit experiments results` reads each running experiment's results, as the
+> detectable effect. `cmokit experiments results` reads each started experiment's results, as the
 > tool computes them. The MCP server offers the same, so an agent writes the change and reads the
 > results without the tool. The tool's administrative key is a secret of the deploying environment,
 > read by the command line alone.
