@@ -16,7 +16,7 @@ secrets, and are never committed.
 |---|---|---|---|
 | `CLOUDFLARE_ACCOUNT_ID` | Variable | Yes | The Cloudflare account the Workers deploy to. |
 | `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template. |
-| `POSTHOG_PERSONAL_API_KEY` | Secret | To sync experiments | A PostHog personal API key scoped to the project, with `experiment:write` and `feature_flag:write`. Read only by `cmokit experiments sync`, never by the edge. |
+| `POSTHOG_PERSONAL_API_KEY` | Secret | To sync experiments | A PostHog personal API key scoped to the project, with `experiment:write`, `feature_flag:write`, `query:read` and `experiment_saved_metric:read`. Read only by the `cmokit experiments` commands, never by the edge. |
 
-`cmokit experiments sync` also needs `analytics.posthog.project` in `cmokit.config.ts`: the project's
+The `cmokit experiments` commands also need `analytics.posthog.project` in `cmokit.config.ts`: the project's
 id, which is not a secret.

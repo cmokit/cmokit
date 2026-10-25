@@ -2,8 +2,8 @@
 # then makes PostHog's experiments match cmokit.config.ts. The edge deploys once the repository has
 # the variable CLOUDFLARE_ACCOUNT_ID and the secret CLOUDFLARE_API_TOKEN (a token with the "Edit
 # Cloudflare Workers" template). The experiments sync once it also has the secret
-# POSTHOG_PERSONAL_API_KEY (a personal API key scoped to the project, with experiment:write and
-# feature_flag:write).
+# POSTHOG_PERSONAL_API_KEY (a personal API key scoped to the project, with experiment:write,
+# feature_flag:write, query:read and experiment_saved_metric:read).
 name: deploy
 
 on:
