@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "cmokit-site-lifecycle",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  // Reached only through the edge's service binding, never at an address of its own.
+  "workers_dev": false,
+  "preview_urls": false,
+  "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
+  // Each lead's place in its sequence, in a Durable Object of its own.
+  "durable_objects": { "bindings": [{ "name": "LEADS", "class_name": "Lead" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Lead"] }],
+  "observability": { "enabled": true }
+}

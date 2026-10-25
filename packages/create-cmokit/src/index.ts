@@ -23,6 +23,13 @@ export async function create(target: string, template = fileURLToPath(new URL('.
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   manifest.name = basename(into).toLowerCase().replace(/[^a-z0-9-]+/g, '-');
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  // The Workers are named for the site, and the edge's binding names the lifecycle Worker.
+  for (const file of ['wrangler.jsonc', join('lifecycle', 'wrangler.jsonc')]) {
+    const path = join(into, file);
+    const text = await readFile(path, 'utf8').catch(() => undefined);
+    if (text !== undefined) await writeFile(path, text.replaceAll('"cmokit-site-', `"${manifest.name}-`));
+  }
   return into;
 }
 

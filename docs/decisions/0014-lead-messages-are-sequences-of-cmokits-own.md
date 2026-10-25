@@ -136,8 +136,7 @@ Sources: Customer.io's [SMS setup](https://docs.customer.io/messaging/channels/s
 [self-hosting](https://docs.novu.co/community/self-hosting-novu/overview).
 
 **Follow-on obligations.** The lifecycle Worker, its Durable Objects, the edge's hand-off of a lead,
-the sequence's configuration and an unsubscribe the edge serves if the sending service's does not
-meet one-click unsubscribe (RFC 8058).
+the sequence's configuration and the one-click unsubscribe (RFC 8058) the edge serves.
 
 **Reversal cost.** Low to moderate: buying a tool later makes it an adapter behind the same
 interface. Lead capture and attribution carry over; the messages would move into the tool.

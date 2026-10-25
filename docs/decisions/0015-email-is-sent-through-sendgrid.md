@@ -46,9 +46,11 @@ Chosen option: "SendGrid", because it is already in use, allows marketing email,
 and suppressions itself, and signs its events.
 
 > The messaging interface's email adapter sends through SendGrid's Mail Send API, from the lifecycle
-> Worker, with an API key restricted to sending, a Worker secret. Each message carries the sequence's
-> unsubscribe group, so SendGrid adds the unsubscribe link and drops later sends to anyone who
-> unsubscribed, bounced or complained. SendGrid's event webhook is verified by its ECDSA signature
+> Worker, with an API key restricted to sending and suppressions, a Worker secret. Each message
+> carries CMOkit's own unsubscribe link and one-click headers (RFC 8058), which the edge serves, and
+> belongs to the site's unsubscribe group, so SendGrid drops later sends to anyone who unsubscribed,
+> bounced or complained, and an unsubscribe through CMOkit's link is added to the group's
+> suppressions. SendGrid's event webhook is verified by its ECDSA signature
 > before CMOkit acts on it, and an unsubscribe, bounce or spam report ends the lead's sequence. No
 > handler names SendGrid; only the adapter does.
 
@@ -62,8 +64,8 @@ and suppressions itself, and signs its events.
 ### Confirmation
 
 The adapter's tests run against recorded SendGrid requests and events, with no account (`NFR-04`),
-and refuse an event whose signature does not verify. Whether SendGrid's headers meet one-click
-unsubscribe is checked against a real send when the adapter is built.
+and refuse an event whose signature does not verify. That SendGrid delivers the unsubscribe headers
+CMOkit sets is checked against a real send.
 
 ## Pros and Cons of the Options
 

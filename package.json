@@ -15,7 +15,7 @@
     "check:decisions": "node scripts/check-decisions.ts",
     "check:boundaries": "node scripts/check-boundaries.ts",
     "test": "node --conditions=cmokit-source --test \"packages/*/test/*.test.ts\"",
-    "build": "npm run build -w @cmokit/cli && npm run build -w @cmokit/edge -w @cmokit/astro -w create-cmokit",
+    "build": "npm run build -w @cmokit/cli && npm run build -w @cmokit/edge -w @cmokit/astro -w @cmokit/lifecycle -w create-cmokit",
     "build:starter": "npm run build -w cmokit-site"
   },
   "devDependencies": {

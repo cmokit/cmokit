@@ -62,3 +62,40 @@ test('the project id is a positive whole number, and the app host follows the in
   assert.equal(eu.analytics.posthog.app, 'https://eu.posthog.com');
   assert.equal(eu.analytics.posthog.project, 7);
 });
+
+const messaging = { from: 'hello@site.example', address: '1 Main St', sendgrid: { unsubscribeGroup: 42 } };
+
+test('sequences resolve their delays, and their problems are reported', () => {
+  const site = resolve({
+    ...valid,
+    messaging,
+    sequences: [{ name: 'welcome', start: 'signup', messages: [{ template: 'welcome', after: '0m' }, { template: 'day-3', after: '3d' }] }],
+  });
+  assert.deepEqual(site.sequences, [{
+    name: 'welcome', start: 'signup', stop: [],
+    messages: [{ template: 'welcome', after: '0m', afterMs: 0 }, { template: 'day-3', after: '3d', afterMs: 259_200_000 }],
+  }]);
+  assert.deepEqual(site.messaging, { from: 'hello@site.example', fromName: '', address: '1 Main St', unsubscribeGroup: 42 });
+
+  assert.deepEqual(problems({ ...valid, sequences: [{ name: 'a', start: 'signup', messages: [{ template: 'a', after: '1h' }] }] }),
+    ['messaging is needed to send sequences']);
+  const found = problems({
+    ...valid,
+    messaging: { from: 'nobody', address: ' ', sendgrid: { unsubscribeGroup: 0 } },
+    sequences: [
+      { name: 'Bad', start: 'signup', stop: ['signup'], messages: [{ template: 'Welcome.md', after: '3 days' }] },
+      { name: 'second', start: 'signup', messages: [] },
+    ],
+  });
+  assert.deepEqual(found, [
+    'messaging.from must be an email address',
+    'messaging.address must be the postal address messages carry',
+    'messaging.sendgrid.unsubscribeGroup must be the group\'s numeric id',
+    'sequence "Bad": name must match /^[a-z0-9][a-z0-9_-]{0,63}$/',
+    'sequence "Bad": signup cannot both start and stop it',
+    'sequence "Bad": message 1\'s template must match /^[a-z0-9][a-z0-9-]{0,63}$/',
+    'sequence "Bad": message 1\'s after must be like 0m, 12h or 3d',
+    'sequence "second": another sequence also starts on signup',
+    'sequence "second": needs at least one message',
+  ]);
+});

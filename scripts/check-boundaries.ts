@@ -1,6 +1,7 @@
-// Checks the package boundaries of ADR-0003, ADR-0010 and ADR-0013: the edge depends, directly or
-// through another package, on neither the lifecycle nor a database client; the edge handler names no
-// bought tool, only its adapters and the Worker that wires them do; and the edge reaches nothing of
+// Checks the package boundaries of ADR-0003, ADR-0010, ADR-0013 and ADR-0015: the edge depends,
+// directly or through another package, on neither the lifecycle nor a database client; no package
+// depends on a database client; the edge's and the lifecycle's handlers name no bought tool, only
+// their adapters and the Workers that wire them do; and the edge reaches nothing of
 // the command line's but its configuration, so it never holds the experiments tool's administrative
 // key. Run with `npm run check:boundaries`.
 
@@ -11,8 +12,9 @@ const root = join(import.meta.dirname, '..');
 const packages = join(root, 'packages');
 
 const FORBIDDEN_FOR_EDGE = ['@cmokit/lifecycle', 'pg', 'postgres', '@electric-sql/pglite', 'kysely', 'drizzle-orm', '@prisma/client'];
-const EDGE_WIRING = ['posthog.ts', 'worker.ts'];
-const TOOLS = /posthog|growthbook|statsig|cloudflare/i;
+const DATABASE_CLIENTS = FORBIDDEN_FOR_EDGE.slice(1);
+const WIRING = ['posthog.ts', 'sendgrid.ts', 'worker.ts'];
+const TOOLS = /posthog|growthbook|statsig|cloudflare|sendgrid|twilio|customer\.io/i;
 
 const errors: string[] = [];
 
@@ -39,10 +41,19 @@ while (queue.length > 0) {
   }
 }
 
+for (const dir of readdirSync(packages)) {
+  for (const dep of dependencies(JSON.parse(readFileSync(join(packages, dir, 'package.json'), 'utf8')).name)) {
+    if (DATABASE_CLIENTS.includes(dep)) errors.push(`packages/${dir} depends on the database client ${dep}`);
+  }
+}
+
 const edgeSource = join(packages, 'edge', 'src');
-for (const file of readdirSync(edgeSource)) {
-  if (!file.endsWith('.ts') || EDGE_WIRING.includes(file)) continue;
-  if (TOOLS.test(readFileSync(join(edgeSource, file), 'utf8'))) errors.push(`packages/edge/src/${file} names a bought tool`);
+for (const pkg of ['edge', 'lifecycle']) {
+  const source = join(packages, pkg, 'src');
+  for (const file of readdirSync(source)) {
+    if (!file.endsWith('.ts') || WIRING.includes(file)) continue;
+    if (TOOLS.test(readFileSync(join(source, file), 'utf8'))) errors.push(`packages/${pkg}/src/${file} names a bought tool`);
+  }
 }
 
 // The edge imports `@cmokit/cli` only by its main entry, and that entry imports nothing local.

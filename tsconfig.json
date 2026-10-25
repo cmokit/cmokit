@@ -26,6 +26,8 @@
     "packages/*/src/**/*.ts",
     "packages/*/test/**/*.ts",
     "packages/create-cmokit/template/*.ts",
-    "packages/create-cmokit/template/edge/*.ts"
+    "packages/create-cmokit/template/edge/*.ts",
+    "packages/create-cmokit/template/lifecycle/*.ts",
+    "packages/create-cmokit/template/messages/*.ts"
   ]
 }

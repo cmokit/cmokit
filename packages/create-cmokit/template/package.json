@@ -7,12 +7,14 @@
     "build": "astro build",
     "preview": "astro preview",
     "edge:dev": "wrangler dev",
-    "edge:deploy": "wrangler deploy"
+    "edge:deploy": "wrangler deploy",
+    "lifecycle:deploy": "wrangler deploy --config lifecycle/wrangler.jsonc"
   },
   "dependencies": {
-    "@cmokit/astro": "^0.2.0",
-    "@cmokit/cli": "^0.2.0",
-    "@cmokit/edge": "^0.2.0",
+    "@cmokit/astro": "^0.3.0",
+    "@cmokit/cli": "^0.3.0",
+    "@cmokit/edge": "^0.3.0",
+    "@cmokit/lifecycle": "^0.1.0",
     "astro": "^7.4.2"
   },
   "devDependencies": {
