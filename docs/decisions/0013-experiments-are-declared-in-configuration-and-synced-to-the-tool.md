@@ -52,8 +52,10 @@ configuration is then the one place an experiment is decided, and the tool only 
 > deploy, after the edge is deployed, makes the tool match: it creates the flag and the experiment
 > for a new one, launches it when its status becomes `running`, and ends it when its status becomes
 > `ended`, after which the edge serves the control. Removing an experiment from the configuration
-> archives it in the tool. The deploy changes nothing in the tool that the configuration does not
-> name, and refuses to change an experiment it did not create.
+> archives it in the tool, ending it first if it runs; a draft that never ran is deleted instead,
+> with its flag. The deploy changes nothing in the tool that the configuration does not name,
+> refuses to change an experiment it did not create, and changes nothing at all if any experiment
+> cannot be made to match, such as a running one whose variants, split or goal changed.
 >
 > `cmokit experiments plan` estimates the running time from the goal's baseline and a minimum
 > detectable effect. `cmokit experiments results` reads each running experiment's results, as the

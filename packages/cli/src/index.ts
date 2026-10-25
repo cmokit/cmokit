@@ -18,6 +18,11 @@ export interface Experiment {
   variants: Record<string, string>;
   /** The conversion event the experiment is decided on, as a page's `data-cmokit-convert` names it. */
   goal: string;
+  /**
+   * The percentage of visitors each variant gets, `control` included, summing to 100. Defaults to an
+   * even split.
+   */
+  split?: Record<string, number>;
   status: Status;
 }
 
@@ -28,6 +33,8 @@ export interface Config {
       key: string;
       /** Where events and flags are sent. Defaults to PostHog's US cloud. */
       host?: string;
+      /** The project's id (Project settings → Project ID), which `cmokit experiments sync` needs. */
+      project?: number;
     };
   };
   experiments?: Experiment[];
@@ -35,8 +42,16 @@ export interface Config {
 
 /** A configuration with its defaults filled in and its paths normalized, as the edge uses it. */
 export interface Resolved {
-  analytics: { posthog: { key: string; host: string } };
-  experiments: Experiment[];
+  analytics: {
+    posthog: {
+      key: string;
+      host: string;
+      /** PostHog's app and API host for `host`: us.i.posthog.com is reached at us.posthog.com. */
+      app: string;
+      project?: number;
+    };
+  };
+  experiments: (Experiment & { split: Record<string, number> })[];
 }
 
 export const CONVERT_PATH = '/_cmokit/convert';
@@ -61,6 +76,10 @@ export function normalizePath(path: string): string {
 export function problems(config: Config): string[] {
   const found: string[] = [];
   if (!config.analytics?.posthog?.key) found.push('analytics.posthog.key is missing');
+  const project = config.analytics?.posthog?.project;
+  if (project !== undefined && !(Number.isInteger(project) && project > 0)) {
+    found.push('analytics.posthog.project must be the project\'s numeric id');
+  }
   const flags = new Set<string>();
   const paths = new Set<string>();
   for (const experiment of config.experiments ?? []) {
@@ -74,6 +93,16 @@ export function problems(config: Config): string[] {
     paths.add(path);
     if (!EVENT_NAME.test(experiment.goal ?? '')) found.push(`${where}: goal must be an event name matching ${EVENT_NAME}`);
     if (!STATUSES.includes(experiment.status)) found.push(`${where}: status must be one of ${STATUSES.join(', ')}`);
+    if (experiment.split) {
+      const keys = [CONTROL, ...Object.keys(experiment.variants ?? {})];
+      const shares = Object.entries(experiment.split);
+      const total = shares.reduce((sum, [, share]) => sum + share, 0);
+      if (keys.some((k) => !(k in experiment.split!)) || shares.some(([k]) => !keys.includes(k))) {
+        found.push(`${where}: split must name exactly ${keys.join(', ')}`);
+      } else if (shares.some(([, share]) => !Number.isInteger(share) || share < 0) || total !== 100) {
+        found.push(`${where}: split must be whole percentages summing to 100`);
+      }
+    }
     const variants = Object.entries(experiment.variants ?? {});
     if (variants.length === 0) found.push(`${where}: needs at least one variant besides the control`);
     for (const [name, page] of variants) {
@@ -93,16 +122,30 @@ export function defineConfig(config: Config): Config {
 }
 
 export function resolve(config: Config): Resolved {
+  const { key, project } = config.analytics.posthog;
+  const host = config.analytics.posthog.host ?? DEFAULT_HOST;
   return {
-    analytics: {
-      posthog: { key: config.analytics.posthog.key, host: config.analytics.posthog.host ?? DEFAULT_HOST },
-    },
+    analytics: { posthog: { key, host, app: appHost(host), ...(project === undefined ? {} : { project }) } },
     experiments: (config.experiments ?? []).map((e) => ({
       flag: e.flag,
       path: normalizePath(e.path),
       variants: { ...e.variants },
       goal: e.goal,
+      split: e.split ? { ...e.split } : evenSplit([CONTROL, ...Object.keys(e.variants)]),
       status: e.status,
     })),
   };
+}
+
+/** Whole percentages as even as they can be, the remainder going to the first keys. */
+function evenSplit(keys: string[]): Record<string, number> {
+  const base = Math.floor(100 / keys.length);
+  const extra = 100 - base * keys.length;
+  return Object.fromEntries(keys.map((k, i) => [k, base + (i < extra ? 1 : 0)]));
+}
+
+function appHost(host: string): string {
+  const url = new URL(host);
+  url.hostname = url.hostname.replace(/^([a-z]+)\.i\./, '$1.');
+  return url.origin;
 }

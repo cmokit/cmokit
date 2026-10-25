@@ -1,6 +1,8 @@
-// Checks the package boundaries of ADR-0003 and ADR-0010: the edge depends, directly or through
-// another package, on neither the lifecycle nor a database client, and the edge handler names no
-// bought tool; only its adapters and the Worker that wires them do. Run with `npm run check:boundaries`.
+// Checks the package boundaries of ADR-0003, ADR-0010 and ADR-0013: the edge depends, directly or
+// through another package, on neither the lifecycle nor a database client; the edge handler names no
+// bought tool, only its adapters and the Worker that wires them do; and the edge reaches nothing of
+// the command line's but its configuration, so it never holds the experiments tool's administrative
+// key. Run with `npm run check:boundaries`.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -42,6 +44,15 @@ for (const file of readdirSync(edgeSource)) {
   if (!file.endsWith('.ts') || EDGE_WIRING.includes(file)) continue;
   if (TOOLS.test(readFileSync(join(edgeSource, file), 'utf8'))) errors.push(`packages/edge/src/${file} names a bought tool`);
 }
+
+// The edge imports `@cmokit/cli` only by its main entry, and that entry imports nothing local.
+for (const file of readdirSync(edgeSource).filter((f) => f.endsWith('.ts'))) {
+  for (const [, specifier] of readFileSync(join(edgeSource, file), 'utf8').matchAll(/from '(@cmokit\/cli[^']*)'/g)) {
+    if (specifier !== '@cmokit/cli') errors.push(`packages/edge/src/${file} imports ${specifier}`);
+  }
+}
+const cliEntry = readFileSync(join(packages, 'cli', 'src', 'index.ts'), 'utf8');
+if (/from '\.\//.test(cliEntry)) errors.push('packages/cli/src/index.ts imports a module of its own, which the edge would bundle');
 
 if (errors.length > 0) {
   console.error(errors.join('\n'));

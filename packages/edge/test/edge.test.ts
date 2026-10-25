@@ -6,8 +6,10 @@ import { createEdge, parseCookies, type AnalyticsEvent, type EdgeOptions } from 
 const BROWSER = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 Safari/605.1.15';
 
 const config = (status: Status): Resolved => ({
-  analytics: { posthog: { key: 'phc_test', host: 'https://ph.example' } },
-  experiments: [{ flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' }, goal: 'signup', status }],
+  analytics: { posthog: { key: 'phc_test', host: 'https://ph.example', app: 'https://ph.example' } },
+  experiments: [{
+    flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' }, goal: 'signup', split: { control: 50, b: 50 }, status,
+  }],
 });
 
 const PAGES: Record<string, string> = {
