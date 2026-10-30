@@ -74,9 +74,6 @@ can today.
   batch of short videos, each with one call to action, written in the brand's own voice from a brand
   strategy the customer owns. It learns each week from what the customer edits, rejects and approves,
   and from what each piece brought in.
-* **No accounting connection.** An accounting system connects to the payment processor directly, and
-  CMOkit adds nothing by standing between them. CMOkit reads the payment processor for attribution
-  and the subscription lifecycle, never for accounting.
 * **CMOkit is its own first customer.** CMOkit's own site is built on GitHub Pages with CMOkit, and
   the short-form content that markets CMOkit to creators is made with the content plugin.
 

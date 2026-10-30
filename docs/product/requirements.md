@@ -12,7 +12,6 @@ requirements cite no decision record.
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
 | Ad buying and bidding | Spend is an input to cost of acquisition, not something CMOkit manages. A brand's audiences let a person aim their own ads at the people their content is for; CMOkit places no ad. |
 | Editing and posting video | Footage is edited, and posts are published and scheduled, in the person's own tools. CMOkit posts nothing for anyone and automates no direct messages. |
-| Accounting | An accounting system connects to the payment processor directly. CMOkit reads the payment processor for attribution and the subscription lifecycle only, and offers no accounting connection. |
 | Compliance review | The content check flags claims a person may want to look at twice. It blocks nothing, gives no legal advice and is not a compliance engine. |
 | Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOkit counts credits, in the product's units, and keeps nothing about money. |
 | The product itself | CMOkit reaches a product through its published API and its identity provider, and receives from it only usage. |
