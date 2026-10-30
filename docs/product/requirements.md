@@ -7,10 +7,13 @@ requirements cite no decision record.
 
 | Topic | Boundary |
 |---|---|
-| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. It runs no service for anyone. |
+| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. CMOkit's hosted offering runs the engine for its customers, and it too hosts no site: it publishes to the host or CMS the site already has. |
 | A page builder or CMS | Pages are made with whatever builds the site: a static site generator, a CMS or anything else. |
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
-| Ad buying and bidding | Spend is an input to cost of acquisition, not something CMOkit manages. |
+| Ad buying and bidding | Spend is an input to cost of acquisition, not something CMOkit manages. A brand's audiences let a person aim their own ads at the people their content is for; CMOkit places no ad. |
+| Editing and posting video | Footage is edited, and posts are published and scheduled, in the person's own tools. CMOkit posts nothing for anyone and automates no direct messages. |
+| Accounting | An accounting system connects to the payment processor directly. CMOkit reads the payment processor for attribution and the subscription lifecycle only, and offers no accounting connection. |
+| Compliance review | The content check flags claims a person may want to look at twice. It blocks nothing, gives no legal advice and is not a compliance engine. |
 | Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOkit counts credits, in the product's units, and keeps nothing about money. |
 | The product itself | CMOkit reaches a product through its published API and its identity provider, and receives from it only usage. |
 | Running in an adopter's own cloud | CMOkit runs on Cloudflare. An audited adopter relies on Cloudflare's own audit reports for it, and one that cannot use Cloudflare cannot use CMOkit's lifecycle. |
@@ -119,6 +122,63 @@ requirements cite no decision record.
 | **LOOP-01** | An agent reads conversion and revenue by channel and variant on a schedule, and proposes the next variants as a change to the site: a change to its repository, or drafts in its CMS. | Must | Proposed |
 | **LOOP-02** | No proposed variant reaches visitors until a person approves the change. | Must | Proposed |
 | **LOOP-03** | The loop also proposes changes to a skill and its MCP tool descriptions, judged by their evals. | Should | Proposed |
+
+## Hosted offering (`HST-`)
+
+What CMOkit's hosted offering must do for the content plugin and for setting a customer up.
+
+| Id | Requirement | Priority | Status |
+|---|---|---|---|
+| **HST-01** | CMOkit is offered as a hosted service that a customer sets up with a CMOkit account, a connected site and payment, and nothing more: no terminal, no repository work and no Cloudflare account of the customer's own. | Must | Proposed |
+| **HST-02** | A person creates a CMOkit account and signs in to it with Google, GitHub or Meta. Signing in identifies the person and grants CMOkit nothing else at that provider. | Must | Proposed |
+| **HST-03** | Setup is a conversation in the person's own Claude, including connecting the site and setting up payment processing. | Must | Proposed |
+| **HST-04** | A credential a customer gives CMOkit never passes through a conversation with a model. It is granted through the vendor's own authorization, or entered on a page of CMOkit's that the conversation links to, and it is held for that customer alone, encrypted, never logged and never shown again. | Must | Proposed |
+| **HST-05** | A person's Claude reaches CMOkit on their behalf through an authorization the person grants by signing in and can revoke, never through a key the person copies. | Must | Proposed |
+| **HST-06** | Connecting a site is separate from signing in. A site on GitHub Pages is connected through the customer's GitHub account, and a site on another host or CMS through that host's or CMS's own API. Connecting grants CMOkit only what publishing to the site needs. | Must | Proposed |
+| **HST-07** | CMOkit publishes to a connected site only what a person has approved, and any publish can be undone. | Must | Proposed |
+| **HST-08** | A solo creator runs CMOkit from the Claude account they already have, through its plugins and connectors, alongside any other plugins they use. | Must | Proposed |
+| **HST-09** | CMOkit's hosted services run no model inference. Model work happens in the customer's own Claude account, so what the hosted services cost is storage, compute and bought tools. | Must | Proposed |
+| **HST-10** | Each customer's data, credentials and connections are kept apart from every other customer's: nothing done for one customer reads or changes another's. A person who is a user of several customers acts for one at a time, and chooses which. | Must | Proposed |
+| **HST-11** | Everything the hosted offering does, anyone can do by deploying the same open-source packages to a Cloudflare account of their own. No feature is hosted only. | Must | Proposed |
+| **HST-12** | A customer subscribes to hosted CMOkit, and manages and cancels its subscription, without contacting anyone. | Must | Proposed |
+| **HST-13** | A customer can export everything CMOkit holds for it, in a readable form, and close its account, which deletes what CMOkit holds. | Must | Proposed |
+| **HST-14** | CMOkit is its own first customer: its own site, on GitHub Pages, is built with CMOkit, and the short-form content that markets CMOkit to creators is made with the content plugin. | Must | Proposed |
+
+## Content (`CNT-`)
+
+A creator or small business grows a paying audience through short-form video, Instagram Reels and
+TikTok first. Two early users anchor these requirements: CMOkit marketing itself to creators, and a
+small business selling paid in-person events. The person using the content plugin is not a developer,
+and works in claude.ai and the Claude mobile app.
+
+| Id | Requirement | Priority | Status |
+|---|---|---|---|
+| **CNT-01** | A brand context holds the brand's positioning and what it sells; its audiences; its values, and what it will and will not say or claim; its voice and tone, with vocabulary to use and avoid, signature phrases and rhythm; approved and rejected examples; and a list of AI tells to avoid. | Must | Proposed |
+| **CNT-02** | A brand has one primary audience and at most one secondary. Each records the situation its people are in, what they want, what stops them from buying, where they spend time and what they say in their own words, drawn from real customers, comments and messages, never from an invented demographic persona. | Must | Proposed |
+| **CNT-03** | An audience may carry a few platform facts, so that content and any ads the person runs elsewhere aim at the same people: location and radius, a minimum age, language, and for LinkedIn only, job titles or industries. | Should | Proposed |
+| **CNT-04** | The brand context is bootstrapped at setup by a short, guided brand strategy exercise held in conversation, which one person working alone completes in one sitting. It drafts from what the person already has, such as a brand book, their site and past posts, and the person confirms it before anything is written from it. | Must | Proposed |
+| **CNT-05** | Nothing in the brand context is invented. What the person has neither supplied nor confirmed is left empty and asked about, not guessed. | Must | Proposed |
+| **CNT-06** | The brand context is read before anything is written, and every draft is checked against the brand's voice and its list of AI tells before the person sees it. | Must | Proposed |
+| **CNT-07** | Every edit the person makes to a draft, every rejection with its reason, every approval and every result is kept as a signal for the brand it belongs to. | Must | Proposed |
+| **CNT-08** | Changes to the brand context are proposed from those signals, each with the signals behind it, and a change takes effect only when the person approves it. | Must | Proposed |
+| **CNT-09** | The brand context belongs to the person. They can see and edit all of it at any time, see every change made to it with when and why, undo any change, and take it with them in a readable form. | Must | Proposed |
+| **CNT-10** | Content is planned backwards from what is being sold. Each week's plan starts from the events, offers and launches being promoted, and with nothing to promote there is no content beyond a small evergreen reserve. | Must | Proposed |
+| **CNT-11** | An event sold on an event platform is read from that platform, with its page, its date and its capacity, and is never entered a second time. A registration on the platform is the event's conversion. | Must | Proposed |
+| **CNT-12** | A piece has one job, one audience, one call to action, one destination and one tracked link, which differs only by the platform the piece is posted on. | Must | Proposed |
+| **CNT-13** | Every piece is one of a small, fixed set of formats: teaser, spotlight, recap and community question. | Must | Proposed |
+| **CNT-14** | Each piece is written in full: its hook, timed beats, on-screen text, caption, call to action and shot list, with the visuals it needs made in the brand's own visual identity. | Must | Proposed |
+| **CNT-15** | Real people and real footage are the default. Nothing written invents a person, a testimonial or a result. | Must | Proposed |
+| **CNT-16** | Nothing is posted without a person's approval. Nothing is posted automatically, and no direct message is automated. | Must | Proposed |
+| **CNT-17** | Each approved piece is handed off in a form the person's own editing and posting tools take, and what was posted, where and when, is recorded so that its results can be attributed. | Must | Proposed |
+| **CNT-18** | A light check flags health or cure claims, before-and-after claims, testimonials with no consent noted, and reminders about music rights and AI disclosure. It never blocks, and it is not a compliance review. | Must | Proposed |
+| **CNT-19** | Results are read weekly, per piece, per format and per audience, so that the audiences learn from use as the voice does. | Must | Proposed |
+| **CNT-20** | An event's real capacity and remaining places can make its copy urgent, and nothing invents scarcity; its check-ins can feed its recap. | Should | Proposed |
+| **CNT-21** | Content works with none of CMOkit's experiment features configured. Where CMOkit's measurement is present, a piece's tracked link joins it, so its visits and conversions are attributed like any other channel's. | Must | Proposed |
+| **CNT-22** | A person plans, reviews, approves and records content, and reads its results, in claude.ai and in the Claude mobile app, with no terminal and no local files. | Must | Proposed |
+| **CNT-23** | The Claude settings the content plugin depends on are listed. When one is missing, the person is told in plain words what is missing and how to turn it on, and the plugin does what it can without it. | Must | Proposed |
+| **CNT-24** | How well the content skill writes in a brand's voice is measured by evals in CI, on invented brands: how closely its drafts match the brand's approved examples, and how many of the brand's AI tells they carry. A release whose scores fall does not ship. | Must | Proposed |
+| **CNT-25** | An eval plays a series of a person's edits through learning from use, and shows the brand context improving: the changes proposed match the pattern of the edits, and drafts written after they are approved need fewer edits. | Must | Proposed |
+| **CNT-26** | Evals also check the content opinions: one call to action per piece, no invented person, testimonial or result, and the light check flagging what it is meant to flag. | Should | Proposed |
 
 ## Non-functional — `NFR-`
 
