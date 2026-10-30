@@ -58,9 +58,9 @@ can today.
   payment. There is no terminal, no repository work and no Cloudflare account of their own.
 * **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude, payment
   processing included.
-* **Signing in is only signing in.** A CMOkit account signs in with Google, GitHub or Meta. Signing in
-  identifies the person and grants nothing else; anything more, such as connecting a site, is asked
-  for on its own, when it is needed.
+* **Signing in is only signing in.** A CMOkit account signs in with an email address, Google, GitHub
+  or Meta. Signing in identifies the person and grants nothing else; anything more, such as
+  connecting a site, is asked for on its own, when it is needed.
 * **Any site, still.** A site on GitHub Pages is connected through the customer's GitHub account. A
   site hosted anywhere else is connected through its host's or CMS's own API, and CMOkit publishes to
   it there.

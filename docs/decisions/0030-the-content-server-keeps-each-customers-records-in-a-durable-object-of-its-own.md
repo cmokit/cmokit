@@ -13,8 +13,8 @@ decision-makers: [Geoff]
 
 The content server (ADR-0029) has to keep, per customer: the brand context and its versions
 (ADR-0023), the pieces with their signals and posts (`CNT-07`, `CNT-17`, ADR-0025), and the customer's
-connections, some of them credentials (`HST-04`). Per person, it keeps the sign-in identities and the
-customers they belong to (ADR-0018). Nothing done for one customer reaches another's records
+connections, some of them credentials (`HST-04`). Beside it, the issuer keeps each person's sign-in
+identities, pending email codes and the customers the person belongs to (ADR-0018). Nothing done for one customer reaches another's records
 (`HST-10`); a customer exports everything and closes its account, which deletes it (`HST-13`); and
 nothing runs or is billed while a customer is idle (`NFR-06`).
 
@@ -51,15 +51,19 @@ already relies on, and keeps the least.
 > users; its connections, each a vendor, an identifier such as a GitHub installation or a Luma
 > calendar, and any credential; and its access as the lifecycle last set it (ADR-0017).
 >
-> **A person's object**, named by the person's id, holds the provider and subject of each sign-in
-> identity and the customers the person belongs to.
+> **A person's object**, the issuer's, named by the person's id, holds the person's sign-in
+> identities, their proven email address and the customers they belong to.
+>
+> **A sign-in identity's object**, the issuer's, named by a provider and its subject id, or by
+> `email:` and an address, holds the person it belongs to and, for an address, its pending code:
+> hashed, with its expiry and the attempts left, and deleted when used or expired.
 >
 > **Credentials** are encrypted with AES-GCM under a key that is a Worker secret of the deployment,
 > and are decrypted only to call their vendor.
 >
 > **Not stored**: events, which are read from the event platform when needed; guests' names, emails
 > and answers, of which only counts per piece are kept; visual identity, footage and media; anything
-> about money; and the person's conversations.
+> about money; any password; and the person's conversations.
 >
 > Export writes the customer's object as Markdown and JSON. Closing an account deletes the customer's
 > object, after its users are told. The server's logic is written against the same small SQL
@@ -105,8 +109,8 @@ Sources: Cloudflare's [Durable Objects pricing](https://developers.cloudflare.co
 read through search extracts on 2026-10-30.
 
 **Follow-on obligations.** The encryption key's entry in the deployment reference, and how it is
-rotated. The OAuth grants kept by the authorization server are its own (ADR-0029), not in these
-objects.
+rotated. The tokens the issuer issues are kept by Cloudflare's OAuth library in Workers KV
+(ADR-0035), not in these objects.
 
 **Reversal cost.** Moderate: the logic stays behind its SQL interface, and another store needs an
 adapter and a move of each customer's records.

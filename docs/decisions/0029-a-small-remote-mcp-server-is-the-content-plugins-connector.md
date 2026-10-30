@@ -5,7 +5,7 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0029: A small remote MCP server, on Streamable HTTP and OAuth 2.1, is the content plugin's connector
+# ADR-0029: A small remote MCP server, one address per customer, is the content plugin's connector, and checks tokens it does not issue
 
 **Requirements served:** `HST-04`, `HST-05`, `HST-07`, `HST-09`, `HST-10`, `HST-11`, `CNT-07`, `CNT-09`, `CNT-11`, `CNT-12`, `CNT-17`, `CNT-19`, `CNT-22`.
 
@@ -17,18 +17,17 @@ what Claude's own features hold reliably: a brand context read in every conversa
 was posted (`CNT-17`); events and registrations read from an event platform with a key that must not
 pass through the conversation (`CNT-11`, `HST-04`); and results read weekly per piece (`CNT-19`). The
 person's Claude reaches CMOkit through an authorization the person grants by signing in (`HST-05`),
-on the web and on a phone (`CNT-22`), and self-hosters run the same server (`HST-11`).
+issued by CMOkit's own issuer (ADR-0018), on the web and on a phone (`CNT-22`). Nothing done for one
+customer reaches another's records (`HST-10`), and self-hosters run the same server (`HST-11`).
 
 What Claude and the MCP specification offer, from their documentation: claude.ai connects to remote
 MCP servers on every plan (one custom connector on Free), added on the web or desktop and then
-available on iOS and Android. It prefers Streamable HTTP. For OAuth it uses a Client ID Metadata
-Document that Anthropic hosts when the authorization server advertises support for one, and falls
-back to dynamic client registration; its redirect URI is `https://claude.ai/api/mcp/auth_callback`,
-PKCE with S256 is required, and a tool call has 240 seconds. The current MCP specification,
-2026-07-28, requires Protected Resource Metadata, recommends Client ID Metadata Documents, and
-deprecates dynamic client registration. Cloudflare's `createMcpHandler` serves MCP statelessly from a
-Worker, and its `McpAgent` is deprecated. Cloudflare's OAuth library makes a Worker an OAuth 2.1
-authorization server, keeping hashed tokens and encrypted grants in Workers KV.
+available on iOS and Android. It prefers Streamable HTTP, and a tool call has 240 seconds. The current
+MCP specification, 2026-07-28, requires a server to publish Protected Resource Metadata naming its
+authorization server, and to check that each token was issued for it. Cloudflare's `createMcpHandler`
+serves MCP statelessly from a Worker, and its `McpAgent` is deprecated. Cloudflare's OAuth library,
+from its 1.0 release, runs the authorization server and the resource server as separate Workers, the
+resource server checking tokens over a service binding.
 
 ## Decision Drivers
 
@@ -36,12 +35,15 @@ authorization server, keeping hashed tokens and encrypted grants in Workers KV.
 * No credential or third party's personal data passes through the conversation (`HST-04`).
 * Works in claude.ai on every surface, with the authorization Claude already speaks (`HST-05`).
 * Stateless and scales to zero, on Cloudflare, with no model (`HST-09`).
-* Every call is for one customer the person belongs to (`HST-10`).
+* The server, not the model, holds which customer a conversation is about (`HST-10`).
+* The server checks tokens and issues none, so the issuer can change without it.
 
 ## Considered Options
 
-* A remote MCP server: a stateless Worker on Streamable HTTP, with CMOkit as the OAuth 2.1
-  authorization server and nine tools
+* A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking
+  tokens from a separate issuer, with nine tools
+* The same, with the MCP server also issuing its own tokens
+* The same, on one address, with every tool taking the customer as an argument
 * No MCP server in v1: the skill alone, with the brand context in a Claude Project and results read
   from the event platform's own connector or a file the person uploads
 * A remote MCP server with a tool for every step of the workflow, the check and link-building
@@ -50,27 +52,29 @@ authorization server, keeping hashed tokens and encrypted grants in Workers KV.
 
 ## Decision Outcome
 
-Chosen option: "A remote MCP server: a stateless Worker on Streamable HTTP, with CMOkit as the OAuth
-2.1 authorization server and nine tools", because it holds exactly what Claude's own features cannot,
-behind the authorization claude.ai already uses.
+Chosen option: "A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer,
+checking tokens from a separate issuer, with nine tools", because it holds exactly what Claude's own
+features cannot, knows which customer it serves from its address, and leaves sign-in to the issuer.
 
-> The content server is a Worker serving MCP over Streamable HTTP at `/mcp`, through Cloudflare's
-> stateless handler, with no session. Hosted, it runs on CMOkit's account; self-hosted, on the
-> deployer's, from the same package. The content plugin declares the hosted address; a self-hoster
-> adds theirs as a custom connector.
+> The content server is a Worker serving MCP over Streamable HTTP, through Cloudflare's stateless
+> handler, with no session. Each customer has its own address, `/customers/<slug>/mcp`, and a
+> connection serves that customer alone; a person with two customers adds two connectors, one named
+> for each. Hosted, it runs on CMOkit's account; self-hosted, on the deployer's, from the same
+> package. The content plugin declares the hosted address; a self-hoster adds theirs as a custom
+> connector.
 >
-> The same Worker is the OAuth 2.1 authorization server, through Cloudflare's OAuth library. It
-> publishes Protected Resource Metadata, accepts Client ID Metadata Documents and the `none` client
-> authentication method, so Claude registers with its published identity, offers no dynamic
-> registration, requires PKCE with S256, and checks each token's audience. Signing in at its consent
-> step is CMOkit's sign-in (ADR-0018). A token names the person; every tool but the first takes the
-> customer it acts for, checked against the person's memberships on every call.
+> The content server issues no token. It publishes Protected Resource Metadata naming the issuer,
+> answers a call without a token by pointing at it, and accepts only tokens the issuer issued for the
+> server's own audience. It reads two settings, the issuer's address and that audience, and checks
+> tokens through one interface, whose adapter for CMOkit's own issuer (ADR-0018) is the library's
+> resource server. A token names a person; every call checks that the person is a user of the
+> customer the address names.
 >
 > Its tools:
 >
 > | Tool | What only it can do |
 > |---|---|
-> | `account_status` | The person's customers, each one's connections and subscription, and one-time links to connect, pay, export or close (ADR-0019) |
+> | `account_status` | This customer's connections and subscription, the addresses of the person's other customers, and one-time links to connect, pay, export or close (ADR-0019) |
 > | `brand_read` | The current brand context and its version (ADR-0023) |
 > | `brand_change` | Saves a change the person approved, or restores an earlier version, as a new version with its reason and signals |
 > | `brand_history` | Every version, with when, why and its signals |
@@ -89,25 +93,38 @@ behind the authorization claude.ai already uses.
   requests.
 * Good, because guests' names and emails stay between the event platform and CMOkit; the model sees
   counts.
-* Bad, because Cloudflare's OAuth library keeps grants in Workers KV, while CLAUDE.md says Durable
-  Objects are the only store; this record cannot be accepted until that rule is narrowed or the
-  grants are kept in a Durable Object.
+* Good, because a call can never act on a customer other than the one its address names, whatever
+  the model says.
+* Bad, because a person who works for two customers adds and switches between two connectors.
 * Bad, because a person on the Free plan who already has a custom connector cannot add CMOkit's.
 * Neutral, because tools are named for the job, so another chat client that speaks MCP can use them.
 
 ### Confirmation
 
-Tests drive each tool over Streamable HTTP with tokens for two people of different customers and
-assert refusal across customers, that no tool's input accepts a credential, and that no result
-carries a guest's email or name. The connector directory's requirement that each tool carry a
-`title` and a read-only or destructive hint is checked in the tests too.
+Tests drive each tool over Streamable HTTP with tokens for people of different customers and assert
+refusal at another customer's address, refusal of a token issued for another audience, that no
+tool's input accepts a credential, and that no result carries a guest's email or name. The connector
+directory's requirement that each tool carry a `title` and a read-only or destructive hint is checked
+in the tests too.
 
 ## Pros and Cons of the Options
 
-### A remote MCP server: a stateless Worker on Streamable HTTP, with CMOkit as the OAuth 2.1 authorization server and nine tools
+### A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking tokens from a separate issuer, with nine tools
 
 * Good, because it meets every driver.
-* Bad, because CMOkit runs an authorization server, with the care that takes.
+* Bad, because a person with several customers keeps several connectors.
+
+### The same, with the MCP server also issuing its own tokens
+
+* Good, because there is one Worker instead of two.
+* Bad, because sign-in and content become one deployment, so changing the issuer changes the content
+  server, and any later server of CMOkit's would need a sign-in of its own.
+
+### The same, on one address, with every tool taking the customer as an argument
+
+* Good, because a person with several customers keeps one connector.
+* Bad, because the model names the customer on every call, so one wrong guess acts on the wrong
+  customer's records; the address puts that choice with the person, once.
 
 ### No MCP server in v1: the skill alone, with the brand context in a Claude Project and results read from the event platform's own connector or a file the person uploads
 
@@ -134,15 +151,18 @@ carries a guest's email or name. The connector directory's requirement that each
 
 Sources: Anthropic's [custom connectors](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp),
 [connectors on mobile](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities),
-[building connectors](https://claude.com/docs/connectors/building),
-[connector authentication](https://claude.com/docs/connectors/building/authentication) and
+[building connectors](https://claude.com/docs/connectors/building) and
 [directory submission](https://claude.com/docs/connectors/building/submission), read on 2026-10-30;
 the MCP specification's [authorization, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)
 and [changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog); Cloudflare's
 [remote MCP server guide](https://developers.cloudflare.com/agents/model-context-protocol/guides/remote-mcp-server/),
 [McpAgent](https://developers.cloudflare.com/agents/model-context-protocol/apis/agent-api/) and
-[workers-oauth-provider](https://github.com/cloudflare/workers-oauth-provider). The MCP and Cloudflare
-pages were read through search extracts. Which MCP protocol versions claude.ai sends was not found.
+[workers-oauth-provider 1.0](https://developers.cloudflare.com/changelog/post/2026-10-01-workers-oauth-provider-1x/).
+The MCP and Cloudflare pages were read through search extracts. Whether the library's access tokens
+are JWTs another resource server could check by the issuer's published keys was not confirmed, so the
+adapter for an issuer other than CMOkit's own is written when one is wanted. Which MCP protocol
+versions claude.ai sends was not found. A connection per customer, named in its address, follows
+CFOKit's [record on agent connections](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0067-an-agent-connection-serves-one-company.md).
 
 **Follow-on obligations.** A package for the content server, which CLAUDE.md's list of packages does
 not yet name; the server's entries in the deployment reference; a listing in Anthropic's connector
@@ -155,4 +175,4 @@ the skill in step.
 
 * Claude documents a store a skill can read and write in any conversation, so some tools can go.
 * A tool goes unused across customers for a quarter.
-* claude.ai stops falling back to dynamic registration, or another client CMOkit wants needs it.
+* People with several customers find switching connectors a burden.

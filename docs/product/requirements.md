@@ -130,7 +130,7 @@ What CMOkit's hosted offering must do for the content plugin and for setting a c
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
 | **HST-01** | CMOkit is offered as a hosted service that a customer sets up with a CMOkit account, a connected site and payment, and nothing more: no terminal, no repository work and no Cloudflare account of the customer's own. | Must | Proposed |
-| **HST-02** | A person creates a CMOkit account and signs in to it with Google, GitHub or Meta. Signing in identifies the person and grants CMOkit nothing else at that provider. | Must | Proposed |
+| **HST-02** | A person creates a CMOkit account and signs in to it with an email address, or with Google, GitHub or Meta. Signing in identifies the person and grants CMOkit nothing else at that provider. | Must | Proposed |
 | **HST-03** | Setup is a conversation in the person's own Claude, including connecting the site and setting up payment processing. | Must | Proposed |
 | **HST-04** | A credential a customer gives CMOkit never passes through a conversation with a model. It is granted through the vendor's own authorization, or entered on a page of CMOkit's that the conversation links to, and it is held for that customer alone, encrypted, never logged and never shown again. | Must | Proposed |
 | **HST-05** | A person's Claude reaches CMOkit on their behalf through an authorization the person grants by signing in and can revoke, never through a key the person copies. | Must | Proposed |
