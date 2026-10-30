@@ -68,6 +68,8 @@ can today.
   already have, through its plugins and connectors, beside any others they use. CMOkit's hosted
   services run no inference, so what they cost is storage, compute and bought tools, which is why the
   hosted offering can cost a solo creator very little each month.
+* **A plain monthly subscription.** Hosted CMOkit is billed as a monthly subscription; it meters
+  nothing.
 * **Content that sounds like them.** The content plugin turns what a business sells into a weekly
   batch of short videos, each with one call to action, written in the brand's own voice from a brand
   strategy the customer owns. It learns each week from what the customer edits, rejects and approves,
