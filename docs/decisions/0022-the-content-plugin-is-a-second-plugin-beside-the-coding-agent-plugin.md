@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0022: The content plugin is a second plugin, beside the coding-agent plugin, in the same marketplace
 
-**Requirements served:** `AGT-02`, `AGT-03`, `HST-08`, `CNT-21`, `CNT-22`.
+**Requirements served:** `AGT-02`, `AGT-03`, `HST-08`, `CNT-21`, `CNT-22`, `CNT-27`.
 
 ## Context and Problem Statement
 
@@ -46,8 +46,10 @@ servers, and share only the repository they are versioned in.
 > This repository is a plugin marketplace with two plugins. The coding-agent plugin of `AGT-02` keeps
 > its skill and its local MCP server. The content plugin holds the content skill and declares
 > CMOkit's remote MCP server, hosted or self-hosted (ADR-0029); it has no local server, so everything
-> in it works in chat. Neither plugin depends on the other. The content plugin needs none of the
-> engine's packages or configuration.
+> in it works in chat. Neither plugin depends on the other. The coding-agent plugin may also connect
+> to the content server, to read a customer's brand context for the variant pages it writes
+> (`CNT-27`); experiments work without it. The content plugin needs none of the engine's packages or
+> configuration.
 
 ### Consequences
 

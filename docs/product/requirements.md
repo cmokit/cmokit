@@ -176,6 +176,7 @@ and works in claude.ai, the Claude desktop app and the Claude mobile app.
 | **CNT-24** | How well the content skill writes in a brand's voice is measured by evals in CI, on invented brands: how closely its drafts match the brand's approved examples, and how many of the brand's AI tells they carry. A release whose scores fall does not ship. | Must | Proposed |
 | **CNT-25** | An eval plays a series of a person's edits through learning from use, and shows the brand context improving: the changes proposed match the pattern of the edits, and drafts written after they are approved need fewer edits. | Must | Proposed |
 | **CNT-26** | Evals also check the content opinions: one call to action per piece, no invented person, testimonial or result, and the light check flagging what it is meant to flag. | Should | Proposed |
+| **CNT-27** | CMOkit's coding-agent skill can read a customer's brand context, so the variant pages it writes speak in the same voice, to the same audiences, as the brand's content. Experiments work without it. | Should | Proposed |
 
 ## Non-functional — `NFR-`
 

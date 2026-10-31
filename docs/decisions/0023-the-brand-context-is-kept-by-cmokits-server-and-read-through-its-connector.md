@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0023: The brand context is kept by CMOkit's server, versioned, and read through its connector before every draft
 
-**Requirements served:** `CNT-01`, `CNT-05`, `CNT-06`, `CNT-08`, `CNT-09`, `CNT-22`, `HST-13`.
+**Requirements served:** `CNT-01`, `CNT-05`, `CNT-06`, `CNT-08`, `CNT-09`, `CNT-22`, `CNT-27`, `HST-13`.
 
 ## Context and Problem Statement
 
@@ -58,7 +58,9 @@ whose every change is a version with its reason.
 
 > The brand context is a structured document of the sections `CNT-01` lists, kept by CMOkit's server
 > in the customer's object (ADR-0030) as a series of versions. The skill reads the current version
-> through the connector at the start of every task. A change, proposed by the skill from signals
+> through the connector at the start of every task. The brand context is the customer's, not the
+> content skill's: the coding-agent skill reads the same version for the variant pages it writes
+> (`CNT-27`). A change, proposed by the skill from signals
 > (ADR-0025) or asked for by the person, is shown to the person as a difference, and saved as a new
 > version only after they approve it, with its reason and the signals behind it. Any earlier version
 > can be restored, which is itself a new version. The person sees the brand context by asking for it

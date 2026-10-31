@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0018: CMOkit accounts sign in through an issuer of CMOkit's own, with an email code, Google, GitHub or Meta, and no password
 
-**Requirements served:** `HST-02`, `HST-05`, `HST-10`, `HST-11`, `NFR-06`, `CUS-01`, `PRD-01`.
+**Requirements served:** `HST-02`, `HST-05`, `HST-10`, `HST-11`, `NFR-06`, `CUS-01`, `PRD-01`, `CNT-27`.
 
 ## Context and Problem Statement
 
@@ -52,7 +52,7 @@ to start is a sign-in that times out".
 * Scales to zero, on Cloudflare alone (`NFR-06`).
 * CMOkit keeps no password.
 * No dependency on another product's identity provider.
-* Claude registers by its published identity, without the deprecated dynamic registration.
+* Claude registers by its published identity, and a coding agent that cannot still registers (`CNT-27`).
 * A self-hoster runs the same issuer with OAuth clients of their own (`HST-11`).
 
 ## Considered Options
@@ -93,9 +93,9 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > lets them back in when a provider fails them. The first sign-in creates the account, which becomes
 > a user of a customer at that customer's first checkout (ADR-0017) or by invitation.
 >
-> The issuer registers Claude by its Client ID Metadata Document and offers no dynamic registration.
-> It accepts a client only if every redirect it names is Claude's callback over https or a loopback
-> address, requires PKCE with S256, and names itself in every authorization response. A token names
+> The issuer registers Claude by its Client ID Metadata Document. A client that cannot register that
+> way, such as a coding agent reading the brand context, registers dynamically. Either way, it accepts
+> a client only if every redirect it names is Claude's callback over https or a loopback address, requires PKCE with S256, and names itself in every authorization response. A token names
 > the person and nothing else; which customer a connection serves is named in its address
 > (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
 
@@ -103,8 +103,8 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 
 * Good, because sign-in costs nothing while nobody signs in: no Java server and no database.
 * Good, because no password is stored, reset or open to credential stuffing.
-* Good, because Claude registers by its published identity, with nothing to clean up when dynamic
-  registration is removed.
+* Good, because Claude registers by its published identity, and dynamic registration remains only
+  for the clients that need it, behind the same limit on redirects.
 * Bad, because CMOkit owns security-critical code: the sign-in page, the provider callbacks, the email
   codes and account linking. It is tested against a written list of attacks: guessing codes, flooding
   an inbox, finding out who has an account, forging a sign-in, redirecting it elsewhere, and taking
@@ -207,3 +207,5 @@ one without changing it (ADR-0029); accounts and their sign-in identities would 
 * Meta requires Business Verification or review for Facebook Login with identity scopes alone.
 * Anthropic offers a sign-in a third party can use, so a person's Claude account could be their
   CMOkit account.
+* Every client CMOkit serves registers by a Client ID Metadata Document, so dynamic registration can
+  go.
