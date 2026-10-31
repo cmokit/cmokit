@@ -48,8 +48,8 @@ already relies on, and keeps the least.
 > who approved it, when, why and its signals; the pieces, each with its offer, format, audience,
 > drafts, the words approved, any rejection and its reason, the brand context version it was written
 > from, its tracked links, where and when it was posted, and its weekly result counts; the customer's
-> users; its connections, each a vendor, an identifier such as a GitHub installation or a Luma
-> calendar, and any credential; and its access as the lifecycle last set it (ADR-0017).
+> users; its connections, each a vendor, an identifier such as a Luma calendar, and any
+> credential; and its access as the lifecycle last set it (ADR-0017).
 >
 > **A person's object**, the issuer's, named by the person's id, holds the person's sign-in
 > identities, their proven email address and the customers they belong to.
@@ -75,7 +75,7 @@ already relies on, and keeps the least.
   customer check.
 * Good, because a customer's whole record is one object to export or delete.
 * Bad, because a question across customers, such as how many pieces were posted last week, has no
-  store to ask; analytics answers it, or nothing does.
+  store to ask; it is answered by reading each customer's object in turn, or not at all.
 * Bad, because drafts and their edits are kept for as long as the account is, and grow with use.
 
 ### Confirmation
@@ -89,7 +89,7 @@ on a database client.
 ### A Durable Object per customer and one per person, holding only CMOkit's own records
 
 * Good, because it meets every driver.
-* Bad, because cross-customer questions need analytics.
+* Bad, because a question across customers means reading every customer's object.
 
 ### One Cloudflare D1 database for every customer, each row keyed by customer
 
@@ -117,6 +117,6 @@ adapter and a move of each customer's records.
 
 ## Revisit when
 
-* Questions across customers, beyond what analytics answers, are asked every week.
+* Questions across customers are asked every week.
 * One customer's object nears a Durable Object's storage limit.
 * A customer asks for its drafts to be deleted after a period.

@@ -53,8 +53,8 @@ CMOkit's own billing through it is the most direct test of it there is.
 > creates the customer with that person as its first user (`CUS-03`), and manages it in Stripe's
 > customer portal (`SUB-03`). The lifecycle gives and revokes the customer's access by configured
 > calls to the hosted services' own API (ADR-0004) as its subscription changes (`SUB-04`). Revoked
-> access stops the hosted tools that read and write the customer's records and publish to its site;
-> the person can still sign in, pay and export (`HST-13`). Plans grant no credits, and nothing is
+> access stops the hosted tools that read and write the customer's records; the person can still
+> sign in, pay and export (`HST-13`). Plans grant no credits, and nothing is
 > metered.
 
 ### Consequences

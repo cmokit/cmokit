@@ -11,10 +11,9 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-A hosted customer sets CMOkit up by talking to Claude, including connecting its site and setting up
-payment processing (`HST-03`). Setting up means giving CMOkit access to things that are the
-customer's: its GitHub repository, its event platform's calendar, its Stripe account, and paying for
-CMOkit itself. Some vendors grant that access through OAuth or an app install, where the credential
+A hosted customer sets CMOkit up by talking to Claude, including subscribing and connecting its
+event platform (`HST-03`). Setting up means paying for CMOkit, and giving CMOkit access to the event
+platform's calendar, which is the customer's. Some vendors grant that access through OAuth or an app install, where the credential
 goes from the vendor to CMOkit and the person only clicks. Others issue a key the person must copy:
 Luma's API key is one per calendar and grants full access to it, with no read-only key documented.
 
@@ -48,8 +47,8 @@ straight to CMOkit.
 
 > The content skill asks CMOkit what is set up and what is missing. For each missing connection,
 > CMOkit returns a link, made for that person and that customer, that expires within minutes and
-> works once. The link opens the vendor's own authorization (a GitHub App install, an OAuth consent,
-> Stripe's hosted checkout) or, for a vendor that only issues keys, a page of CMOkit's with one field.
+> works once. The link opens the vendor's own page (an OAuth consent, or Stripe's hosted checkout for
+> CMOkit's own subscription) or, for a vendor that only issues keys, a page of CMOkit's with one field.
 > CMOkit verifies the credential with the vendor, keeps it encrypted in the customer's object
 > (ADR-0030), and tells the conversation only that the connection works, never the credential. The
 > MCP server has no tool that accepts a credential, and its instructions tell the model to stop a
@@ -100,9 +99,7 @@ credential.
 ## More Information
 
 Sources: Luma's [API getting started](https://docs.luma.com/reference/getting-started-with-your-api)
-and [MCP server](https://help.luma.com/p/mcp), read through search extracts on 2026-10-30. How a
-hosted customer's own Stripe account is connected (an OAuth flow of Stripe's, or a restricted key on
-CMOkit's page) was not checked against Stripe's documentation and is left to the payments adapter.
+and [MCP server](https://help.luma.com/p/mcp), read through search extracts on 2026-10-30.
 
 **Follow-on obligations.** CLAUDE.md says secrets are supplied by the deploying environment only, and
 `NFR-05` says every secret is. Both read as CMOkit's own secrets. `HST-04` covers a customer's

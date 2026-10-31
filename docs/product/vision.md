@@ -48,22 +48,19 @@ the page.
 
 ## Also hosted, for people who sell through what they post
 
-CMOkit is also offered as a commercial hosted service, for content marketers and creators who post a
-lot of short-form video and sell something through it: an event, an offer, a launch, a subscription.
-Most of them are not developers. They work in Claude, on the web and on their phone, with no terminal
-and no repository. CMOkit stays open source, and anyone can still run the engine themselves, as they
-can today.
+CMOkit's content production is also offered as a commercial hosted service, for content marketers
+and creators who post a lot of short-form video and sell something through it: an event, an offer, a
+launch, a subscription. Most of them are not developers. They work in Claude, on the desktop, on the
+web and on their phone, with no terminal and no repository. The engine stays self-hosted. CMOkit
+stays open source, and anyone can still run the engine, and the content service, themselves.
 
-* **Very little to set up.** A customer creates a CMOkit account, connects their site and sets up
-  payment. There is no terminal, no repository work and no Cloudflare account of their own.
-* **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude, payment
-  processing included.
+* **Very little to set up.** A customer creates a CMOkit account and subscribes, and connects the
+  event platform they sell through, if they use one. There is no terminal, no repository work and no
+  Cloudflare account of their own.
+* **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude.
 * **Signing in is only signing in.** A CMOkit account signs in with an email address, Google, GitHub
   or Meta. Signing in identifies the person and grants nothing else; anything more, such as
-  connecting a site, is asked for on its own, when it is needed.
-* **Any site, still.** A site on GitHub Pages is connected through the customer's GitHub account. A
-  site hosted anywhere else is connected through its host's or CMS's own API, and CMOkit publishes to
-  it there.
+  connecting an event platform, is asked for on its own, when it is needed.
 * **Their own Claude does the thinking.** A solo creator runs CMOkit from the Claude account they
   already have, through its plugins and connectors, beside any others they use. CMOkit's hosted
   services run no inference, so what they cost is storage, compute and bought tools, which is why the

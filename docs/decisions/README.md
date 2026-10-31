@@ -20,11 +20,11 @@ from [adr-template.md](adr-template.md).
 | [0013](0013-experiments-are-declared-in-configuration-and-synced-to-the-tool.md) | Experiments are declared in CMOkit's configuration, and the deploy makes the experiments tool match | Proposed |
 | [0014](0014-lead-messages-are-sequences-of-cmokits-own.md) | A lead's messages are a sequence declared in CMOkit's configuration, kept in a Durable Object per lead | Proposed |
 | [0015](0015-email-is-sent-through-sendgrid.md) | Email is sent through SendGrid, behind the messaging interface | Proposed |
-| [0016](0016-the-hosted-offering-is-one-multi-tenant-deployment-on-cmokits-own-cloudflare.md) | The hosted offering is one multi-tenant deployment of the engine, on CMOkit's own Cloudflare account | Draft |
+| [0016](0016-the-hosted-content-service-is-one-multi-tenant-deployment-on-cmokits-own-cloudflare.md) | The hosted content service is one multi-tenant deployment, on CMOkit's own Cloudflare account | Draft |
 | [0017](0017-hosted-cmokit-is-billed-and-gated-by-cmokits-own-lifecycle.md) | Hosted CMOkit is billed and gated by CMOkit's own lifecycle, and meters nothing yet | Draft |
 | [0018](0018-cmokit-accounts-sign-in-through-an-issuer-of-cmokits-own.md) | CMOkit accounts sign in through an issuer of CMOkit's own, with an email code, Google, GitHub or Meta, and no password | Draft |
 | [0019](0019-setup-is-a-conversation-that-hands-every-credential-to-a-page.md) | Setup is a conversation in Claude, and every credential is given on a page, never in the conversation | Draft |
-| [0020](0020-a-site-is-connected-through-a-publishing-interface-github-pages-first.md) | A site is connected through a publishing interface, with GitHub Pages, through a GitHub App, its only adapter at first | Draft |
+| [0020](0020-the-hosted-content-service-connects-no-site.md) | The hosted content service connects no site, and a piece's destination is any URL | Draft |
 | [0021](0021-the-content-workflow-is-an-agent-skill-run-in-the-persons-own-claude.md) | The content workflow and its opinions are an agent skill, run in the person's own Claude | Draft |
 | [0022](0022-the-content-plugin-is-a-second-plugin-beside-the-coding-agent-plugin.md) | The content plugin is a second plugin, beside the coding-agent plugin, in the same marketplace | Draft |
 | [0023](0023-the-brand-context-is-kept-by-cmokits-server-and-read-through-its-connector.md) | The brand context is kept by CMOkit's server, versioned, and read through its connector before every draft | Draft |

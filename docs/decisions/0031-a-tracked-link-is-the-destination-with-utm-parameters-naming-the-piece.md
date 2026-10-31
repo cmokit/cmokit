@@ -54,18 +54,22 @@ them, and nothing has to be hosted for them to work.
 > `utm_campaign` set to the offer and `utm_content` set to the piece's id. The hand-off says where to
 > put it: in the profile's link while the piece is the newest, or in any link the platform offers on
 > the post itself. A registration on an event platform is attributed to a piece by its `utm_content`
-> (ADR-0032). A visit to a site behind CMOkit's edge records the same parameters, so analytics
-> attributes the piece's visits and conversions like any other channel's. The piece's id joins each
-> result to its format and audience.
+> (ADR-0032). A visit to a site behind a self-hosted engine's edge records the same parameters, so
+> that site's own analytics attributes the piece like any other channel. Where neither holds, a
+> piece's results are the numbers the person reports from the social platform. The piece's id joins
+> each result to its format and audience.
 
 ### Consequences
 
-* Good, because content measures itself on day one, with or without the engine.
+* Good, because an event's registrations are attributed to pieces on day one, with or without the
+  engine.
 * Good, because the same link joins the engine's measurement when the edge is added later.
 * Bad, because a shared profile link credits the piece it carried at the time, so older pieces that
   sent people there are undercounted.
 * Bad, because a destination that drops query parameters, or a viewer who types the address, loses
   the piece.
+* Bad, because a destination that is neither an event platform nor behind the engine counts no
+  conversions per piece, so its pieces learn from the platform's own numbers alone.
 
 ### Confirmation
 

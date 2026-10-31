@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0029: A small remote MCP server, one address per customer, is the content plugin's connector, and checks tokens it does not issue
 
-**Requirements served:** `HST-04`, `HST-05`, `HST-07`, `HST-09`, `HST-10`, `HST-11`, `CNT-07`, `CNT-09`, `CNT-11`, `CNT-12`, `CNT-17`, `CNT-19`, `CNT-22`.
+**Requirements served:** `HST-04`, `HST-05`, `HST-09`, `HST-10`, `HST-11`, `CNT-07`, `CNT-09`, `CNT-11`, `CNT-12`, `CNT-17`, `CNT-19`, `CNT-22`.
 
 ## Context and Problem Statement
 
@@ -41,7 +41,7 @@ resource server checking tokens over a service binding.
 ## Considered Options
 
 * A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking
-  tokens from a separate issuer, with nine tools
+  tokens from a separate issuer, with eight tools
 * The same, with the MCP server also issuing its own tokens
 * The same, on one address, with every tool taking the customer as an argument
 * No MCP server in v1: the skill alone, with the brand context in a Claude Project and results read
@@ -53,7 +53,7 @@ resource server checking tokens over a service binding.
 ## Decision Outcome
 
 Chosen option: "A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer,
-checking tokens from a separate issuer, with nine tools", because it holds exactly what Claude's own
+checking tokens from a separate issuer, with eight tools", because it holds exactly what Claude's own
 features cannot, knows which customer it serves from its address, and leaves sign-in to the issuer.
 
 > The content server is a Worker serving MCP over Streamable HTTP, through Cloudflare's stateless
@@ -81,8 +81,7 @@ features cannot, knows which customer it serves from its address, and leaves sig
 > | `offers_list` | What is being sold: offers in the brand context and upcoming events read from the event platform (ADR-0032) |
 > | `piece_save` | Records a piece as it is planned, drafted, approved, rejected, edited or posted, and returns its tracked links (ADR-0031) |
 > | `pieces_list` | Pieces by week, status, format or audience |
-> | `results_read` | Results per piece, format and audience for a period, counted from the event platform and from analytics where present; never a guest's personal data |
-> | `site_publish` | Publishes approved files to the connected site, or undoes a publish (ADR-0020) |
+> | `results_read` | Results per piece, format and audience for a period, counted from the event platform, with the numbers the person reports from each social platform; never a guest's personal data |
 >
 > The server's instructions tell the model to read the brand context before writing, never to accept
 > a credential in the conversation, and, if the content skill is not loaded, how to turn it on.
@@ -109,7 +108,7 @@ in the tests too.
 
 ## Pros and Cons of the Options
 
-### A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking tokens from a separate issuer, with nine tools
+### A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking tokens from a separate issuer, with eight tools
 
 * Good, because it meets every driver.
 * Bad, because a person with several customers keeps several connectors.
