@@ -55,9 +55,13 @@ them, and nothing has to be hosted for them to work.
 > put it: in the profile's link while the piece is the newest, or in any link the platform offers on
 > the post itself. A registration on an event platform is attributed to a piece by its `utm_content`
 > (ADR-0032). A visit to a site behind a self-hosted engine's edge records the same parameters, so
-> that site's own analytics attributes the piece like any other channel. Where neither holds, a
-> piece's results are the numbers the person reports from the social platform. The piece's id joins
-> each result to its format and audience.
+> that site's own analytics attributes the piece like any other channel.
+>
+> Conversions are always the destination's to record. The tracked link carries the piece to it;
+> CMOkit reads the count through an adapter where one exists, Luma first, and otherwise the person
+> reports it from the destination's own dashboard. Views and other attention are the social
+> platform's numbers, which the person reports too. The piece's id joins each result to its format
+> and audience.
 
 ### Consequences
 
@@ -68,8 +72,8 @@ them, and nothing has to be hosted for them to work.
   sent people there are undercounted.
 * Bad, because a destination that drops query parameters, or a viewer who types the address, loses
   the piece.
-* Bad, because a destination that is neither an event platform nor behind the engine counts no
-  conversions per piece, so its pieces learn from the platform's own numbers alone.
+* Bad, because conversions at a destination CMOkit has no adapter for are counted only if the person
+  reports them from that destination's dashboard.
 
 ### Confirmation
 

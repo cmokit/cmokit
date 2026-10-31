@@ -81,7 +81,9 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > * **GitHub**, by OAuth, asking for `read:user` and `user:email`.
 > * **Meta**, by Facebook Login, asking for `public_profile` and `email`.
 > * **Email**: the person enters an address and is sent a six-digit code through the messaging
->   interface (ADR-0015). The code is kept hashed, expires after ten minutes and allows five
+>   interface's sending service (ADR-0015), with a sending key of the issuer's own. The code is
+>   transactional mail: it belongs to no unsubscribe group, so unsubscribing from a lead's sequence
+>   never stops a sign-in. The code is kept hashed, expires after ten minutes and allows five
 >   attempts, and sending is limited per address and per network. The page says the same whether or
 >   not the address has an account.
 >
@@ -117,7 +119,8 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 
 Tests sign in through stand-ins for each provider and for the messaging interface, and assert: the
 scopes asked for are exactly those above; a code expires, locks after five attempts, and is limited
-per address and network; the page answers alike for known and unknown addresses; a second provider
+per address and network, and is sent outside every unsubscribe group; the page answers alike for
+known and unknown addresses; a second provider
 with the same email does not join an account by itself; and a client naming any other redirect is
 refused.
 
