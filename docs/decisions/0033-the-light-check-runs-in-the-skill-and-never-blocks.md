@@ -7,13 +7,14 @@ decision-makers: [Geoff]
 
 # ADR-0033: The light check runs in the skill, a script and Claude's own reading, and never blocks
 
-**Requirements served:** `CNT-06`, `CNT-15`, `CNT-18`, `CNT-26`, `HST-09`.
+**Requirements served:** `CNT-06`, `CNT-15`, `CNT-18`, `CNT-26`, `CNT-29`, `HST-09`.
 
 ## Context and Problem Statement
 
-A light check flags health or cure claims, before-and-after claims, testimonials with no consent
-noted, and reminders about music rights and AI disclosure; it never blocks and is not a compliance
-review (`CNT-18`). Every draft is also checked against the brand's voice and its AI tells before the
+A light check flags health or cure claims, before-and-after claims and testimonials with no consent
+noted, and reminds the person about music rights; it never blocks and is not a compliance review
+(`CNT-18`). A platform's own rules on content made with AI are checked separately, against a shared
+file, and a use a platform prohibits does stop scheduling (`CNT-29`, ADR-0037). Every draft is also checked against the brand's voice and its AI tells before the
 person sees it (`CNT-06`), and nothing invents a person, a testimonial or a result (`CNT-15`). Evals
 check that the light check flags what it is meant to flag (`CNT-26`).
 
@@ -51,8 +52,8 @@ the skill's own sandbox.
 > before-and-after claims and testimonials. Claude then reads the draft against the brand's lines and
 > the same categories, for what the lists miss. A quote from a real person is flagged unless the
 > person noted their consent when giving it, and that note is kept on the piece. Every hand-off
-> carries two reminders: to use music the account may use commercially, and to label anything made
-> or changed with AI as the platform asks. Flags are shown beside the draft with a plain reason. The
+> carries a reminder to use music the account may use commercially; labeling content made with AI
+> is the platform AI content rules' job (ADR-0037). Flags are shown beside the draft with a plain reason. The
 > person may publish anyway; nothing is blocked, and the check says it is not legal advice.
 
 ### Consequences

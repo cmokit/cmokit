@@ -167,7 +167,7 @@ and works in claude.ai, the Claude desktop app and the Claude mobile app.
 | **CNT-15** | Real people and real footage are the default. Nothing written invents a person, a testimonial or a result. | Must | Proposed |
 | **CNT-16** | Nothing is posted without a person's approval. Nothing is posted automatically, and no direct message is automated. | Must | Proposed |
 | **CNT-17** | Each approved piece is handed off in a form the person's own editing and posting tools take, and what was posted, where and when, is recorded so that its results can be attributed. | Must | Proposed |
-| **CNT-18** | A light check flags health or cure claims, before-and-after claims, testimonials with no consent noted, and reminders about music rights and AI disclosure. It never blocks, and it is not a compliance review. | Must | Proposed |
+| **CNT-18** | A light check flags health or cure claims, before-and-after claims and testimonials with no consent noted, and reminds the person about music rights. It never blocks, and it is not a compliance review. A platform's own rules on content made with AI are checked separately. | Must | Proposed |
 | **CNT-19** | Results are read weekly, per piece, per format and per audience, so that the audiences learn from use as the voice does. | Must | Proposed |
 | **CNT-20** | An event's real capacity and remaining places can make its copy urgent, and nothing invents scarcity; its check-ins can feed its recap. | Should | Proposed |
 | **CNT-21** | Content works with none of CMOkit's experiment features configured. Where CMOkit's measurement is present, a piece's tracked link joins it, so its visits and conversions are attributed like any other channel's. | Must | Proposed |
@@ -178,6 +178,8 @@ and works in claude.ai, the Claude desktop app and the Claude mobile app.
 | **CNT-26** | Evals also check the content opinions: one call to action per piece, no invented person, testimonial or result, and the light check flagging what it is meant to flag. | Should | Proposed |
 | **CNT-27** | CMOkit's coding-agent skill can read a customer's brand context, so the variant pages it writes speak in the same voice, to the same audiences, as the brand's content. Experiments work without it. | Should | Proposed |
 | **CNT-28** | Each week's plan is shaped by the results so far: it leans towards the formats, audiences and hooks whose pieces converted, keeps a share of pieces for trying something new, and acts on a difference only when enough pieces stand behind it. | Must | Proposed |
+| **CNT-29** | Before a piece is drafted or scheduled, how its images, video and voice were made is known, and checked against each target platform's current rules on content made with AI, kept in one shared file that gives each rule's source, quoted evidence and the date it was last verified. A use a platform prohibits stops the piece from being scheduled until it is revised, and a rule not recently verified is never presented as settled. | Must | Proposed |
+| **CNT-30** | The shared rules on content made with AI are checked against their sources every month by an automated process, which proposes any change for a person to review before it takes effect. | Must | Proposed |
 
 ## Non-functional — `NFR-`
 
