@@ -101,9 +101,9 @@ credential.
 Sources: Luma's [API getting started](https://docs.luma.com/reference/getting-started-with-your-api)
 and [MCP server](https://help.luma.com/p/mcp), read through search extracts on 2026-10-30.
 
-**Follow-on obligations.** CLAUDE.md says secrets are supplied by the deploying environment only, and
-`NFR-05` says every secret is. Both read as CMOkit's own secrets. `HST-04` covers a customer's
-credentials, and CLAUDE.md needs a matching rule once this record is accepted.
+**Follow-on obligations.** `NFR-05` says CMOkit's own secrets are supplied by the deploying
+environment, and `HST-04` covers a customer's credentials. CLAUDE.md's rule that secrets are
+supplied by the deploying environment only needs the same narrowing once this record is accepted.
 
 **Reversal cost.** Low: the links and pages are a thin layer over the connections they create.
 

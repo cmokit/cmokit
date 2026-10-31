@@ -184,5 +184,5 @@ and works in claude.ai, the Claude desktop app and the Claude mobile app.
 | **NFR-01** | A site adopts CMOkit by adding a dependency and configuration, and upgrades by changing a version. | Must | Proposed |
 | **NFR-03** | Every bought tool sits behind an interface, so a business can use another vendor for the same job. | Should | Proposed |
 | **NFR-04** | A business can run CMOkit's whole test suite with no account at any bought tool. | Must | Proposed |
-| **NFR-05** | Every secret is supplied by the deploying environment, never committed and never logged. | Must | Proposed |
+| **NFR-05** | Every secret CMOkit's own deployment runs with is supplied by the deploying environment, never committed and never logged. A credential a customer gives CMOkit, such as an event platform's key, is not one of these: it is held as `HST-04` requires. | Must | Proposed |
 | **NFR-06** | Every part of CMOkit scales to zero: with no traffic and no events it runs nothing and costs nothing beyond its bought tools' own charges. | Must | Proposed |
