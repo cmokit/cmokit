@@ -29,7 +29,7 @@ from [adr-template.md](adr-template.md).
 | [0022](0022-the-content-plugin-is-a-second-plugin-beside-the-coding-agent-plugin.md) | The content plugin is a second plugin, beside the coding-agent plugin, in the same marketplace | Draft |
 | [0023](0023-the-brand-context-is-kept-by-cmokits-server-and-read-through-its-connector.md) | The brand context is kept by CMOkit's server, versioned, and read through its connector before every draft | Draft |
 | [0024](0024-onboarding-bootstraps-the-brand-context-with-a-seven-step-exercise-of-cmokits-own.md) | Onboarding bootstraps the brand context with a seven-step exercise of CMOkit's own, about fifty minutes long | Draft |
-| [0025](0025-learning-from-use-proposes-brand-context-changes-from-recorded-signals.md) | Learning from use records each piece's signals on CMOkit's server, and the weekly review proposes brand context changes the person approves | Draft |
+| [0025](0025-the-weekly-review-steers-the-next-plan-and-proposes-brand-context-changes.md) | The weekly review learns from each piece's signals and results, steering the next plan and proposing brand context changes, under one rule of evidence | Draft |
 | [0026](0026-pieces-come-in-four-formats-one-for-each-moment-of-what-is-sold.md) | Pieces come in four formats, one for each moment of what is sold | Draft |
 | [0027](0027-visual-identity-and-visuals-are-the-persons-claude-design-system.md) | Visual identity lives in the person's Claude Design design system, and visuals are made in Claude Design from it | Draft |
 | [0028](0028-editing-and-posting-stay-with-the-persons-own-tools.md) | Editing footage and posting stay with the person's own tools, and CMOkit records what was posted | Draft |
