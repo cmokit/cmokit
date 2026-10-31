@@ -81,7 +81,7 @@ features cannot, knows which customer it serves from its address, and leaves sig
 > | `offers_list` | What is being sold: offers in the brand context and upcoming events read from the event platform (ADR-0032) |
 > | `piece_save` | Records a piece as it is planned, drafted, approved, rejected, edited or posted, and the numbers the person reports for it, and returns its tracked links (ADR-0031) |
 > | `pieces_list` | Pieces by week, status, format or audience |
-> | `results_read` | Results per piece, format and audience for a period: conversions read from the destination through an adapter where one exists, the event platform first, with the conversions and attention the person reported; never a guest's personal data |
+> | `results_read` | Results per piece, format and audience for a period: conversions read from the destination through an adapter where one exists (the event platform, and a site's analytics for a page the engine serves, ADR-0036), with the conversions and attention the person reported; never a guest's personal data |
 >
 > The server's instructions tell the model to read the brand context before writing, never to accept
 > a credential in the conversation, and, if the content skill is not loaded, how to turn it on.

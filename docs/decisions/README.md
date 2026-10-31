@@ -40,3 +40,4 @@ from [adr-template.md](adr-template.md).
 | [0033](0033-the-light-check-runs-in-the-skill-and-never-blocks.md) | The light check runs in the skill, a script and Claude's own reading, and never blocks | Draft |
 | [0034](0034-the-content-plugin-names-the-claude-settings-it-needs-and-says-when-one-is-missing.md) | The content plugin names the Claude settings it depends on, and says in plain words when one is missing | Draft |
 | [0035](0035-the-issuers-tokens-are-kept-in-workers-kv-by-cloudflares-oauth-library.md) | The issuer's tokens are kept in Workers KV by Cloudflare's OAuth library, and everything else in Durable Objects | Draft |
+| [0036](0036-a-funnel-piece-is-measured-by-reading-the-sites-own-posthog-read-only.md) | A piece sent to a page the engine serves is measured by reading the site's own PostHog, read-only | Draft |

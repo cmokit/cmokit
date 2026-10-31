@@ -59,11 +59,15 @@ them, and nothing has to be hosted for them to work.
 > between content and landing page experiments: a piece whose call to action enters an experiment's
 > funnel sends people to a page the engine serves, and the engine records them.
 >
-> A destination is always another system, and conversions are always the destination's to record. The tracked link carries the piece to it;
-> CMOkit reads the count through an adapter where one exists, Luma first, and otherwise the person
-> reports it from the destination's own dashboard. Views and other attention are the social
-> platform's numbers, which the person reports too. The piece's id joins each result to its format
-> and audience.
+> A destination is always another system, and conversions are always the destination's to record.
+> The tracked link carries the piece to it; CMOkit reads the count through an adapter where one
+> exists, and otherwise the person reports it from the destination's own dashboard. Views and other
+> attention are the social platform's numbers, which the person reports too. The piece's id joins
+> each result to its format and audience.
+>
+> The first two destinations are an event's page on Luma, whose registrations are read through the
+> events adapter (ADR-0032), and a landing page experiment's funnel page on a site running the
+> engine, whose visits and conversions are read from the site's own PostHog (ADR-0036).
 
 ### Consequences
 

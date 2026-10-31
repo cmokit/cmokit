@@ -48,8 +48,8 @@ already relies on, and keeps the least.
 > who approved it, when, why and its signals; the pieces, each with its offer, format, audience,
 > drafts, the words approved, any rejection and its reason, the brand context version it was written
 > from, its tracked links, where and when it was posted, and its weekly result counts; the customer's
-> users; its connections, each a vendor, an identifier such as a Luma calendar, and any
-> credential; and its access as the lifecycle last set it (ADR-0017).
+> users; its connections, each a vendor, an identifier such as a Luma calendar or a PostHog
+> project, and any credential; and its access as the lifecycle last set it (ADR-0017).
 >
 > **A person's object**, the issuer's, named by the person's id, holds the person's sign-in
 > identities, their proven email address and the customers they belong to.

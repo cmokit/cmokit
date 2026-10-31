@@ -12,9 +12,10 @@ decision-makers: [Geoff]
 ## Context and Problem Statement
 
 A hosted customer sets CMOkit up by talking to Claude, including subscribing and connecting its
-event platform (`HST-03`). Setting up means paying for CMOkit, and giving CMOkit access to the event
-platform's calendar, which is the customer's. Some vendors grant that access through OAuth or an app install, where the credential
-goes from the vendor to CMOkit and the person only clicks. Others issue a key the person must copy:
+event platform (`HST-03`). Setting up means paying for CMOkit, and giving CMOkit access to what is
+the customer's: its event platform's calendar and, for a site running CMOkit's engine, read access to
+its analytics (ADR-0036). Some vendors grant that access through OAuth or an app install, where the
+credential goes from the vendor to CMOkit and the person only clicks. Others issue a key the person must copy:
 Luma's API key is one per calendar and grants full access to it, with no read-only key documented.
 
 A credential a customer gives CMOkit never passes through a conversation with a model (`HST-04`), as

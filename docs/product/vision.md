@@ -55,8 +55,8 @@ web and on their phone, with no terminal and no repository. The engine stays sel
 stays open source, and anyone can still run the engine, and the content service, themselves.
 
 * **Very little to set up.** A customer creates a CMOkit account and subscribes, and connects the
-  event platform they sell through, if they use one. There is no terminal, no repository work and no
-  Cloudflare account of their own.
+  event platform they sell through and their site's analytics, if they have them. There is no
+  terminal, no repository work and no Cloudflare account of their own.
 * **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude.
 * **Signing in is only signing in.** A CMOkit account signs in with an email address, Google, GitHub
   or Meta. Signing in identifies the person and grants nothing else; anything more, such as
