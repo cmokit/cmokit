@@ -7,8 +7,9 @@ last_full_review: 2026-10-31
 # Platform rules on AI-made content
 
 What each platform says about content made or changed with AI, with where each rule comes from and
-how sure it is. The content skill reads this file before a piece is drafted or scheduled. A
-maintainer reviews every change to it; the monthly refresh proposes changes as a pull request.
+how sure it is. The content skill reads this file before a piece is drafted or handed off for
+posting. A maintainer reviews every change to it; the monthly refresh proposes changes as a pull
+request.
 
 Each entry has:
 

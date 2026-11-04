@@ -7,7 +7,8 @@ code: change them by pull request.
 The files are `ai-content-policies.md` (the rules) and `policy-sources.json` (the monitored pages),
 both beside this one. The run's report, `policy-refresh-report.md` at the repository's root, lists
 the sources whose main text changed, the sources that could not be fetched, and the entries marked
-`needs_verification` or `unfetchable`.
+`needs_verification` or `unfetchable`. The model step runs only when a source changed or became
+unfetchable; entries pending alone wait for a person.
 
 ## What to read
 

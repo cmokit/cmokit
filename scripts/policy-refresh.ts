@@ -2,7 +2,9 @@
 // Fetches each URL in policy-sources.json, hashes the page's main text, and compares the hash with
 // the stored one. Run with `node scripts/policy-refresh.ts`; `--dry-run` changes nothing, and
 // `--report <file>` writes what the model step must re-read. In GitHub Actions it also sets the
-// output `needs_model`, which is false only when no source changed and every entry is current.
+// output `needs_model`, true only when a source's main text changed, has no stored hash yet, or could
+// not be fetched where it could last time. Entries still marked needs_verification or unfetchable are
+// listed in the report for a person: re-reading an unchanged page would give the model the same answer.
 
 import { createHash } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
@@ -70,8 +72,9 @@ export function pendingEntries(policies: string): string[] {
     .map((entry) => entry.split('\n', 1)[0].trim());
 }
 
-export const needsModel = (outcomes: Outcome[], pending: string[]) =>
-  pending.length > 0 || outcomes.some((o) => o.result !== 'unchanged');
+/** Whether a source moved since the last run: its text changed, or it became unfetchable. */
+export const needsModel = (sources: Source[], outcomes: Outcome[]) =>
+  outcomes.some((o, i) => o.result === 'changed' || (o.result === 'unfetchable' && sources[i].fetch_status !== 'unfetchable'));
 
 /** The record of each source after this run. An unfetchable page keeps its last good hash. */
 export function updated(source: Source, outcome: Outcome, today: string): Source {
@@ -95,7 +98,7 @@ export function report(outcomes: Outcome[], pending: string[]): string {
     '## Sources that could not be fetched (do not guess their content)',
     ...(list('unfetchable').length ? list('unfetchable') : ['* none']),
     '',
-    '## Entries marked needs_verification or unfetchable',
+    '## Entries marked needs_verification or unfetchable, for a person to verify',
     ...(pending.length ? pending.map((id) => `* ${id}`) : ['* none']),
   ];
   return `${lines.join('\n')}\n`;
@@ -124,7 +127,7 @@ async function main(args: string[]): Promise<void> {
   for (const source of sources) outcomes.push(compare(source, await fetchText(source.url)));
 
   const text = report(outcomes, pending);
-  const model = needsModel(outcomes, pending);
+  const model = needsModel(sources, outcomes);
   console.log(text);
   console.log(model ? 'The model step is needed.' : 'Nothing changed: no model step.');
   if (dryRun) return;

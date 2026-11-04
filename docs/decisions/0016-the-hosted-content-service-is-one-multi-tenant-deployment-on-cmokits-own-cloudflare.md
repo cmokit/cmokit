@@ -99,7 +99,7 @@ flowchart LR
   issuer --> persondo
   issuer --> idp
   issuer --> sendgrid
-  server -- "checks tokens" --> issuer
+  server -- "checks tokens, service binding" --> issuer
   server --> custdo
   server -- "pull, when results are read" --> luma
   server -- "read only" --> posthog

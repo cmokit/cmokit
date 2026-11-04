@@ -64,11 +64,12 @@ features cannot, knows which customer it serves from its address, and leaves sig
 > connector.
 >
 > The content server issues no token. It publishes Protected Resource Metadata naming the issuer,
-> answers a call without a token by pointing at it, and accepts only tokens the issuer issued for the
-> server's own audience. It reads two settings, the issuer's address and that audience, and checks
-> tokens through one interface, whose adapter for CMOkit's own issuer (ADR-0018) is the library's
-> resource server. A token names a person; every call checks that the person is a user of the
-> customer the address names.
+> answers a call without a token by pointing at it, and accepts only tokens the issuer issued for
+> the server's own audience. It reads two settings, the issuer's address and that audience, and
+> checks tokens through one interface, whose adapter for CMOkit's own issuer (ADR-0018) is the
+> library's resource server, run in the content server's own Worker and checking each token with the
+> issuer over a service binding; no third Worker is involved. A token names a person; every call
+> checks that the person is a user of the customer the address names.
 >
 > Its tools:
 >

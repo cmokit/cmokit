@@ -5,7 +5,7 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0020: The hosted content service connects no site, and a piece's destination is any URL
+# ADR-0020: The hosted content service publishes to no site, and a piece's destination is any URL
 
 **Requirements served:** `HST-01`, `CNT-11`, `CNT-12`, `CNT-21`.
 
@@ -31,18 +31,20 @@ CMS, self-hosted (ADR-0002).
 
 ## Considered Options
 
-* No site connection: a piece's destination is any URL that already exists
+* No access to any site: a piece's destination is any URL that already exists
 * A publishing interface with a GitHub App adapter, to publish landing pages to the customer's site
 * Adapters for hosts with publishing APIs, such as Webflow, WordPress.com and Shopify
 
 ## Decision Outcome
 
-Chosen option: "No site connection: a piece's destination is any URL that already exists", because
+Chosen option: "No access to any site: a piece's destination is any URL that already exists", because
 content needs only somewhere to send people, and every offer it promotes already has a page.
 
-> The hosted content service connects no site and publishes nothing. When a piece is planned, the
-> person gives its destination, or the event platform supplies it (ADR-0032), and the content server
-> builds its tracked link from that URL (ADR-0031).
+> The hosted content service publishes nothing and holds no access to any site's repository, host or
+> CMS. Its one tie to a site is optional and read-only: the site's analytics, for a piece sent to a
+> page of a site running CMOkit's engine (ADR-0036). When a piece is planned, the person gives its
+> destination, or the event platform supplies it (ADR-0032), and the content server builds its
+> tracked link from that URL (ADR-0031).
 
 ### Consequences
 
@@ -56,7 +58,7 @@ Enforced by review: the content server has no tool and no adapter that writes to
 
 ## Pros and Cons of the Options
 
-### No site connection: a piece's destination is any URL that already exists
+### No access to any site: a piece's destination is any URL that already exists
 
 * Good, because it meets every driver.
 * Bad, because making a missing landing page is left to the person.

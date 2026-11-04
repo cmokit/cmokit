@@ -44,15 +44,19 @@ Chosen option: "A Durable Object per customer and one per person, holding only C
 because it gives each customer storage no other customer's request can address, on the store CMOkit
 already relies on, and keeps the least.
 
-> **A customer's object**, named by the customer's id, holds: the brand context's versions, each with
-> who approved it, when, why and its signals; the pieces, each with its offer, format, audience,
-> drafts, the words approved, any rejection and its reason, the brand context version it was written
-> from, its tracked links, where and when it was posted, and its weekly result counts; the customer's
-> users; its connections, each a vendor, an identifier such as a Luma calendar or a PostHog
-> project, and any credential; and its access as the lifecycle last set it (ADR-0017).
+> **A customer's object**, named by the customer's id, holds: the brand context's versions, each
+> with who approved it, when, why and its signals; the pieces, each with its offer, format,
+> audience, drafts, the words approved, any rejection and its reason, the brand context version it
+> was written from, its tracked links, where and when it was posted, and its weekly result counts;
+> the customer's users, of whom the hosted service offers one, the person who paid (ADR-0017),
+> though they are kept as a list so that more need no change to the records; its connections, each a
+> vendor, an identifier such as a Luma calendar or a PostHog project, and any credential; and its
+> access as the lifecycle last set it (ADR-0017).
 >
 > **A person's object**, the issuer's, named by the person's id, holds the person's sign-in
-> identities, their proven email address and the customers they belong to.
+> identities, their proven email address and the customers they belong to. The customer's object is
+> the authority on who its users are; the person's list is an index of it, written in the same step,
+> for a person to choose between their customers (`HST-10`).
 >
 > **A sign-in identity's object**, the issuer's, named by a provider and its subject id, or by
 > `email:` and an address, holds the person it belongs to and, for an address, its pending code:
@@ -120,3 +124,5 @@ adapter and a move of each customer's records.
 * Questions across customers are asked every week.
 * One customer's object nears a Durable Object's storage limit.
 * A customer asks for its drafts to be deleted after a period.
+* A customer asks for a second user, which needs invitations: who may invite, and how an invitee
+  proves the address invited.

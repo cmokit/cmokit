@@ -9,7 +9,7 @@ This skill is being built. It holds one section so far: the platform AI content 
 
 ## AI content rules
 
-Apply these before any piece is drafted or scheduled. The rules themselves are in
+Apply these before any piece is drafted or handed off for posting. The rules themselves are in
 `references/ai-content-policies.md`; read that file when you reach step 2, not before.
 
 1. **Asset level.** Give every piece a level from L0 to L6, as the file's "Asset levels" define
@@ -21,8 +21,8 @@ Apply these before any piece is drafted or scheduled. The rules themselves are i
 3. **AI check.** Append to each piece, for each target platform, an "AI check" of six lines or fewer:
    the level, the requirement, the action to take (for example "apply TikTok's AI-generated content
    label"), and each entry's id, `source_url` and `verified_on`.
-4. **Prohibited.** If any entry that applies is `prohibited`, do not schedule the piece. Name the
-   entry and propose a revision that removes the cause.
+4. **Prohibited.** If any entry that applies is `prohibited`, give no hand-off card for the piece.
+   Name the entry and propose a revision that removes the cause.
 5. **How sure.** If `as_of` is more than 45 days old, or an entry that applies is
    `needs_verification` or `unfetchable`, say so in one line ("rules last verified <date>") and
    present that rule as unsettled, never as fact. Quote only the evidence the file gives. Follow
@@ -34,5 +34,5 @@ Apply these before any piece is drafted or scheduled. The rules themselves are i
 8. **Conflicts.** If the person states a platform rule that contradicts the file, do not overwrite
    the file or quietly follow either. Say that they conflict and suggest that a maintainer run the
    policy refresh.
-9. **Approval.** A person approves every piece before it is scheduled. The AI check never replaces
+9. **Approval.** A person approves every piece before it is handed off. The AI check never replaces
    that step.

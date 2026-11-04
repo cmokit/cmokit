@@ -11,8 +11,8 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-Before a piece is drafted or scheduled, how its media was made is checked against each target
-platform's current rules on content made with AI, and a prohibited use stops it from being scheduled
+Before a piece is drafted or handed off for posting, how its media was made is checked against each
+target platform's current rules on content made with AI, and a prohibited use stops the hand-off
 (`CNT-29`). The light check, which never blocks, no longer carries AI disclosure (`CNT-18`). The
 rules change often: Instagram added an AI-generated profile label in August 2026, TikTok's community
 guidelines were revised in August 2026, and Article 50 of the EU's AI Act applies from August 2026.
@@ -53,11 +53,12 @@ every change a reviewed diff, and spends a model call only when a source moved.
 > `references/ai-content-policies.md` in the content skill holds the asset levels and one entry per
 > rule, each with its source, quoted evidence, `verified_on` and `status`; `policy-sources.json`
 > lists the monitored pages with a hash of each one's main text. The skill reads the file before a
-> piece is drafted or scheduled, adds an AI check to each piece, stops scheduling on a prohibited
-> use, and says when a rule is stale or unverified. On the 1st of each month, and by hand, a
-> workflow runs `scripts/policy-refresh.ts`, which fetches each page, hashes its main text, and
-> marks a page it cannot read unfetchable. If nothing changed and every entry is current, it stops.
-> Otherwise Claude Code, pinned by commit and given read-only repository access and no shell,
+> piece is drafted or handed off for posting, adds an AI check to each piece, gives no hand-off card
+> on a prohibited use, and says when a rule is stale or unverified. On the 1st of each month, and by
+> hand, a workflow runs `scripts/policy-refresh.ts`, which fetches each page, hashes its main text,
+> and marks a page it cannot read unfetchable. If no source's main text changed and none became
+> unreadable, it stops, listing the entries still awaiting verification for a person, since
+> re-reading an unchanged page would give the model the same answer. Otherwise Claude Code, pinned by commit and given read-only repository access and no shell,
 > follows `references/REFRESH.md` to update only what the sources say. A second job, with no model,
 > opens a pull request; nothing is pushed to the default branch or merged by the workflow.
 
@@ -75,7 +76,7 @@ sequenceDiagram
   G->>R: check job, contents read
   R->>W: fetch each source in policy-sources.json
   R->>R: hash the main text, mark thin pages unfetchable
-  alt A source changed, or an entry is pending
+  alt A source changed, or became unfetchable
     R->>M: follow REFRESH.md, no shell
     M->>W: read the changed pages
     M->>M: edit the rules file, write the PR text
@@ -100,8 +101,8 @@ sequenceDiagram
 
 Tests of `scripts/policy-refresh.ts` assert that navigation and scripts do not change a page's
 hash, that a changed main text is detected, that an unreadable page is unfetchable and keeps its
-last hash, and that the model step runs only when something changed or is pending. The workflow's
-permissions are checked in review.
+last hash, and that the model step runs only when a source changed or became unfetchable, never for
+pending entries alone. The workflow's permissions are checked in review.
 
 ## Pros and Cons of the Options
 

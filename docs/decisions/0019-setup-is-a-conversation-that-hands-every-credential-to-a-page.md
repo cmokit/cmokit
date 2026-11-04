@@ -48,12 +48,12 @@ straight to CMOkit.
 
 > The content skill asks CMOkit what is set up and what is missing. For each missing connection,
 > CMOkit returns a link, made for that person and that customer, that expires within minutes and
-> works once. The link opens the vendor's own page (an OAuth consent, or Stripe's hosted checkout for
-> CMOkit's own subscription) or, for a vendor that only issues keys, a page of CMOkit's with one field.
-> CMOkit verifies the credential with the vendor, keeps it encrypted in the customer's object
-> (ADR-0030), and tells the conversation only that the connection works, never the credential. The
-> MCP server has no tool that accepts a credential, and its instructions tell the model to stop a
-> person who starts pasting one.
+> works once. The link opens the vendor's own page (an OAuth consent, or Stripe's hosted checkout
+> for CMOkit's own subscription, whose link the lifecycle makes (ADR-0017)) or, for a vendor that
+> only issues keys, a page of CMOkit's with one field. CMOkit verifies the credential with the
+> vendor, keeps it encrypted in the customer's object (ADR-0030), and tells the conversation only
+> that the connection works, never the credential. The MCP server has no tool that accepts a
+> credential, and its instructions tell the model to stop a person who starts pasting one.
 
 Setup, one connection at a time:
 
@@ -71,7 +71,9 @@ sequenceDiagram
   S-->>C: what is missing, and a one-time link for each
   C-->>U: open this link, never paste a key here
   alt Subscription
-    U->>P: Stripe hosted Checkout, trial starts (ADR-0017)
+    S->>L: a checkout link for the person (ADR-0017)
+    L-->>S: the link
+    U->>V: Stripe's hosted Checkout, trial starts
     V->>L: subscription event
     L->>S: grant access
   else A vendor with OAuth

@@ -50,10 +50,12 @@ test('entries marked needs_verification or unfetchable are pending', () => {
   assert.deepEqual(pendingEntries(policies), ['TT-2', 'LI-4']);
 });
 
-test('the model is needed only when a source changed, could not be fetched, or an entry is pending', () => {
+test('the model is needed only when a source changed or became unfetchable, never for pending entries alone', () => {
+  const source: Source = { id: 'a', platform: 'TikTok', url: 'u', source_type: 'primary', content_hash: 'h', last_checked: '2026-10-01', fetch_status: 'ok' };
   const unchanged = { id: 'a', url: 'u', result: 'unchanged' as const, hash: 'h' };
-  assert.equal(needsModel([unchanged], []), false);
-  assert.equal(needsModel([unchanged], ['TT-2']), true);
-  assert.equal(needsModel([{ ...unchanged, result: 'changed' }], []), true);
-  assert.equal(needsModel([{ ...unchanged, result: 'unfetchable', hash: null }], []), true);
+  const unfetchable = { ...unchanged, result: 'unfetchable' as const, hash: null };
+  assert.equal(needsModel([source], [unchanged]), false);
+  assert.equal(needsModel([source], [{ ...unchanged, result: 'changed' }]), true);
+  assert.equal(needsModel([source], [unfetchable]), true);
+  assert.equal(needsModel([{ ...source, fetch_status: 'unfetchable' }], [unfetchable]), false);
 });

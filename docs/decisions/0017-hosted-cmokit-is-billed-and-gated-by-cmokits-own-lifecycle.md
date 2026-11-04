@@ -48,14 +48,15 @@ Chosen option: "CMOkit's own lifecycle, with hosted CMOkit as a product in its c
 credits until a cost calls for them", because the lifecycle already does every step, and running
 CMOkit's own billing through it is the most direct test of it there is.
 
-> Hosted CMOkit is a product in a CMOkit lifecycle configuration of CMOkit's own. Its plans and trial
-> are configuration (`SUB-05`). The signed-in person starts a trial in Stripe's hosted checkout, which
-> creates the customer with that person as its first user (`CUS-03`), and manages it in Stripe's
-> customer portal (`SUB-03`). The lifecycle gives and revokes the customer's access by configured
-> calls to the hosted services' own API (ADR-0004) as its subscription changes (`SUB-04`). Revoked
-> access stops the hosted tools that read and write the customer's records; the person can still
-> sign in, pay and export (`HST-13`). Plans grant no credits, and nothing is
-> metered.
+> Hosted CMOkit is a product in a CMOkit lifecycle configuration of CMOkit's own. Its plans and
+> trial are configuration (`SUB-05`). The signed-in person starts a trial in Stripe's hosted
+> checkout, through a link the lifecycle makes from its configured plans when the content server
+> asks for one for that person (ADR-0019), which creates the customer with that person as its first
+> user (`CUS-03`), and manages it in Stripe's customer portal (`SUB-03`). The lifecycle gives and
+> revokes the customer's access by configured calls to the hosted services' own API (ADR-0004) as
+> its subscription changes (`SUB-04`). Revoked access stops the hosted tools that read and write the
+> customer's records; the person can still sign in, pay and export (`HST-13`). Plans grant no
+> credits, and nothing is metered.
 
 ### Consequences
 
@@ -98,9 +99,10 @@ revoked customer's write tools refuse, and that its sign-in, checkout and export
 
 ## More Information
 
-**Follow-on obligations.** The hosted services publish the API the lifecycle calls to give and revoke
-a customer's access. Whether sales tax is collected through the payment processor's own tax features
-is a question for the payments adapter, not this record.
+**Follow-on obligations.** The hosted services publish the API the lifecycle calls to give and
+revoke a customer's access, and the lifecycle publishes the call that makes a checkout link for a
+person. Whether sales tax is collected through the payment processor's own tax features is a
+question for the payments adapter, not this record.
 
 **Reversal cost.** Low: moving the hosted offering's billing elsewhere replaces the configured calls,
 and nothing in the hosted services depends on how access was decided.
