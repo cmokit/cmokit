@@ -1,5 +1,5 @@
 ---
-status: "draft"
+status: "proposed"
 kind: "requirement-driven"
 date: 2026-10-30
 decision-makers: [Geoff]
