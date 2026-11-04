@@ -8,5 +8,7 @@ the page, proposed each week by an agent.
 * **Why and what:** [docs/product/vision.md](docs/product/vision.md)
 * **What it must do:** [docs/product/requirements.md](docs/product/requirements.md)
 * **How it is decided:** [docs/decisions/](docs/decisions/README.md)
+* **How it fits around a site:** [docs/explanation/architecture.md](docs/explanation/architecture.md)
+* **How to contribute:** [CONTRIBUTING.md](CONTRIBUTING.md)
 
 Licensed under Apache 2.0.

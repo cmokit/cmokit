@@ -45,6 +45,14 @@ only option that keeps decisions, requirements and guides from overwriting each 
 | Decision records | `docs/decisions/NNNN-*.md` | [MADR 4.0.0](https://adr.github.io/madr/) |
 | Adopter documentation | `docs/tutorials/`, `docs/how-to/`, `docs/reference/`, `docs/explanation/` | [Diátaxis](https://diataxis.fr) |
 | Agent and contributor rules | `CLAUDE.md` | — |
+| Contributor guide | `CONTRIBUTING.md` | — |
+
+`CONTRIBUTING.md` holds the process of contributing for human contributors, and no rules: it links
+to `CLAUDE.md` and the records rather than restating them.
+
+A document is generated from source wherever a generator exists, and generated documents do not
+drift: the first line names the script that writes it, and a check fails when the committed copy is
+not what the script writes.
 
 Directories arrive with their first document.
 
