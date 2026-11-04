@@ -55,6 +55,38 @@ straight to CMOkit.
 > MCP server has no tool that accepts a credential, and its instructions tell the model to stop a
 > person who starts pasting one.
 
+Setup, one connection at a time:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Person
+  participant C as Content skill
+  participant S as Content server
+  participant P as One-time page
+  participant V as Stripe, Luma or PostHog
+  participant L as CMOkit lifecycle
+
+  C->>S: account_status
+  S-->>C: what is missing, and a one-time link for each
+  C-->>U: open this link, never paste a key here
+  alt Subscription
+    U->>P: Stripe hosted Checkout, trial starts (ADR-0017)
+    V->>L: subscription event
+    L->>S: grant access
+  else A vendor with OAuth
+    U->>V: the vendor's consent page
+    V-->>S: credential
+  else A vendor with keys only, Luma or PostHog
+    U->>P: CMOkit's one-field page (ADR-0032, ADR-0036)
+    P->>S: the key
+  end
+  S->>V: verify the credential
+  S->>S: encrypt it into the customer object (ADR-0030)
+  S-->>C: the connection works, nothing more
+  C-->>U: offer a design system and the weekly task (ADR-0021, ADR-0027)
+```
+
 ### Consequences
 
 * Good, because no credential is ever in a conversation's history or a model's context.

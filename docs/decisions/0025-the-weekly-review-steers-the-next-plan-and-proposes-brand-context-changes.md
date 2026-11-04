@@ -81,6 +81,30 @@ rule keeps either from chasing one piece.
 > new version with its reason and its evidence (ADR-0023). A change that results later contradict is
 > proposed for undoing in a later review, and the person can restore any earlier version at any time.
 
+A weekly review:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant W as Scheduled task or person
+  participant C as Content skill
+  participant S as Content server
+  participant L as Luma
+  participant P as Site's PostHog
+
+  W->>C: weekly review (ADR-0021)
+  C->>S: results_read
+  S->>L: guests of recent events (ADR-0032)
+  S->>P: first arrivals and conversions per utm_content (ADR-0036)
+  S-->>C: counts per piece, nothing personal kept
+  C->>C: last four weeks by format, audience and hook
+  Note over C: a difference counts only with 4 pieces a side,<br/>else too early to tell
+  C-->>W: next plan, about 1 piece in 5 exploring
+  C-->>W: up to 3 brand context changes, each with evidence
+  W->>C: approve a change
+  C->>S: brand_change
+```
+
 ### Consequences
 
 * Good, because results change what is made next as well as how it is written.

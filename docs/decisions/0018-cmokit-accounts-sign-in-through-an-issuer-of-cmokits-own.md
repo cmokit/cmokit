@@ -99,6 +99,35 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > the person and nothing else; which customer a connection serves is named in its address
 > (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
 
+A person signing in and connecting their Claude to the content server:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Person
+  participant C as Person's Claude
+  participant S as Content server
+  participant I as Issuer
+  participant X as Google, GitHub, Meta or email code
+  participant K as OAUTH_KV and person objects
+
+  U->>C: add the cmokit-content plugin, then connect its connector (ADR-0034)
+  C->>S: /customers/slug/mcp, no token
+  S-->>C: 401, Protected Resource Metadata names the issuer (ADR-0029)
+  C->>I: register by Client ID Metadata Document
+  C->>I: authorize, PKCE S256
+  I-->>U: sign-in page
+  U->>X: sign in
+  X-->>I: identity, proven email
+  I->>K: person and identity objects, first time only (ADR-0030)
+  I->>K: grant and token, hashed (ADR-0035)
+  I-->>C: token naming the person
+  C->>S: MCP call with the token
+  S->>I: check the token, audience (ADR-0029)
+  Note over S: and that the person is a user of this customer
+  S-->>C: tools
+```
+
 ### Consequences
 
 * Good, because sign-in costs nothing while nobody signs in: no Java server and no database.

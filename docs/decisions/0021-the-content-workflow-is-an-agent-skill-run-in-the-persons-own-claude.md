@@ -59,6 +59,32 @@ person uses, and a scheduled task runs it each week on the person's own plan.
 > results and drafts next week's plan, and the person approves what it drafted when they next open
 > Claude. Without a scheduled task, the person starts the week themselves.
 
+A piece, from the plan to the person posting it:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Person
+  participant C as Content skill
+  participant S as Content server
+  participant D as Claude Design
+  participant T as Person's own apps
+
+  C->>S: brand_read, offers_list (ADR-0029)
+  S-->>C: brand context, offers, upcoming Luma events (ADR-0032)
+  C->>C: plan: teaser, spotlight, recap or community question (ADR-0026)
+  C->>S: piece_save
+  S-->>C: tracked link per platform, UTM tagged (ADR-0031)
+  C->>C: hook, beats, on-screen text, caption, call to action, shot list
+  C->>D: visuals in the brand's design system (ADR-0027)
+  C->>C: light check, word lists and a reading, flags only (ADR-0033)
+  C->>C: AI-content check, asset level, stop on a prohibited use (ADR-0037)
+  C-->>U: one hand-off card
+  U->>T: edit and post (ADR-0028)
+  U-->>C: posted
+  C->>S: piece_save, the post and each signal (ADR-0025)
+```
+
 ### Consequences
 
 * Good, because CMOkit pays for no model, and the person's plan already covers the work.

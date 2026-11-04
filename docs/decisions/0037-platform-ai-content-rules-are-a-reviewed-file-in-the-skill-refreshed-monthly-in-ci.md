@@ -61,6 +61,30 @@ every change a reviewed diff, and spends a model call only when a source moved.
 > follows `references/REFRESH.md` to update only what the sources say. A second job, with no model,
 > opens a pull request; nothing is pushed to the default branch or merged by the workflow.
 
+A monthly refresh:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant G as GitHub Actions, monthly or by hand
+  participant R as policy-refresh.ts
+  participant W as Platform policy pages
+  participant M as Claude Code action, sonnet
+  participant P as propose job, no model
+
+  G->>R: check job, contents read
+  R->>W: fetch each source in policy-sources.json
+  R->>R: hash the main text, mark thin pages unfetchable
+  alt A source changed, or an entry is pending
+    R->>M: follow REFRESH.md, no shell
+    M->>W: read the changed pages
+    M->>M: edit the rules file, write the PR text
+  end
+  G->>P: the workspace as an artifact
+  P->>P: branch, commit, push
+  P-->>G: a pull request, never merged
+```
+
 ### Consequences
 
 * Good, because the rules travel with the skill and need no server, connector or store.

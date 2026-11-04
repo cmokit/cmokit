@@ -54,6 +54,63 @@ Durable Objects already give each customer storage no other customer's request c
 > the same Workers with customers of its own. The hosted services call no model. The engine, its edge
 > and its experiments are not part of the hosted service.
 
+The parts of the content service, and what each calls:
+
+```mermaid
+flowchart LR
+  subgraph claude["The person's own Claude"]
+    skill["cmokit-content plugin<br/>content skill: plan, write, light check,<br/>AI-content check, weekly review<br/>ADR-0021, ADR-0022, ADR-0033, ADR-0037"]
+    rules["AI-content rules file<br/>in the skill<br/>ADR-0037"]
+    task["Weekly scheduled task<br/>drafts, never approves<br/>ADR-0021"]
+    design["Claude Design system<br/>visual identity<br/>ADR-0027"]
+  end
+  person["Person"]
+  tools["Person's own editing,<br/>scheduling and posting apps<br/>ADR-0028"]
+  platforms["TikTok, Instagram, LinkedIn<br/>no integration"]
+
+  subgraph cf["CMOkit's Cloudflare account, one multi-tenant deployment, no model"]
+    issuer["Issuer Worker<br/>workers-oauth-provider<br/>ADR-0018"]
+    kv[("Workers KV OAUTH_KV<br/>grants, hashed tokens<br/>ADR-0035")]
+    persondo[("Person and sign-in<br/>identity Durable Objects<br/>ADR-0030")]
+    server["Content server Worker<br/>remote MCP, /customers/slug/mcp<br/>8 tools, key-entry pages<br/>ADR-0019, ADR-0029"]
+    custdo[("Customer Durable Object<br/>brand versions, pieces, users,<br/>encrypted connections, access<br/>ADR-0023, ADR-0030")]
+    lifecycle["CMOkit lifecycle<br/>hosted CMOkit as a product<br/>ADR-0017"]
+  end
+
+  idp["Google, GitHub, Meta sign-in"]
+  sendgrid["SendGrid<br/>email sign-in codes"]
+  stripe["Stripe Checkout and portal"]
+  luma["Luma API<br/>events, guests<br/>ADR-0032"]
+  posthog["Site's own PostHog<br/>query:read<br/>ADR-0036"]
+  dest["Destination URL<br/>Luma event or funnel page<br/>ADR-0020, ADR-0031"]
+
+  subgraph gh["This repository's GitHub Actions"]
+    refresh["policy-refresh workflow<br/>monthly, opens a PR<br/>ADR-0037"]
+  end
+  anthropic["Anthropic API"]
+
+  person --> skill
+  task --> skill
+  skill --> rules
+  skill -- "visuals" --> design
+  skill -- "MCP, OAuth token" --> server
+  skill -- "OAuth, PKCE" --> issuer
+  issuer --> kv
+  issuer --> persondo
+  issuer --> idp
+  issuer --> sendgrid
+  server -- "checks tokens" --> issuer
+  server --> custdo
+  server -- "pull, when results are read" --> luma
+  server -- "read only" --> posthog
+  lifecycle -- "grant or revoke access" --> server
+  lifecycle --> stripe
+  person --> tools --> platforms
+  platforms -- "tracked link" --> dest
+  refresh --> anthropic
+  refresh -- "PR to the rules file" --> rules
+```
+
 ### Consequences
 
 * Good, because a new customer is a sign-in, not a deployment, and costs nothing until it stores

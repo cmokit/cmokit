@@ -68,6 +68,24 @@ whose every change is a version with its reason.
 > to change. A Claude Doc made from it is a copy, labeled as one. The brand context is exported as
 > Markdown with its history.
 
+The brand context, from the first exercise to every later read:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Person
+  participant C as Content skill
+  participant S as Content server
+
+  C->>U: seven-step brand exercise, about 50 minutes (ADR-0024)
+  Note over C,U: gather, what and why, positioning, audiences,<br/>values and lines, voice, examples and tells
+  U-->>C: confirms
+  C->>S: brand_change, first version
+  Note over S: every later change is a new version,<br/>with its reason, after the person approves a diff
+  C->>S: brand_read, at the start of every task
+  C->>S: brand_history
+```
+
 ### Consequences
 
 * Good, because every draft starts from the same, current brand context, wherever the person is.
