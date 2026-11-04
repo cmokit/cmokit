@@ -1,0 +1,219 @@
+---
+schema_version: 1
+as_of: 2026-10-31
+last_full_review: 2026-10-31
+---
+
+# Platform rules on AI-made content
+
+What each platform says about content made or changed with AI, with where each rule comes from and
+how sure it is. The content skill reads this file before a piece is drafted or handed off for
+posting. A maintainer reviews every change to it; the monthly refresh proposes changes as a pull
+request.
+
+Each entry has:
+
+* `rule`: what the source says, in plain words, and what it does not say.
+* `applies_to`: the asset levels below it concerns. `ads` marks a rule for paid ads only.
+* `requirement`: `none`, `label`, `prohibited`, `reach_risk` (distribution may be limited) or `info`.
+* `source_url` and `source_type`: `primary` (the platform's or regulator's own page), `news`,
+  `vendor` or `unverified`.
+* `evidence`: a short quote from the source, or a note on why there is none.
+* `verified_on`: the date someone last read the source itself. `none` means not yet.
+* `status`: `current`, `needs_verification` or `unfetchable`.
+
+## Changed
+
+* 2026-10-31: First version. Primary pages for IG-3, IG-5, LI-4 and EU-1 were found through search
+  extracts but could not be read directly, so those entries stay `needs_verification`.
+
+## Asset levels
+
+* **L0**: AI-assisted writing and planning (captions, scripts, ideas, scheduling).
+* **L1**: minor AI edits to real media (retouching, captions, cutouts).
+* **L2**: significant AI edits to real media (changes what a real person says or does, or their
+  appearance).
+* **L3**: fully AI-generated realistic image, audio or video.
+* **L4**: AI-generated person or persona presented as a human or as an account identity.
+* **L5**: automated engagement (AI-generated comments, DMs or likes at scale).
+* **L6**: reposting other accounts' content.
+
+## Instagram (Meta)
+
+### IG-1
+- rule: Profiles featuring an AI-generated person should turn on the "AI-generated profile" label. Unlabeled profiles may have their reach limited and may become ineligible for recommendations; profiles that add the label proactively see no change in reach. Announced 2026-08-31. The page does not define "AI-generated person" or explain detection.
+- applies_to: L4
+- requirement: reach_risk
+- source_url: https://creators.instagram.com/blog/ai-generated-profile-label
+- source_type: primary
+- evidence: none recorded yet; the first refresh quotes the page.
+- verified_on: 2026-10-31
+- status: current
+
+### IG-2
+- rule: Using AI tools as part of the creative process does not require the AI-generated profile label. This is about the profile label only, not about labels on posts.
+- applies_to: L0, L1
+- requirement: none
+- source_url: https://creators.instagram.com/blog/ai-generated-profile-label
+- source_type: primary
+- evidence: "Creators who simply use AI tools as part of their creative process don't need to add the label."
+- verified_on: 2026-10-31
+- status: current
+
+### IG-3
+- rule: Meta shows an "AI info" label from industry-standard AI signals or from the creator's self-disclosure. Search extracts of Meta's own pages say organic posts with photorealistic video or realistic-sounding audio that was digitally created or altered must be disclosed with Meta's AI disclosure tool, and that Meta may apply penalties if they are not. No Instagram help-center article on the disclosure tool was found; the newer statements are in Meta's Transparency Center and newsroom.
+- applies_to: L2, L3
+- requirement: label
+- source_url: https://transparency.meta.com/governance/tracking-impact/labeling-ai-content/ ; https://about.fb.com/news/2026/02/meta-prepares-for-2026-us-midterms/ ; https://about.fb.com/news/2024/04/metas-approach-to-labeling-ai-generated-content-and-manipulated-media/ (2024, modified 2025-10-23)
+- source_type: primary
+- evidence: none quoted; the pages were found only through search extracts, not read.
+- verified_on: none
+- status: needs_verification
+
+### IG-4
+- rule: Accounts that regularly repost content they did not create are removed from recommendations (Reels, and now photos and carousels). No numeric threshold is given, and AI is not mentioned. Meta's original announcement was not read.
+- applies_to: L6
+- requirement: reach_risk
+- source_url: https://techcrunch.com/2026/04/30/instagram-restricts-reach-of-content-aggregators-in-new-crackdown/
+- source_type: news
+- evidence: none recorded yet; the first refresh quotes the article.
+- verified_on: 2026-10-31
+- status: current
+
+### IG-5
+- rule: Ads about social issues, elections or politics that contain photorealistic or realistic-sounding media created or altered with AI must disclose it; a search extract of Meta's ad standards says undisclosed ads are rejected and repeated failures may be penalized. Applies to ads only, not organic posts.
+- applies_to: ads
+- requirement: label
+- source_url: https://transparency.meta.com/policies/ad-standards/SIEP-advertising/SIEP/
+- source_type: primary
+- evidence: none quoted; the page was found only through a search extract, not read.
+- verified_on: none
+- status: needs_verification
+
+## TikTok
+
+### TT-1
+- rule: Creators must label realistic AI-generated or significantly AI-edited content. Unlabeled realistic AI content may be removed. The page also uses the word "encourage", so its exact wording is confirmed at each refresh.
+- applies_to: L2, L3
+- requirement: label
+- source_url: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
+- source_type: primary
+- evidence: none recorded yet; the first refresh quotes the page.
+- verified_on: 2026-10-31
+- status: current
+
+### TT-2
+- rule: TikTok labels content made with its own AI effects, or carrying C2PA Content Credentials, automatically, and a creator cannot remove an automatic label. AI edits made outside TikTok's effects still need the creator's own label.
+- applies_to: L2, L3
+- requirement: info
+- source_url: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
+- source_type: primary
+- evidence: none recorded yet; the first refresh quotes the page.
+- verified_on: 2026-10-31
+- status: current
+
+### TT-3
+- rule: Prohibited whatever the label: fake authoritative sources or crisis events; false depictions of public figures in certain contexts, such as bullying or endorsements; and the likeness of anyone under 18, or of a private adult without their permission.
+- applies_to: L3, L4
+- requirement: prohibited
+- source_url: https://www.tiktok.com/safety/en/policies-and-engagement/integrity-authenticity
+- source_type: primary
+- evidence: none recorded yet; the first refresh quotes the page.
+- verified_on: 2026-10-31
+- status: current
+
+### TT-4
+- rule: Viewers can turn AI-generated content up or down in Settings, Content Preferences, Manage Topics (announced 2025-11-18), and TikTok is testing invisible watermarking. TikTok does not state any effect on creators' reach, so a reach effect is an inference, not a rule.
+- applies_to: L2, L3
+- requirement: reach_risk
+- source_url: https://techcrunch.com/2025/11/18/tiktok-now-lets-you-choose-how-much-ai-generated-content-you-want-to-see/
+- source_type: news
+- evidence: none recorded yet; the first refresh quotes the article.
+- verified_on: 2026-10-31
+- status: current
+
+### TT-5
+- rule: TikTok's support page on AI-generated content does not address For You eligibility or AI-written text.
+- applies_to: L0
+- requirement: info
+- source_url: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
+- source_type: primary
+- evidence: none; this entry records an absence.
+- verified_on: 2026-10-31
+- status: current
+
+## LinkedIn
+
+### LI-1
+- rule: No ranking penalty has been reported for AI-assisted writing. LinkedIn launched a "Seems like AI slop" flag (reported 2026-07-31), replaced its "enhance your post" tool with a proofreader, and is strengthening verification and bot detection; its product chief said AI use isn't always bad. The article does not say whether flagged posts lose reach.
+- applies_to: L0
+- requirement: none
+- source_url: https://fortune.com/2026/07/31/linkedin-seems-like-ai-slop-button-billions-automated-comments-attempts/
+- source_type: news
+- evidence: none recorded yet; the first refresh quotes the article.
+- verified_on: 2026-10-31
+- status: current
+
+### LI-2
+- rule: LinkedIn says it blocks hundreds of thousands of automated slop comment attempts every day.
+- applies_to: L5
+- requirement: prohibited
+- source_url: https://fortune.com/2026/07/31/linkedin-seems-like-ai-slop-button-billions-automated-comments-attempts/
+- source_type: news
+- evidence: none recorded yet; the first refresh quotes the article.
+- verified_on: 2026-10-31
+- status: current
+
+### LI-3
+- rule: A vendor blog (depost.ai) claims LinkedIn limits the reach of AI-written posts, with 40% fewer views. Nothing confirms it; the 40% figure in Fortune is a detector company's estimate of how many posts are AI-written. Do not use this claim in advice.
+- applies_to: L0
+- requirement: reach_risk
+- source_url: depost.ai (exact page not recorded)
+- source_type: vendor
+- evidence: none; the claim is recorded only so that it is not repeated.
+- verified_on: none
+- status: needs_verification
+
+### LI-4
+- rule: Search extracts of LinkedIn's own pages say LinkedIn removes content that is synthetic or manipulated to misrepresent or distort real-life events without clear disclosure of its fake or altered nature, may not require disclosure for obvious parody or satire, and its User Agreement gives media depicting someone doing or saying something they did not as an example of prohibited use. Whether signed Content Credentials show an icon was not confirmed. The extract of the policy text came from a third party reproducing it, so LinkedIn's own page must be read.
+- applies_to: L2, L3
+- requirement: label
+- source_url: https://www.linkedin.com/legal/professional-community-policies ; https://www.linkedin.com/help/linkedin/answer/a1340752
+- source_type: primary
+- evidence: none quoted; the pages were found only through search extracts, not read.
+- verified_on: none
+- status: needs_verification
+
+### LI-5
+- rule: LinkedIn's guidance on content created with AI recommends telling others, if it is not obvious from context, when you relied heavily on AI to create or change a post. It is advice, not a rule.
+- applies_to: L0
+- requirement: info
+- source_url: https://www.linkedin.com/help/linkedin/answer/a1481496
+- source_type: primary
+- evidence: none quoted; the page was found only through a search extract, not read.
+- verified_on: none
+- status: needs_verification
+
+## EU (only when the audience includes people in the EU; never legal advice)
+
+### EU-1
+- rule: Search extracts of the European Commission's guidance say Article 50 of the AI Act (Regulation (EU) 2024/1689) applies from 2026-08-02. Deployers must disclose deepfakes clearly at the latest at a person's first exposure, and cannot rely on the provider's machine-readable marking alone; for evidently artistic, creative, satirical or fictional work the duty is a lighter disclosure. AI-generated text published to inform the public on matters of public interest must be labeled unless a person with editorial responsibility reviewed it. Purely personal use with no economic activity is outside the Act. A vendor source (postora.org) gives fines of up to EUR 15 million or 3 percent of turnover; that figure has not been checked against the regulation.
+- applies_to: L2, L3
+- requirement: label
+- source_url: https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act ; https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+- source_type: primary
+- evidence: none quoted; the pages were found only through search extracts, not read.
+- verified_on: none
+- status: needs_verification
+
+## General
+
+### GEN-1
+- rule: Keep C2PA Content Credentials and other metadata intact. TikTok labels content automatically from them, and labels can be lost when content is re-uploaded or edited elsewhere.
+- applies_to: L1, L2, L3
+- requirement: info
+- source_url: https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content
+- source_type: primary
+- evidence: none recorded yet; the first refresh quotes the page.
+- verified_on: 2026-10-31
+- status: current

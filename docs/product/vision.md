@@ -18,8 +18,8 @@ the page.
 
 * **An engine, not a site.** A business's site is its content: copy, design, pages, offers. CMOkit is
   the dependency that serves it, experiments on it, measures it and hands its visitors onward. It
-  works whatever the site is built with and wherever it is hosted, and a business upgrades CMOkit the
-  way it upgrades any other dependency.
+  works whatever the site is built with and wherever it is hosted, and a business that runs it itself
+  upgrades CMOkit the way it upgrades any other dependency.
 * **Build little, buy the rest.** A variant is a page of the site, which an agent writes as easily as
   a person. CMOkit itself is a small server part. Experimentation, analytics, messaging,
   subscriptions and payment are bought, because each carries statistical, deliverability, regulatory
@@ -46,9 +46,38 @@ the page.
   CMOkit asks the product for a few general things — give this customer access, revoke it, restore it
   — and learns from it only how much each user used.
 
+## Also hosted, for people who sell through what they post
+
+CMOkit's content production is also offered as a commercial hosted service, for content marketers
+and creators who post a lot of short-form video and sell something through it: an event, an offer, a
+launch, a subscription. Most of them are not developers. They work in Claude, on the desktop, on the
+web and on their phone, with no terminal and no repository. The engine stays self-hosted. CMOkit
+stays open source, and anyone can still run the engine, and the content service, themselves.
+
+* **Very little to set up.** A customer creates a CMOkit account and subscribes, and connects the
+  event platform they sell through and their site's analytics, if they have them. There is no
+  terminal, no repository work and no Cloudflare account of their own.
+* **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude.
+* **Signing in is only signing in.** A CMOkit account signs in with an email address, Google, GitHub
+  or Meta. Signing in identifies the person and grants nothing else; anything more, such as
+  connecting an event platform, is asked for on its own, when it is needed.
+* **Their own Claude does the thinking.** A solo creator runs CMOkit from the Claude account they
+  already have, through its plugins and connectors, beside any others they use. CMOkit's hosted
+  services run no inference, so what they cost is storage, compute and bought tools, which is why the
+  hosted offering can cost a solo creator very little each month.
+* **A plain monthly subscription.** Hosted CMOkit is billed as a monthly subscription; it meters
+  nothing.
+* **Content that sounds like them.** The content plugin turns what a business sells into a weekly
+  batch of short videos, each with one call to action, written in the brand's own voice from a brand
+  strategy the customer owns. It learns each week from what the customer edits, rejects and approves,
+  and from what each piece brought in.
+* **CMOkit is its own first customer.** CMOkit's own site is built on GitHub Pages with CMOkit, and
+  the short-form content that markets CMOkit to creators is made with the content plugin.
+
 ## What it is not
 
-* A page builder, a CMS, or a hosted service. There is nothing to sign up for.
+* A page builder or a CMS. Nor is the engine a hosted service: a business that runs the engine itself
+  has nothing to sign up for.
 * A data warehouse or a BI tool. Revenue and conversion are read where the bought tools already put
   them.
 * An ad platform or a bidding tool.
@@ -57,5 +86,10 @@ the page.
 
 ## Who it is for
 
-A founder or a small team selling a subscription product, comfortable with a git repository and an
-agent, who would rather spend a week on their offer than a quarter on their funnel.
+The self-hosted engine is for a founder or a small team selling a subscription product, comfortable
+with a git repository and an agent, who would rather spend a week on their offer than a quarter on
+their funnel.
+
+The hosted offering is for a creator or a small business that grows a paying audience through
+short-form video, works in Claude rather than a terminal, and would rather spend an hour a week on
+what they post than a day on how it gets made.

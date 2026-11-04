@@ -1,0 +1,81 @@
+# Keeps the content skill's platform AI content rules current (ADR-0037). On the 1st of each month,
+# and whenever a maintainer runs it by hand, it checks each monitored source for changes. Only when a
+# source changed or could not be read, or an entry still needs verification, does it run Claude
+# Code, with read-only repository access and the instructions in REFRESH.md. A second job, with no
+# model in it, opens a pull request for a person to review. Nothing here pushes to the default
+# branch or merges.
+name: policy-refresh
+
+on:
+  schedule:
+    - cron: '17 13 1 * *'
+  workflow_dispatch:
+
+env:
+  REFERENCES: plugins/cmokit-content/skills/content/references
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      needs_model: ${{ steps.sources.outputs.needs_model }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - id: sources
+        run: node scripts/policy-refresh.ts --report policy-refresh-report.md
+      - if: steps.sources.outputs.needs_model == 'true'
+        uses: anthropics/claude-code-action@d535f5172dec02b204866b393d6b20b9b2aaf98d # v1.0.266
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Follow ${{ env.REFERENCES }}/REFRESH.md exactly. This run's report of what to re-read is
+            policy-refresh-report.md. Write the pull request body to policy-refresh-pr.md.
+          claude_args: >-
+            --model sonnet
+            --allowedTools Read,Edit,Write,WebFetch,WebSearch
+            --disallowedTools Bash
+      - if: steps.sources.outputs.needs_model == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: policy-refresh
+          path: |
+            ${{ env.REFERENCES }}/ai-content-policies.md
+            ${{ env.REFERENCES }}/policy-sources.json
+            policy-refresh-pr.md
+
+  propose:
+    needs: check
+    if: needs.check.outputs.needs_model == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: policy-refresh
+          path: .
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          files="$REFERENCES/ai-content-policies.md $REFERENCES/policy-sources.json"
+          if git diff --quiet -- $files; then echo "Nothing to propose."; exit 0; fi
+          [ -s policy-refresh-pr.md ] || echo "The model step wrote no summary. Review the diff by hand." > policy-refresh-pr.md
+          branch="policy-refresh/$(date -u +%Y-%m-%d)-$GITHUB_RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -- $files
+          git commit -m "Platform AI content rules: refresh of $(date -u +%Y-%m-%d)"
+          git push origin "$branch"
+          gh pr create --base "$BASE" --head "$branch" \
+            --title "Platform AI content rules: refresh of $(date -u +%Y-%m-%d)" \
+            --body-file policy-refresh-pr.md

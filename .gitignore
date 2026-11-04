@@ -2,3 +2,6 @@ node_modules/
 dist/
 .astro/
 .wrangler/
+# Working files of a policy refresh run by hand (ADR-0037).
+policy-refresh-report.md
+policy-refresh-pr.md
