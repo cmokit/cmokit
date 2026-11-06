@@ -8,8 +8,8 @@ last_full_review: 2026-11-06
 
 What each platform says about content made or changed with AI, with where each rule comes from and
 how sure it is. The content skill reads this file before a piece is drafted or handed off for
-posting. A maintainer reviews every change to it; the monthly refresh proposes changes as a pull
-request.
+posting. A maintainer reviews every change to it; the monthly refresh proposes its changes as a pull
+request, and `as_of` is the date of the last refresh that was merged.
 
 Each entry has:
 
@@ -19,7 +19,8 @@ Each entry has:
 * `source_url` and `source_type`: `primary` (the platform's or regulator's own page), `news`,
   `vendor` or `unverified`.
 * `evidence`: a short quote from the source, or a note on why there is none.
-* `verified_on`: the date someone last read the source itself. `none` means not yet.
+* `verified_on`: the date the source was last read, or last found unchanged since it was read.
+  `none` means not yet.
 * `status`: `current`, `needs_verification` or `unfetchable`.
 
 ## Changed

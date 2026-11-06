@@ -1,10 +1,12 @@
 // Checks the sources behind the content skill's platform AI content rules for changes (ADR-0037).
 // Fetches each URL in policy-sources.json, hashes the page's main text, and compares the hash with
-// the stored one. Run with `node scripts/policy-refresh.ts`; `--dry-run` changes nothing, and
-// `--report <file>` writes what the model step must re-read. In GitHub Actions it also sets the
-// output `needs_model`, true only when a source's main text changed, has no stored hash yet, or could
-// not be fetched where it could last time. Entries still marked needs_verification or unfetchable are
-// listed in the report for a person: re-reading an unchanged page would give the model the same answer.
+// the stored one. It sets the rules file's `as_of` to today, and the `verified_on` of each current
+// entry whose sources were all read and unchanged. Run with `node scripts/policy-refresh.ts`;
+// `--dry-run` changes nothing, and `--report <file>` writes what the model step must re-read. In
+// GitHub Actions it also sets the output `needs_model`, true only when a source's main text changed,
+// has no stored hash yet, or could not be fetched where it could last time. Entries still marked
+// needs_verification or unfetchable, and entries resting on a page this run could not read, are listed
+// in the report for a person: re-reading an unchanged page would give the model the same answer.
 
 import { createHash } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
@@ -72,6 +74,49 @@ export function pendingEntries(policies: string): string[] {
     .map((entry) => entry.split('\n', 1)[0].trim());
 }
 
+export type EntryResult = 'unchanged' | 'changed' | 'unread';
+
+/** Each entry's id, and the URLs on its source_url line. */
+export function entrySources(policies: string): Map<string, string[]> {
+  const entries = new Map<string, string[]>();
+  for (const entry of policies.split(/^### /m).slice(1)) {
+    const line = entry.match(/^- source_url: (.*)$/m)?.[1] ?? '';
+    entries.set(entry.split('\n', 1)[0].trim(), line.match(/https?:\/\/[^\s;]+/g) ?? []);
+  }
+  return entries;
+}
+
+/**
+ * What this run found behind each entry: every source unchanged, some source changed, or some source
+ * unread, because it could not be fetched, is not monitored, or the entry names no URL at all.
+ */
+export function entryResults(policies: string, sources: Source[], outcomes: Outcome[]): Map<string, EntryResult> {
+  const byUrl = new Map(sources.map((source, i) => [source.url, outcomes[i].result]));
+  const results = new Map<string, EntryResult>();
+  for (const [id, urls] of entrySources(policies)) {
+    const found = urls.map((url) => byUrl.get(url) ?? 'unfetchable');
+    if (found.length === 0 || found.includes('unfetchable')) results.set(id, 'unread');
+    else results.set(id, found.includes('changed') ? 'changed' : 'unchanged');
+  }
+  return results;
+}
+
+/**
+ * The rules file after a run: `as_of` is today, and each current entry whose sources were all read and
+ * unchanged is verified today, since its source still says what it said when it was last read.
+ */
+export function stamp(policies: string, results: Map<string, EntryResult>, today: string): string {
+  const [head, ...entries] = policies.split(/^(?=### )/m);
+  const stamped = entries.map((entry) => {
+    const id = entry.slice(4).split('\n', 1)[0].trim();
+    const current = /^- status: current\s*$/m.test(entry);
+    return current && results.get(id) === 'unchanged'
+      ? entry.replace(/^- verified_on: .*$/m, `- verified_on: ${today}`)
+      : entry;
+  });
+  return [head.replace(/^as_of: .*$/m, `as_of: ${today}`), ...stamped].join('');
+}
+
 /** Whether a source moved since the last run: its text changed, or it became unfetchable. */
 export const needsModel = (sources: Source[], outcomes: Outcome[]) =>
   outcomes.some((o, i) => o.result === 'changed' || (o.result === 'unfetchable' && sources[i].fetch_status !== 'unfetchable'));
@@ -98,7 +143,9 @@ export function report(outcomes: Outcome[], pending: string[]): string {
     '## Sources that could not be fetched (do not guess their content)',
     ...(list('unfetchable').length ? list('unfetchable') : ['* none']),
     '',
-    '## Entries marked needs_verification or unfetchable, for a person to verify',
+    '## Entries for a person to read in a browser',
+    'Entries marked needs_verification or unfetchable, and entries resting on a page this run could',
+    'not read. Read each source, and update the entry\'s evidence and verified_on, before merging.',
     ...(pending.length ? pending.map((id) => `* ${id}`) : ['* none']),
   ];
   return `${lines.join('\n')}\n`;
@@ -122,11 +169,13 @@ async function main(args: string[]): Promise<void> {
   const dryRun = args.includes('--dry-run');
   const reportAt = args.includes('--report') ? args[args.indexOf('--report') + 1] : undefined;
   const sources = JSON.parse(readFileSync(sourcesPath, 'utf8')) as Source[];
-  const pending = pendingEntries(readFileSync(policiesPath, 'utf8'));
+  const policies = readFileSync(policiesPath, 'utf8');
   const outcomes: Outcome[] = [];
   for (const source of sources) outcomes.push(compare(source, await fetchText(source.url)));
 
-  const text = report(outcomes, pending);
+  const results = entryResults(policies, sources, outcomes);
+  const unread = [...results].filter(([, result]) => result === 'unread').map(([id]) => id);
+  const text = report(outcomes, [...new Set([...pendingEntries(policies), ...unread])]);
   const model = needsModel(sources, outcomes);
   console.log(text);
   console.log(model ? 'The model step is needed.' : 'Nothing changed: no model step.');
@@ -135,6 +184,7 @@ async function main(args: string[]): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   const next = sources.map((source, i) => updated(source, outcomes[i], today));
   writeFileSync(sourcesPath, `${JSON.stringify(next, null, 2)}\n`);
+  writeFileSync(policiesPath, stamp(policies, results, today));
   if (reportAt) writeFileSync(reportAt, text);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `needs_model=${model}\n`);
 }

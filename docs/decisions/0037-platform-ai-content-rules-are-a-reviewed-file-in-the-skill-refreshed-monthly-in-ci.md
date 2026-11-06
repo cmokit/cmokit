@@ -56,11 +56,15 @@ every change a reviewed diff, and spends a model call only when a source moved.
 > piece is drafted or handed off for posting, adds an AI check to each piece, gives no hand-off card
 > on a prohibited use, and says when a rule is stale or unverified. On the 1st of each month, and by
 > hand, a workflow runs `scripts/policy-refresh.ts`, which fetches each page, hashes its main text,
-> and marks a page it cannot read unfetchable. If no source's main text changed and none became
-> unreadable, it stops, listing the entries still awaiting verification for a person, since
-> re-reading an unchanged page would give the model the same answer. Otherwise Claude Code, pinned by commit and given read-only repository access and no shell,
-> follows `references/REFRESH.md` to update only what the sources say. A second job, with no model,
-> opens a pull request; nothing is pushed to the default branch or merged by the workflow.
+> and marks a page it cannot read unfetchable. It sets the file's `as_of` to the run's date, and
+> dates each current entry whose sources were all read and unchanged as verified that day. Only when
+> a source changed or became unreadable does Claude Code, pinned by commit and given read-only
+> repository access and no shell, follow `references/REFRESH.md` to update what the sources say;
+> re-reading an unchanged page would give it the same answer. A second job, with no model, opens a
+> pull request on every run, so a quiet month leaves a reviewed record too; nothing is pushed to the
+> default branch or merged by the workflow. The pull request lists, for a person to read in a browser
+> before merging, every entry still awaiting verification and every entry resting on a page the
+> script could not read. The skill treats an entry not verified within 45 days as unsettled.
 
 A monthly refresh:
 
@@ -76,6 +80,7 @@ sequenceDiagram
   G->>R: check job, contents read
   R->>W: fetch each source in policy-sources.json
   R->>R: hash the main text, mark thin pages unfetchable
+  R->>R: date the rules found unchanged, list the unread ones for a person
   alt A source changed, or became unfetchable
     R->>M: follow REFRESH.md, no shell
     M->>W: read the changed pages
@@ -83,17 +88,19 @@ sequenceDiagram
   end
   G->>P: the workspace as an artifact
   P->>P: branch, commit, push
-  P-->>G: a pull request, never merged
+  P-->>G: a pull request every run, never merged
 ```
 
 ### Consequences
 
 * Good, because the rules travel with the skill and need no server, connector or store.
 * Good, because every change to a rule is reviewed with its evidence before it ships.
-* Good, because a quiet month costs no model call.
+* Good, because a quiet month costs no model call, and still leaves a reviewed record, so the
+  skill's freshness check follows the last check, not the last change.
 * Bad, because a person's rules are as current as their copy of the plugin.
-* Bad, because pages that refuse automated fetches stay unfetchable for the script, and the model's
-  own fetch may fail too, so some entries need a person to read them.
+* Bad, because a person reviews a pull request every month, even a quiet one, and reads in a browser
+  the pages that refuse automated fetches: TikTok's support page, Meta's Transparency Center and
+  EUR-Lex hold eight of the rules.
 * Bad, because a pull request opened with the workflow's own token does not start other workflows,
   so CI runs on it only when a maintainer pushes to it or reopens it.
 
@@ -101,8 +108,9 @@ sequenceDiagram
 
 Tests of `scripts/policy-refresh.ts` assert that navigation and scripts do not change a page's
 hash, that a changed main text is detected, that an unreadable page is unfetchable and keeps its
-last hash, and that the model step runs only when a source changed or became unfetchable, never for
-pending entries alone. The workflow's permissions are checked in review.
+last hash, that the model step runs only when a source changed or became unfetchable, never for
+pending entries alone, and that a run dates only the current entries whose sources were all read and
+unchanged. The workflow's permissions are checked in review.
 
 ## Pros and Cons of the Options
 

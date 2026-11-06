@@ -23,9 +23,9 @@ Apply these before any piece is drafted or handed off for posting. The rules the
    label"), and each entry's id, `source_url` and `verified_on`.
 4. **Prohibited.** If any entry that applies is `prohibited`, give no hand-off card for the piece.
    Name the entry and propose a revision that removes the cause.
-5. **How sure.** If `as_of` is more than 45 days old, or an entry that applies is
-   `needs_verification` or `unfetchable`, say so in one line ("rules last verified <date>") and
-   present that rule as unsettled, never as fact. Quote only the evidence the file gives. Follow
+5. **How sure.** If `as_of` is more than 45 days old, or an entry that applies has a `verified_on`
+   more than 45 days old or is `needs_verification` or `unfetchable`, say so in one line ("rules
+   last verified <date>") and present that rule as unsettled, never as fact. Quote only the evidence the file gives. Follow
    any entry that says not to use its claim.
 6. **Never** advise removing metadata or Content Credentials, re-uploading to lose a label, or any
    other way to avoid detection.
