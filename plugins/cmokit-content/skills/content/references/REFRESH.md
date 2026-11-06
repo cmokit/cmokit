@@ -8,7 +8,9 @@ The files are `ai-content-policies.md` (the rules) and `policy-sources.json` (th
 both beside this one. The run's report, `policy-refresh-report.md` at the repository's root, lists
 the sources whose main text changed, the sources that could not be fetched, and the entries marked
 `needs_verification` or `unfetchable`. The model step runs only when a source changed or became
-unfetchable; entries pending alone wait for a person.
+unfetchable; entries pending alone wait for a person. Before you start, the script has already set
+`as_of`, each source's hash and `last_checked`, and the `verified_on` of every current entry whose
+sources were all read and unchanged.
 
 ## What to read
 
@@ -28,10 +30,9 @@ unfetchable; entries pending alone wait for a person.
 * An entry whose source is secondary stays `needs_verification` until a primary source confirms it,
   and its `source_type` says what it rests on.
 * When a rule changed in substance, add a dated line under `## Changed` at the top of the file
-  saying what changed, and set `as_of` to today. When an entire review of every entry is done, set
+  saying what changed. When an entire review of every entry is done, set
   `last_full_review` to today too.
-* If nothing changed in substance, change nothing in `ai-content-policies.md`. The hashes and dates
-  in `policy-sources.json` were already updated by the script.
+* If nothing changed in substance, change nothing more in `ai-content-policies.md`.
 * Never add advice on removing metadata or Content Credentials, or on avoiding detection.
 
 ## The pull request body
@@ -40,6 +41,7 @@ Write it to `policy-refresh-pr.md` at the repository's root, in plain language, 
 
 * each source you re-read, with its URL and a one-line summary of what it says now;
 * each entry you changed, with the quoted evidence for the change;
-* each source that could not be read, and each entry still `needs_verification`.
+* each source that could not be read, and, as a checklist, each entry the report lists for a person
+  to read in a browser before merging.
 
 Do not run commands, commit, push or open the pull request yourself; the workflow does that.

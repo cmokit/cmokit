@@ -62,11 +62,12 @@ copy, needs no receiver and asks nothing of the customer in Luma beyond a key.
 > platform gives it) and reads an event's registrations and check-ins, each with its attribution
 > parameters. Its first adapter is Luma's, with a calendar key the customer enters on CMOkit's page
 > (ADR-0019), kept encrypted in the customer's object (ADR-0030). `offers_list` reads upcoming
-> events when the week is planned. `results_read` reads each recent event's guests, counts
-> registrations and check-ins per `utm_content`, joins them to pieces, and returns and keeps only the
-> counts. A registration with no piece's `utm_content` is counted as unattributed. Places remaining
-> are used in copy only when the platform states them; nothing estimates them. Revenue per piece waits
-> until the amount a guest paid is confirmed in Luma's API.
+> events when the week is planned. `results_read` reads each recent event's guests and, per
+> `utm_content`, counts registrations and check-ins and sums revenue: what the guests paid for their
+> tickets, less tax, discounts and refunds, in the event's currency. It joins them to pieces, and
+> returns and keeps only those counts and sums. A registration with no piece's `utm_content` is
+> counted as unattributed. Places remaining are used in copy only when the platform states them
+> (`spots_remaining`); nothing estimates them.
 
 ### Consequences
 
@@ -78,8 +79,9 @@ copy, needs no receiver and asks nothing of the customer in Luma beyond a key.
 
 ### Confirmation
 
-Tests run the Luma adapter against recorded responses and assert the counts per piece, that no guest
-field other than attribution and check-in leaves the adapter, and that no handler names Luma.
+Tests run the Luma adapter against recorded responses, which fix which of Luma's amounts revenue is
+summed from, and assert the counts and revenue per piece, that nothing about a guest leaves the
+adapter but those counts and sums, and that no handler names Luma.
 
 ## Pros and Cons of the Options
 

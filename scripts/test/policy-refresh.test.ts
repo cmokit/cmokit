@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compare, hashText, mainText, needsModel, pendingEntries, updated, type Source } from '../policy-refresh.ts';
+import {
+  compare, entryResults, entrySources, hashText, mainText, needsModel, pendingEntries, stamp, updated, type Source,
+} from '../policy-refresh.ts';
 
 const body = 'Creators must label realistic AI-generated content. '.repeat(20);
 const page = (nav: string, main: string) =>
@@ -58,4 +60,49 @@ test('the model is needed only when a source changed or became unfetchable, neve
   assert.equal(needsModel([source], [{ ...unchanged, result: 'changed' }]), true);
   assert.equal(needsModel([source], [unfetchable]), true);
   assert.equal(needsModel([{ ...source, fetch_status: 'unfetchable' }], [unfetchable]), false);
+});
+
+const rules = [
+  '---', 'schema_version: 1', 'as_of: 2026-11-06', '---', '', '## TikTok', '',
+  '### TT-1', '- source_url: https://a.example/ai ; https://b.example/rules (2026)', '- verified_on: 2026-11-06', '- status: current', '',
+  '### TT-2', '- source_url: https://a.example/ai', '- verified_on: 2026-11-06', '- status: current', '',
+  '### TT-3', '- source_url: https://c.example/gone', '- verified_on: 2026-11-06', '- status: current', '',
+  '### LI-3', '- source_url: a vendor blog (exact page not recorded)', '- verified_on: none', '- status: needs_verification', '',
+].join('\n');
+
+const monitored = (id: string, url: string): Source => ({
+  id, platform: 'tiktok', url, source_type: 'primary', content_hash: 'h', last_checked: '2026-11-06', fetch_status: 'ok',
+});
+
+test('an entry lists every URL on its source_url line, and none when it names no page', () => {
+  const sources = entrySources(rules);
+  assert.deepEqual(sources.get('TT-1'), ['https://a.example/ai', 'https://b.example/rules']);
+  assert.deepEqual(sources.get('LI-3'), []);
+});
+
+test('an entry is unchanged only when every source was read and unchanged', () => {
+  const sources = [monitored('a', 'https://a.example/ai'), monitored('b', 'https://b.example/rules'), monitored('c', 'https://c.example/gone')];
+  const outcomes = [
+    { id: 'a', url: 'https://a.example/ai', result: 'unchanged' as const, hash: 'h' },
+    { id: 'b', url: 'https://b.example/rules', result: 'changed' as const, hash: 'x' },
+    { id: 'c', url: 'https://c.example/gone', result: 'unfetchable' as const, hash: null },
+  ];
+  const results = entryResults(rules, sources, outcomes);
+  assert.equal(results.get('TT-1'), 'changed');
+  assert.equal(results.get('TT-2'), 'unchanged');
+  assert.equal(results.get('TT-3'), 'unread');
+  assert.equal(results.get('LI-3'), 'unread');
+  assert.equal(entryResults(rules, [], []).get('TT-2'), 'unread');
+});
+
+test('a run moves as_of, and verifies only the current entries whose sources were all unchanged', () => {
+  const results = new Map([['TT-1', 'changed'], ['TT-2', 'unchanged'], ['TT-3', 'unread'], ['LI-3', 'unchanged']] as const);
+  const after = stamp(rules, new Map(results), '2026-12-01');
+  const verified = (id: string) => after.split(`### ${id}\n`)[1].match(/^- verified_on: (.*)$/m)?.[1];
+  assert.match(after, /^as_of: 2026-12-01$/m);
+  assert.equal(verified('TT-1'), '2026-11-06');
+  assert.equal(verified('TT-2'), '2026-12-01');
+  assert.equal(verified('TT-3'), '2026-11-06');
+  assert.equal(verified('LI-3'), 'none');
+  assert.equal(stamp(rules, new Map(), '2026-11-06'), rules);
 });

@@ -96,9 +96,11 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 >
 > The issuer registers Claude by its Client ID Metadata Document. A client that cannot register that
 > way, such as a coding agent reading the brand context, registers dynamically. Either way, it accepts
-> a client only if every redirect it names is Claude's callback over https or a loopback address, requires PKCE with S256, and names itself in every authorization response. A token names
-> the person and nothing else; which customer a connection serves is named in its address
-> (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
+> a client only if every redirect it names is Claude's callback over https, or a loopback address over
+> http (`127.0.0.1`, `[::1]` or `localhost`, on any port, since Claude Code's callback is
+> `http://localhost:PORT/callback`). It requires PKCE with S256, and names itself in every
+> authorization response. A token names the person and nothing else; which customer a connection
+> serves is named in its address (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
 
 A person signing in and connecting their Claude to the content server:
 
