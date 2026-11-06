@@ -22,13 +22,18 @@ key never passes through a conversation (`HST-04`).
 Luma, as its own documentation describes it: a REST API at `https://public-api.luma.com`,
 authenticated by an `x-luma-api-key` header. A key belongs to one calendar and grants full access to
 it; an organization's key reaches all its calendars; no read-only key is documented. The API needs
-Luma Plus on the calendar, $59 a month billed annually or $69 month to month. It lists a calendar's
-events and an event's guests, with cursor pagination, at up to 200 requests a minute per calendar.
-Each guest carries `attribution_params`, keyed by the URL parameters its registration link had, and
-each ticket a `checked_in_at`. A single guest's record includes its ticket orders and any coupon;
-the field names for the amount paid were not confirmed, and no field for places remaining was found.
-Webhooks, also on Luma Plus, are created in Luma's dashboard and signed with HMAC-SHA256; among them
-is `guest.registered`. Luma also offers an MCP server of its own.
+Luma Plus on the calendar, $59 a month billed annually or $69 month to month.
+It lists a calendar's events and an event's guests, with cursor pagination, at up to 200 requests a
+minute per calendar for a calendar key, or 500 a minute per organization for an organization key.
+OAuth tokens are named in the rate limits, but no OAuth flow for third-party apps is documented.
+Each event carries `max_capacity`, for a calendar that manages it, and `spots_remaining`; either can
+be null. Each guest carries `attribution_params`, keyed by the URL parameters its registration link
+had, and each ticket a `checked_in_at` and the `amount`, `amount_discount`, `amount_tax` and
+`currency` paid for it. A single guest's record adds its ticket orders, each with the same amounts,
+`amount_refunded` in minor units of `currency`, and any coupon in `coupon_info`. Webhooks, also on
+Luma Plus, are created in Luma's dashboard or by the API, and signed with HMAC-SHA256 in a
+`Webhook-Signature` header; among them is `guest.registered`. Luma also offers an MCP server of its
+own.
 
 ## Decision Drivers
 
@@ -86,8 +91,8 @@ field other than attribution and check-in leaves the adapter, and that no handle
 ### The same, with a webhook receiver recording registrations as they happen
 
 * Good, because registrations would be counted the moment they happen.
-* Bad, because nothing in content needs them before the weekly review, and the customer would have to
-  create the webhook in Luma's dashboard, while CMOkit verifies, deduplicates and stores each event.
+* Bad, because nothing in content needs them before the weekly review, and a webhook would have to be
+  created in Luma, while CMOkit verifies, deduplicates and stores each event.
 
 ### The customer's own Luma connector in their Claude, with CMOkit holding no key
 
@@ -111,10 +116,13 @@ field other than attribution and check-in leaves the adapter, and that no handle
 Sources: Luma's [API getting started](https://docs.luma.com/reference/getting-started-with-your-api),
 [list events](https://docs.luma.com/reference/get_v1-calendars-events-list),
 [list guests](https://docs.luma.com/reference/get_v1-events-guests-list),
+[get guest](https://docs.luma.com/reference/get_v1-events-guests-get),
+[create webhook](https://docs.luma.com/reference/post_v2-webhooks-create),
 [rate limits](https://docs.luma.com/reference/rate-limits), [event referrals](https://help.luma.com/p/event-referrals),
-[webhooks](https://help.luma.com/p/webhooks), [Luma API](https://help.luma.com/p/luma-api) and
-[Luma Plus](https://help.luma.com/p/managing-luma-plus). All were read through search extracts of
-Luma's own pages on 2026-10-30, not fetched directly; field names were not checked on the live pages.
+[webhooks](https://help.luma.com/p/webhooks), [Luma API](https://help.luma.com/p/luma-api),
+[Luma Plus](https://help.luma.com/p/managing-luma-plus) and [pricing](https://luma.com/pricing). All
+were read directly on 2026-11-06, the pricing page's monthly price with its billing set to monthly.
+The MCP server was not checked.
 
 **Reversal cost.** Low: a webhook receiver could be added beside the pull without changing the
 interface.

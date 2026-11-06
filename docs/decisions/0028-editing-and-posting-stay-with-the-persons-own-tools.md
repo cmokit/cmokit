@@ -21,7 +21,7 @@ Posting through the platforms' APIs is gated. On Instagram, publishing needs
 needs App Review and, for accounts the app does not own, Business Verification, and only professional
 accounts can be published to. On TikTok, "all content posted by unaudited clients will be restricted
 to private viewing mode" until the client passes an audit, and an unaudited client can let up to five
-users post in a day. Music for businesses is limited on both: TikTok's Commercial Music Library and
+users post in 24 hours. Music for businesses is limited on both: TikTok's Commercial Music Library and
 Meta's Sound Collection are what a business account may use, and both platforms ask for AI-generated
 content to be labelled when posting.
 
@@ -105,7 +105,8 @@ TikTok's [Commercial Music Library](https://ads.tiktok.com/help/article/commerci
 and [AI-generated content](https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content);
 Meta's [Sound Collection](https://www.facebook.com/sound) and
 [labelling of AI content](https://transparency.meta.com/governance/tracking-impact/labeling-ai-content/).
-All were read through search extracts of the vendors' own pages on 2026-10-30, not fetched directly.
+TikTok's Direct Post reference and content sharing guidelines were read directly on 2026-11-06. The
+rest were read through search extracts of the vendors' own pages on 2026-10-30, not fetched directly.
 
 **Reversal cost.** Low: a posting adapter could be added later behind an interface without changing
 the hand-off.

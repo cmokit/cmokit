@@ -26,8 +26,8 @@ available on iOS and Android. It prefers Streamable HTTP, and a tool call has 24
 MCP specification, 2026-07-28, requires a server to publish Protected Resource Metadata naming its
 authorization server, and to check that each token was issued for it. Cloudflare's `createMcpHandler`
 serves MCP statelessly from a Worker, and its `McpAgent` is deprecated. Cloudflare's OAuth library,
-from its 1.0 release, runs the authorization server and the resource server as separate Workers, the
-resource server checking tokens over a service binding.
+from its 1.0 release, can run the authorization server and the resource server as separate Workers,
+the shape it recommends, the resource server checking tokens over a service binding.
 
 ## Decision Drivers
 
@@ -157,10 +157,15 @@ the MCP specification's [authorization, 2026-07-28](https://modelcontextprotocol
 and [changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog); Cloudflare's
 [remote MCP server guide](https://developers.cloudflare.com/agents/model-context-protocol/guides/remote-mcp-server/),
 [McpAgent](https://developers.cloudflare.com/agents/model-context-protocol/apis/agent-api/) and
-[workers-oauth-provider 1.0](https://developers.cloudflare.com/changelog/post/2026-10-01-workers-oauth-provider-1x/).
-The MCP and Cloudflare pages were read through search extracts. Whether the library's access tokens
-are JWTs another resource server could check by the issuer's published keys was not confirmed, so the
-adapter for an issuer other than CMOkit's own is written when one is wanted. Which MCP protocol
+[workers-oauth-provider 1.0](https://developers.cloudflare.com/changelog/post/2026-10-01-workers-oauth-provider-1x/),
+with the library's [README](https://github.com/cloudflare/workers-oauth-provider) and
+[storage schema](https://github.com/cloudflare/workers-oauth-provider/blob/main/storage-schema.md).
+The MCP authorization page, the Cloudflare pages and the library's README and storage schema were
+read directly on 2026-11-06; the MCP changelog was not read again, and stands as read through a
+search extract on 2026-10-30. The library's access tokens are not JWTs: each is
+`{userId}:{grantId}:{random-secret}`, kept only as a hash in the issuer's store, so another resource
+server checks one only by asking the issuer, and the adapter for an issuer other than CMOkit's own is
+written when one is wanted. Which MCP protocol
 versions claude.ai sends was not found. A connection per customer, named in its address, follows
 CFOKit's [record on agent connections](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0067-an-agent-connection-serves-one-company.md).
 
