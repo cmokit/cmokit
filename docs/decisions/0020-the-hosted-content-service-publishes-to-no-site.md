@@ -78,7 +78,11 @@ Enforced by review: the content server has no tool and no adapter that writes to
 
 Sources: GitHub's [choosing permissions for a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app);
 Webflow's [live CMS items](https://developers.webflow.com/data/reference/cms/collection-items/live-items/create-item-live),
-read through search extracts on 2026-10-30.
+[publishing CMS items](https://developers.webflow.com/data/reference/cms/collection-items/staged-items/publish-item),
+[pages](https://developers.webflow.com/data/reference/pages-and-components/pages/list) and the
+[Data API's index of endpoints](https://developers.webflow.com/data/v2.0.0/llms.txt), which lists
+none that creates a page. Webflow's pages were read directly on 2026-11-06; GitHub's was read through
+search extracts on 2026-10-30.
 
 **Reversal cost.** Low: a publishing interface can be added later, behind the content server, without
 changing a piece or a link.

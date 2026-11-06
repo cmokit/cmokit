@@ -18,9 +18,9 @@ hashes, and each grant's properties encrypted with AES-GCM.
 
 CLAUDE.md says the edge's and the lifecycle's only store is Durable Objects, and ADR-0006 keeps all of
 CMOkit's storage on Cloudflare. Workers KV is Cloudflare's own and is billed for reads, writes and
-storage, not while idle: the free plan allows 100,000 reads, 1,000 writes and 1 GB a day, and the
-paid plan includes 10 million reads and 1 million writes a month. Its changes reach every location
-eventually, not at once.
+storage, not while idle: the free plan allows 100,000 reads and 1,000 writes a day and 1 GB stored,
+and the paid plan includes 10 million reads and 1 million writes a month. A change can take 60
+seconds or more to be visible in other locations.
 
 ## Decision Drivers
 
@@ -83,9 +83,10 @@ review checks that the issuer's own code never touches `OAUTH_KV`.
 
 Sources: Cloudflare's [workers-oauth-provider](https://github.com/cloudflare/workers-oauth-provider)
 and its [storage schema](https://github.com/cloudflare/workers-oauth-provider/blob/main/storage-schema.md),
-and [Workers KV pricing](https://developers.cloudflare.com/kv/platform/pricing/), read through search
-extracts on 2026-10-30. How long a KV change takes to reach every location was not confirmed from
-Cloudflare's documentation.
+and Workers KV's [pricing](https://developers.cloudflare.com/kv/platform/pricing/),
+[limits](https://developers.cloudflare.com/kv/platform/limits/) and
+[how KV works](https://developers.cloudflare.com/kv/concepts/how-kv-works/), read directly on
+2026-11-06.
 
 **Follow-on obligations.** CLAUDE.md's rule that Durable Objects are the only store gains this
 exception once the record is accepted. The `OAUTH_KV` binding is listed in the deployment reference.

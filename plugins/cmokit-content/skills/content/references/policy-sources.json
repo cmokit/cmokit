@@ -4,9 +4,9 @@
     "platform": "instagram",
     "url": "https://creators.instagram.com/blog/ai-generated-profile-label",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "443d1214ebba3f9ce9ac7524d67527cde59cf7be303f9b519e408da3f199cdcf",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "meta-labeling-ai-content",
@@ -14,26 +14,26 @@
     "url": "https://transparency.meta.com/governance/tracking-impact/labeling-ai-content/",
     "source_type": "primary",
     "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "last_checked": "2026-11-06",
+    "fetch_status": "unfetchable"
   },
   {
     "id": "meta-2026-midterms",
     "platform": "instagram",
     "url": "https://about.fb.com/news/2026/02/meta-prepares-for-2026-us-midterms/",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "2ee07070a1f79c0c76270f5e3af912771c06ce33c9e626ca28b357cc1fb1d135",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "meta-ai-labeling-2024",
     "platform": "instagram",
     "url": "https://about.fb.com/news/2024/04/metas-approach-to-labeling-ai-generated-content-and-manipulated-media/",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "da868094a0fc856d266566237301d7716e52a401fa145a7d131734ab1cf9e01c",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "meta-political-ads",
@@ -41,17 +41,17 @@
     "url": "https://transparency.meta.com/policies/ad-standards/SIEP-advertising/SIEP/",
     "source_type": "primary",
     "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "last_checked": "2026-11-06",
+    "fetch_status": "unfetchable"
   },
   {
     "id": "techcrunch-instagram-aggregators",
     "platform": "instagram",
     "url": "https://techcrunch.com/2026/04/30/instagram-restricts-reach-of-content-aggregators-in-new-crackdown/",
     "source_type": "news",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "f83d293d01c274ba18ca596cb2f65e18617967683578b66a83b7dd451c57b218",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "tiktok-ai-generated-content",
@@ -59,71 +59,71 @@
     "url": "https://support.tiktok.com/en/using-tiktok/creating-videos/ai-generated-content",
     "source_type": "primary",
     "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "last_checked": "2026-11-06",
+    "fetch_status": "unfetchable"
   },
   {
     "id": "tiktok-integrity-authenticity",
     "platform": "tiktok",
     "url": "https://www.tiktok.com/safety/en/policies-and-engagement/integrity-authenticity",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "8d52acd3641a91c0235e11abe0e5d0271a16fd03ebbef056a7a32a29cb525fb7",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "techcrunch-tiktok-ai-preferences",
     "platform": "tiktok",
     "url": "https://techcrunch.com/2025/11/18/tiktok-now-lets-you-choose-how-much-ai-generated-content-you-want-to-see/",
     "source_type": "news",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "e0bb1d8a148f3a366a179de7e18b342e480ab3806d7e46e79bd05b769789e1ca",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "fortune-linkedin-ai-slop",
     "platform": "linkedin",
     "url": "https://fortune.com/2026/07/31/linkedin-seems-like-ai-slop-button-billions-automated-comments-attempts/",
     "source_type": "news",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "bfd7280e3d6ed1bc901b060abb914f6495459766933a25539887b21924d74e6a",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "linkedin-community-policies",
     "platform": "linkedin",
     "url": "https://www.linkedin.com/legal/professional-community-policies",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "70be5570927b9172ed472a6f2bba9a68da5ac9fc3f2023072d4b3e1708e86d66",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "linkedin-false-or-misleading",
     "platform": "linkedin",
     "url": "https://www.linkedin.com/help/linkedin/answer/a1340752",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "125878ddf033e5da63e7c30952ceff07c19e422e61bb76b9e192d53a906ec09b",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "linkedin-ai-best-practices",
     "platform": "linkedin",
     "url": "https://www.linkedin.com/help/linkedin/answer/a1481496",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "c5a9e199278438b28a907f17a1517863e7c4ff6740bb14c3142c9dcb441eb682",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "ec-article-50-faq",
     "platform": "eu",
     "url": "https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act",
     "source_type": "primary",
-    "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "content_hash": "576720057f07b96bbd59b1f006f877950169ca683a601f5ac5610a71e966ac82",
+    "last_checked": "2026-11-06",
+    "fetch_status": "ok"
   },
   {
     "id": "eur-lex-ai-act",
@@ -131,7 +131,7 @@
     "url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
     "source_type": "primary",
     "content_hash": null,
-    "last_checked": null,
-    "fetch_status": "not_checked"
+    "last_checked": "2026-11-06",
+    "fetch_status": "unfetchable"
   }
 ]

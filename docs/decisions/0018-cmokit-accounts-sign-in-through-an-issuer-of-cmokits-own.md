@@ -27,12 +27,13 @@ What each provider offers, from its own documentation:
 |---|---|---|---|
 | Protocol for sign-in | OpenID Connect | OAuth 2.0, or a GitHub App's user access token | Facebook Login, OAuth 2.0; on the web the documented flow returns a code or token, not an ID token |
 | Identity scopes | `openid`, `email`, `profile` | `read:user`, `user:email` | `public_profile`, `email` |
-| Review needed for those scopes | None for non-sensitive scopes | None | None: "automatically granted to all apps using Facebook Login" |
+| Review needed for those scopes | None for non-sensitive scopes | None | None: "automatically granted to all apps using Facebook Login"; people without a role on the app can grant them only at Advanced Access |
 
 Meta offers no sign-in for personal Instagram accounts: its Instagram APIs serve professional
 accounts, and Instagram Login grants business scopes. Posting to Instagram needs
-`instagram_business_content_publish` or `instagram_content_publish`, each behind App Review, so a
-sign-in that asks for `public_profile` and `email` grants no posting.
+`instagram_business_content_publish` or `instagram_content_publish`, which people without a role on
+the app can grant only at Advanced Access, so a sign-in that asks for `public_profile` and `email`
+grants no posting.
 
 Claude registers with an authorization server by a Client ID Metadata Document that Anthropic hosts,
 when the server advertises support for one, and otherwise by dynamic client registration, which the
@@ -208,23 +209,32 @@ refused.
 
 ## More Information
 
-Sources: Meta's [Facebook Login for the web](https://developers.facebook.com/documentation/facebook-login/web),
+Sources: Meta's [Facebook Login for the web](https://developers.facebook.com/docs/facebook-login/web),
 [manual login flow](https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow/),
+[login review](https://developers.facebook.com/docs/facebook-login/review),
+[business verification](https://developers.facebook.com/docs/development/release/business-verification),
+[access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/),
 [Instagram Platform overview](https://developers.facebook.com/docs/instagram-platform/overview/) and
 [content publishing](https://developers.facebook.com/docs/instagram-platform/content-publishing/);
-Google's [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect) and
+Google's [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect),
+[sensitive scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification) and
 [verification requirements](https://support.google.com/cloud/answer/13463073); GitHub's
 [OAuth scopes](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps);
+Claude Code's [MCP documentation](https://code.claude.com/docs/en/mcp);
 Cloudflare's [workers-oauth-provider](https://github.com/cloudflare/workers-oauth-provider) and
 [its 1.0 release](https://developers.cloudflare.com/changelog/post/2026-10-01-workers-oauth-provider-1x/);
 the MCP specification's [client registration, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration).
-These were read through search extracts of the vendors' own pages on 2026-10-30, not fetched
-directly. Anthropic's [connector authentication](https://claude.com/docs/connectors/building/authentication)
+Meta's, Google's, GitHub's and Claude Code's pages were read directly on 2026-11-06. Cloudflare's
+pages and the MCP specification were not read on 2026-11-06; they were read through search extracts
+on 2026-10-30. Anthropic's [connector authentication](https://claude.com/docs/connectors/building/authentication)
 was read directly. CFOKit's records on its [identity provider](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0019-identity-provider-conformance-contract.md),
 its [production deployment](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0060-production-is-one-gcp-project-deployed-on-merge.md)
 and its [redirect restriction](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0064-a-registered-client-redirects-only-to-a-known-host.md)
-were read in that repository. Whether Meta requires Business Verification of an app that asks only
-for `public_profile` and `email` was not found.
+were read in that repository. Meta's pages do not settle whether an app that asks only for
+`public_profile` and `email` needs Business Verification. Its access levels page says "Business
+Verification is required to get Advanced Access", which people without a role on the app need, and
+also that "All newly created Consumer apps are automatically approved for Advanced Access for the
+email and public_profile permissions", without saying whether that approval needs verification.
 
 **Reversal cost.** Moderate. The content server only checks tokens, so another issuer replaces this
 one without changing it (ADR-0029); accounts and their sign-in identities would move.

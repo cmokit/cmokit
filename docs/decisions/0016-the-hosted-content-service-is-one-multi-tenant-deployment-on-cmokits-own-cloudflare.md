@@ -171,8 +171,8 @@ is checked in review.
 
 ## More Information
 
-Sources: Cloudflare's [Workers for Platforms pricing](https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/reference/pricing/),
-read through a search extract of that page on 2026-10-30; CFOKit's records on its
+Sources: Cloudflare's [Workers for Platforms pricing](https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/),
+read directly on 2026-11-06; CFOKit's records on its
 [identity provider](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0019-identity-provider-conformance-contract.md)
 and [production deployment](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0060-production-is-one-gcp-project-deployed-on-merge.md).
 
