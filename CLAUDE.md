@@ -19,8 +19,8 @@ test runner; CI runs both on every pull request. (ADR-0007)
 
 `packages/*` are npm workspaces, each published on its own: `@cmokit/cli` (configuration and the
 `cmokit` command), `@cmokit/astro` (the Astro integration), `@cmokit/edge` (the Worker),
-`@cmokit/lifecycle` (the lifecycle) and `create-cmokit` (the starter). `@cmokit/edge` never depends
-on `@cmokit/lifecycle`.
+`@cmokit/lifecycle` (the lifecycle), `@cmokit/content` (the content server, the content plugin's
+connector) and `create-cmokit` (the starter). `@cmokit/edge` never depends on `@cmokit/lifecycle`.
 Each package's source is `src/`, built to `dist/` for publishing. Its exports name `src/` first under
 the `cmokit-source` condition, which the repository's type check and tests use, so nothing is built
 to be tested; CI builds the starter site against the built packages. (ADR-0011)
@@ -66,6 +66,12 @@ a package exists. (ADR-0002)
   idempotency key, are the only thing CMOkit accepts from a product. CMOkit debits them from the
   customer's ledger under their key and records them in analytics, and makes the configured calls
   when the balance falls low, is exhausted or is restored. (ADR-0005)
+- **The content server serves one customer per address and runs no model.** A call at
+  `/customers/<slug>/mcp` acts on that customer's records alone, for a person the issuer's token names
+  who is a user of that customer; the server checks tokens and issues none. No tool's input takes a
+  credential: a key is entered on a one-time page and kept sealed in the customer's Durable Object, and
+  events and guests are read from the event platform, never stored. (ADR-0016, ADR-0019, ADR-0029,
+  ADR-0030, ADR-0032)
 - **Name things for the job, not the vendor.** A bought tool sits behind an interface named for what
   it does: experiments, analytics, messaging, payments. No handler names a tool; only the adapters and
   the Worker that wires them do. (`NFR-03`, ADR-0010, ADR-0012)

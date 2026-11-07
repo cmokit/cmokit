@@ -1,0 +1,37 @@
+{
+  "name": "@cmokit/content",
+  "version": "0.1.0",
+  "description": "The content server, as a Cloudflare Worker: the content plugin's remote MCP connector, each customer's brand context, pieces and connections in a Durable Object of its own, and events read from the event platform.",
+  "license": "Apache-2.0",
+  "author": "Growth Science LLC",
+  "homepage": "https://github.com/cmokit/cmokit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmokit/cmokit.git",
+    "directory": "packages/content"
+  },
+  "bugs": "https://github.com/cmokit/cmokit/issues",
+  "type": "module",
+  "exports": {
+    ".": {
+      "cmokit-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "cmokit-source": "./src/worker.ts",
+      "types": "./dist/worker.d.ts",
+      "default": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

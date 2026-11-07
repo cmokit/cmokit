@@ -60,6 +60,66 @@ the edge first, and the edge's own fetches to the domain reach GitHub Pages. The
 pages, `/_cmokit/a/*`, `/_cmokit/convert`, `/_cmokit/leads/unsubscribe` and `/_cmokit/leads/events`; every other request
 goes straight to GitHub Pages.
 
+## Content, and the context the skills share
+
+```mermaid
+flowchart TB
+  person["Person"]
+
+  subgraph claude["The person's own Claude, where all model work runs"]
+    content["Content skill<br/>cmokit-content plugin"]
+    task["Weekly scheduled task<br/>drafts, never approves"]
+    design["Claude Design system<br/>the brand's look"]
+    future["Future skills<br/>email, paid, affiliate"]
+  end
+
+  subgraph coding["A coding agent"]
+    lp["Landing-page skill<br/>coding-agent plugin"]
+    cli["cmokit CLI and MCP server"]
+  end
+
+  subgraph cf["CMOkit's Cloudflare account, one deployment for every customer"]
+    issuer["Issuer Worker<br/>sign-in"]
+    server["Content server Worker<br/>remote MCP at /customers/slug/mcp<br/>one-time setup pages"]
+    custdo[("Customer Durable Object<br/>brand context versions, offers, pieces,<br/>tracked links, signals, sealed connections")]
+    billing["Hosted lifecycle<br/>subscription and access"]
+  end
+
+  edge["Edge Worker"]
+  luma["Luma"]
+  posthog["PostHog"]
+  edits["Edits"]
+  insta["Instagram"]
+
+  person -- "signs in" --> issuer
+  content -- "account_status, brand_read, brand_change, brand_history, offers_list, piece_save, pieces_list, results_read" --> server
+  task -- "results_read, pieces_list, piece_save" --> server
+  lp -. "brand_read" .-> server
+  future -. "the same tools and context" .-> server
+  server -- "checks tokens" --> issuer
+  server --> custdo
+  server -. "access" .-> billing
+  server -- "events, and registrations and revenue per utm_content" --> luma
+  server -. "read-only" .-> posthog
+  content -- "carousels, covers, text cards" --> design
+  content -- "brief with its tracked link" --> person
+  person --> edits --> insta
+  person -- "Instagram's numbers" --> content
+  insta -- "tracked link" --> luma
+  insta -- "tracked link" --> edge
+  edge --> posthog
+  cli --> posthog
+
+  classDef designed stroke-dasharray:6 4
+  class task,lp,issuer,billing,future designed
+```
+
+Dashed parts and calls are designed but not yet in this repository. Every model step runs in the
+person's own Claude; the content server runs none. The server keeps one customer's records in that
+customer's Durable Object, so every skill that connects reads the same brand context version. A
+tracked link names the platform in `utm_source`, the promotable thing in `utm_campaign` and the
+piece in `utm_content`, which is how a registration is counted against the piece that brought it.
+
 ## A visit to a page under experiment
 
 ```mermaid

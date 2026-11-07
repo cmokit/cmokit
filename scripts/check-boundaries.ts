@@ -1,9 +1,10 @@
-// Checks the package boundaries of ADR-0003, ADR-0010, ADR-0013 and ADR-0015: the edge depends,
-// directly or through another package, on neither the lifecycle nor a database client; no package
-// depends on a database client; the edge's and the lifecycle's handlers name no bought tool, only
-// their adapters and the Workers that wire them do; and the edge reaches nothing of
+// Checks the package boundaries of ADR-0003, ADR-0010, ADR-0013, ADR-0015 and ADR-0032: the edge
+// depends, directly or through another package, on neither the lifecycle nor a database client; no
+// package depends on a database client; the edge's, the lifecycle's and the content server's handlers
+// name no bought tool, only their adapters and the Workers that wire them do; and the edge reaches nothing of
 // the command line's but its configuration, so it never holds the experiments tool's administrative
-// key. Run with `npm run check:boundaries`.
+// key. Also ADR-0022's: the content plugin declares no local MCP server, so everything in it works in
+// chat. Run with `npm run check:boundaries`.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -13,8 +14,8 @@ const packages = join(root, 'packages');
 
 const FORBIDDEN_FOR_EDGE = ['@cmokit/lifecycle', 'pg', 'postgres', '@electric-sql/pglite', 'kysely', 'drizzle-orm', '@prisma/client'];
 const DATABASE_CLIENTS = FORBIDDEN_FOR_EDGE.slice(1);
-const WIRING = ['posthog.ts', 'sendgrid.ts', 'worker.ts'];
-const TOOLS = /posthog|growthbook|statsig|cloudflare|sendgrid|twilio|customer\.io/i;
+const WIRING = ['posthog.ts', 'sendgrid.ts', 'luma.ts', 'worker.ts'];
+const TOOLS = /posthog|growthbook|statsig|cloudflare|sendgrid|twilio|customer\.io|luma/i;
 
 const errors: string[] = [];
 
@@ -48,7 +49,7 @@ for (const dir of readdirSync(packages)) {
 }
 
 const edgeSource = join(packages, 'edge', 'src');
-for (const pkg of ['edge', 'lifecycle']) {
+for (const pkg of ['edge', 'lifecycle', 'content']) {
   const source = join(packages, pkg, 'src');
   for (const file of readdirSync(source)) {
     if (!file.endsWith('.ts') || WIRING.includes(file)) continue;
@@ -64,6 +65,17 @@ for (const file of readdirSync(edgeSource).filter((f) => f.endsWith('.ts'))) {
 }
 const cliEntry = readFileSync(join(packages, 'cli', 'src', 'index.ts'), 'utf8');
 if (/from '\.\//.test(cliEntry)) errors.push('packages/cli/src/index.ts imports a module of its own, which the edge would bundle');
+
+// The content plugin declares no local MCP server, in its manifest or in a .mcp.json of its own.
+const plugin = join(root, 'plugins', 'cmokit-content');
+for (const file of [join('.claude-plugin', 'plugin.json'), '.mcp.json']) {
+  const path = join(plugin, file);
+  if (!existsSync(path)) continue;
+  const json = JSON.parse(readFileSync(path, 'utf8'));
+  for (const [name, server] of Object.entries<{ command?: string }>(json.mcpServers ?? {})) {
+    if (server.command) errors.push(`plugins/cmokit-content/${file} declares ${name}, a local MCP server`);
+  }
+}
 
 if (errors.length > 0) {
   console.error(errors.join('\n'));

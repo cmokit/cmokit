@@ -1,7 +1,7 @@
 ---
 status: "proposed"
 kind: "requirement-driven"
-date: 2026-10-30
+date: 2026-11-07
 decision-makers: [Geoff]
 ---
 
@@ -37,7 +37,7 @@ share one profile link, a click is attributed to whichever piece's link the prof
 
 ## Considered Options
 
-* The destination's own URL with UTM parameters naming the platform, the offer and the piece, built by
+* The destination's own URL with UTM parameters naming the platform, the promoted thing and the piece, built by
   the server
 * A short link of CMOkit's per piece, redirecting to the destination
 * A promo code per piece
@@ -45,13 +45,18 @@ share one profile link, a click is attributed to whichever piece's link the prof
 
 ## Decision Outcome
 
-Chosen option: "The destination's own URL with UTM parameters naming the platform, the offer and the
-piece, built by the server", because the destination already records them, the engine already reads
+Chosen option: "The destination's own URL with UTM parameters naming the platform, the promoted thing
+and the piece, built by the server", because the destination already records them, the engine already reads
 them, and nothing has to be hosted for them to work.
 
 > When a piece is saved with its destination, the content server returns its tracked link for each
 > platform: the destination's URL with `utm_source` set to the platform, `utm_medium` set to `social`,
-> `utm_campaign` set to the offer and `utm_content` set to the piece's id. The hand-off says where to
+> `utm_campaign` set to the id of the thing the piece promotes and `utm_content` set to the piece's
+> id. A promoted thing is whatever the brand promotes as one, kept in the brand context with its
+> pattern: a one-off launch, a recurring series, a distinct event, a format repeated on an open
+> schedule, or a product. A series or a format keeps one id across all its dates, so every piece
+> that promotes any of its dates is compared under one campaign. Any UTM parameters already in the
+> destination are replaced; nothing else in its URL changes. The hand-off says where to
 > put it: in the profile's link while the piece is the newest, or in any link the platform offers on
 > the post itself. A registration on an event platform is attributed to a piece by its `utm_content`
 > (ADR-0032). A visit to a site behind a self-hosted engine's edge records the same parameters, so
@@ -64,6 +69,9 @@ them, and nothing has to be hosted for them to work.
 > exists, and otherwise the person reports it from the destination's own dashboard. Views and other
 > attention are the social platform's numbers, which the person reports too. The piece's id joins
 > each result to its format and audience.
+>
+> Which route a person took to the link (a Story's link sticker, the profile's link, a reply by
+> direct message) is not yet tagged; whether to tag it, for example in `utm_term`, is open.
 >
 > The first two destinations are an event's page on Luma, whose registrations are read through the
 > events adapter (ADR-0032), and a landing page experiment's funnel page on a site running the
@@ -83,12 +91,12 @@ them, and nothing has to be hosted for them to work.
 
 ### Confirmation
 
-Tests assert the server builds the same link for the same piece every time, with the four parameters
-and nothing else changed in the destination's URL.
+Tests assert the server builds the same link for the same piece every time, with the four parameters,
+that existing UTM parameters are replaced, and that nothing else in the destination's URL changes.
 
 ## Pros and Cons of the Options
 
-### The destination's own URL with UTM parameters naming the platform, the offer and the piece, built by the server
+### The destination's own URL with UTM parameters naming the platform, the promoted thing and the piece, built by the server
 
 * Good, because it meets every driver.
 * Bad, because attribution through a shared profile link is approximate.
@@ -127,3 +135,4 @@ TikTok's own help pages on profile links could not be read.
   redirect that points at the current piece would attribute better.
 * A platform makes links in organic posts clickable for the person's account.
 * A destination the customers use drops UTM parameters.
+* People want to compare the routes to a link, so the route is worth tagging.
