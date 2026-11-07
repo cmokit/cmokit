@@ -80,7 +80,8 @@ stays open source, and anyone can still run the engine, and the content service,
   has nothing to sign up for.
 * A data warehouse or a BI tool. Revenue and conversion are read where the bought tools already put
   them.
-* An ad platform or a bidding tool.
+* An ad platform. Ads run in the person's own ad account, where CMOkit traffics them after the
+  person's approval and within the budget they set, analyzes them and plans the next round.
 * A billing system of record. The payment processor is that, for every subscription, invoice and
   charge; CMOkit counts only credits.
 
