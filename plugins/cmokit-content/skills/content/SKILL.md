@@ -16,8 +16,10 @@ link routes, story structures, finishing and measuring.
 ## Before anything
 
 1. Call `account_status`. If CMOkit's tools are missing, the connector is not connected: say so, say
-   how to add it as a connector, and offer only to draft from what the person says in this
-   conversation, warning that nothing is kept and no brand context is read.
+   that it is in this plugin's Connectors tab and needs only a sign-in, and offer only to draft from
+   what the person says in this conversation, warning that nothing is kept and no brand context is
+   read. If a call is refused because the person works for several brands, ask which, and pass it as
+   `customer` on every call after that. Never pick one for them.
 2. If `missing` lists a connection, give the person its one-time link and say what it is for. Never
    accept a key or password in the chat; if they start to paste one, stop them and give the link.
 3. Call `brand_read`. If its version is 0, run onboarding (step 0) before anything else. Write

@@ -33,7 +33,7 @@ from [adr-template.md](adr-template.md).
 | [0026](0026-pieces-come-in-four-formats-one-for-each-moment-of-what-is-sold.md) | Pieces come in four formats, one for each moment of what is sold | Proposed |
 | [0027](0027-visual-identity-and-visuals-are-the-persons-claude-design-system.md) | Visual identity lives in the person's Claude Design design system, and visuals are made in Claude Design from it | Proposed |
 | [0028](0028-editing-and-posting-stay-with-the-persons-own-tools.md) | Editing footage and posting stay with the person's own tools, and CMOkit records what was posted | Proposed |
-| [0029](0029-a-small-remote-mcp-server-is-the-content-plugins-connector.md) | A small remote MCP server, one address per customer, is the content plugin's connector, and checks tokens it does not issue | Proposed |
+| [0029](0029-a-small-remote-mcp-server-is-the-content-plugins-connector.md) | A small remote MCP server, at one address the plugin declares, is the content plugin's connector, and checks tokens it does not issue | Proposed |
 | [0030](0030-the-content-server-keeps-each-customers-records-in-a-durable-object-of-its-own.md) | The content server keeps each customer's records in a Durable Object of its own, and stores nothing it can read elsewhere | Proposed |
 | [0031](0031-a-tracked-link-is-the-destination-with-utm-parameters-naming-the-piece.md) | A tracked link is the destination's own URL with UTM parameters naming the piece, so content needs none of the engine | Proposed |
 | [0032](0032-events-are-read-from-the-event-platform-luma-first-by-a-weekly-pull.md) | Events and registrations are read from the event platform behind an events interface, Luma first, by a pull when results are read | Proposed |

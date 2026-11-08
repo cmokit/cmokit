@@ -66,9 +66,10 @@ a package exists. (ADR-0002)
   idempotency key, are the only thing CMOkit accepts from a product. CMOkit debits them from the
   customer's ledger under their key and records them in analytics, and makes the configured calls
   when the balance falls low, is exhausted or is restored. (ADR-0005)
-- **The content server serves one customer per address and runs no model.** A call at
-  `/customers/<slug>/mcp` acts on that customer's records alone, for a person the issuer's token names
-  who is a user of that customer; the server checks tokens and issues none. No tool's input takes a
+- **The content server acts for one customer per call and runs no model.** Every call at `/mcp` acts
+  on the records of one customer the issuer's token's person is a user of, checked against that
+  customer's own list of users, and a person who is a user of several names which; the server checks
+  tokens and issues none. No tool's input takes a
   credential: a key is entered on a one-time page and kept sealed in the customer's Durable Object, and
   events and guests are read from the event platform, never stored. (ADR-0016, ADR-0019, ADR-0029,
   ADR-0030, ADR-0032)

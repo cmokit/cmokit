@@ -15,13 +15,14 @@ Set up on the web or the desktop app; everything after works on a phone.
 | A plan with plugins (Pro, Max, Ultra, Team or Enterprise) | Your Claude plan |
 | This plugin, added from this repository's marketplace | Customize, then Plugins, on the web or desktop |
 | Code execution on | "Code execution and file creation" in Claude's settings |
-| CMOkit's connector, at the address CMOkit gives your customer, signed in | Added as a custom connector |
+| CMOkit's connector, signed in | The plugin's Connectors tab: the plugin brings it, so you only sign in |
 | The brand's event calendar, connected once | The one-time link the skill gives you |
 | For visuals: a Claude Design system, published as your default | Claude Design |
 | Optional: a weekly scheduled task that runs the review | Any conversation |
 
-Each customer has its own connector address, `/customers/<slug>/mcp` on CMOkit's server, so the
-plugin declares no connector of its own; you add yours as a custom connector. When something is
+The plugin declares CMOkit's hosted connector, so there is no address to find or paste. Signing in
+tells CMOkit which brand you are working on; if you work on more than one, Claude asks which. A
+self-hoster adds their own server's `/mcp` address as a custom connector instead. When something is
 missing, the skill says what and how to turn it on.
 
 The decisions behind it are ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0029 and ADR-0034.

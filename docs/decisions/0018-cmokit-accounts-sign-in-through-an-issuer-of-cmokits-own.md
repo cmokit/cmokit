@@ -99,8 +99,8 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > a client only if every redirect it names is Claude's callback over https, or a loopback address over
 > http (`127.0.0.1`, `[::1]` or `localhost`, on any port, since Claude Code's callback is
 > `http://localhost:PORT/callback`). It requires PKCE with S256, and names itself in every
-> authorization response. A token names the person and nothing else; which customer a connection
-> serves is named in its address (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
+> authorization response. A token names the person and nothing else; which customer a call is for
+> the content server finds from the person (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
 
 A person signing in and connecting their Claude to the content server:
 
@@ -115,7 +115,7 @@ sequenceDiagram
   participant K as OAUTH_KV and person objects
 
   U->>C: add the cmokit-content plugin, then connect its connector (ADR-0034)
-  C->>S: /customers/slug/mcp, no token
+  C->>S: /mcp, no token
   S-->>C: 401, Protected Resource Metadata names the issuer (ADR-0029)
   C->>I: register by Client ID Metadata Document
   C->>I: authorize, PKCE S256
@@ -127,7 +127,7 @@ sequenceDiagram
   I-->>C: token naming the person
   C->>S: MCP call with the token
   S->>I: check the token, audience (ADR-0029)
-  Note over S: and that the person is a user of this customer
+  Note over S: and which customer the person is a user of
   S-->>C: tools
 ```
 
