@@ -20,8 +20,9 @@ Set up on the web or the desktop app; everything after works on a phone.
 | For visuals: a Claude Design system, published as your default | Claude Design |
 | Optional: a weekly scheduled task that runs the review | Any conversation |
 
-Each customer has its own connector address, `/customers/<slug>/mcp` on CMOkit's server, so the
-plugin declares no connector of its own; you add yours as a custom connector. When something is
+Each customer has its own connector address, `/customers/<slug>/mcp` on CMOkit's server. The plugin
+is to declare CMOkit's hosted address, and signing in routes you to your customer's; that address is
+not set yet, so for now you add yours as a custom connector. When something is
 missing, the skill says what and how to turn it on.
 
 The decisions behind it are ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0029 and ADR-0034.
