@@ -5,7 +5,7 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0029: A small remote MCP server, one address per customer, is the content plugin's connector, and checks tokens it does not issue
+# ADR-0029: A small remote MCP server at one hosted address, where sign-in picks the customer, is the content plugin's connector, and checks tokens it does not issue
 
 **Requirements served:** `HST-04`, `HST-05`, `HST-09`, `HST-10`, `HST-11`, `CNT-07`, `CNT-09`, `CNT-11`, `CNT-12`, `CNT-17`, `CNT-19`, `CNT-22`.
 
