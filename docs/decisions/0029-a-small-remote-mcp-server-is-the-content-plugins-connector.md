@@ -60,8 +60,8 @@ features cannot, knows which customer it serves from its address, and leaves sig
 > handler, with no session. Each customer has its own address, `/customers/<slug>/mcp`, and a
 > connection serves that customer alone; a person with two customers adds two connectors, one named
 > for each. Hosted, it runs on CMOkit's account; self-hosted, on the deployer's, from the same
-> package. The content plugin declares the hosted address; a self-hoster adds theirs as a custom
-> connector.
+> package. The content plugin declares the hosted address, and signing in routes the person to their
+> customer's address; a self-hoster adds theirs as a custom connector.
 >
 > The content server issues no token. It publishes Protected Resource Metadata naming the issuer,
 > answers a call without a token by pointing at it, and accepts only tokens the issuer issued for
