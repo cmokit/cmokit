@@ -11,7 +11,7 @@
   "mcpServers": {
     "cmokit": {
       "type": "http",
-      "url": "https://content.cmokit.example/mcp"
+      "url": "https://mcp.cmokit.ai/mcp"
     }
   }
 }
