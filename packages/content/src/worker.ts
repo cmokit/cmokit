@@ -1,16 +1,16 @@
 // The Cloudflare Worker adapter. A content server's Worker is:
 //
-//   const { worker, Customer } = createContentWorker({ accounts: (env) => ... });
+//   const { worker, Customer } = createContentWorker({ tokens: (env) => ... });
 //   export { Customer };
 //   export default worker;
 //
 // with `Customer` bound as the Durable Object class CUSTOMERS, one object per customer, named by the
-// customer's slug (ADR-0030). Every variable and secret it reads is in the deployment reference. How
-// tokens are checked, and which customers a person is a user of, are passed in: the adapter for
-// CMOkit's own issuer (ADR-0018, ADR-0029) comes with the issuer. The only host-specific code in the content server lives here.
+// slug its address carries (ADR-0030). Every variable and secret it reads is in the deployment
+// reference. How tokens are checked is passed in: the adapter for CMOkit's own issuer (ADR-0018,
+// ADR-0029) comes with the issuer. The only host-specific code in the content server lives here.
 
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
-import { createContentServer, type Accounts, type CustomerPages } from './index.ts';
+import { createContentServer, type CustomerPages, type Tokens } from './index.ts';
 import { luma } from './luma.ts';
 import type { Sql } from './sql.ts';
 import type { CustomerCalls } from './tools.ts';
@@ -43,7 +43,7 @@ export interface CustomerClass {
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser', 'linkFor', 'connect'] as const;
 type Call = (typeof CALLS)[number];
 
-export function createContentWorker(options: { accounts(env: ContentEnv): Accounts }) {
+export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }) {
   class Customer {
     readonly #logic: CustomerLogic;
 
@@ -82,7 +82,7 @@ export function createContentWorker(options: { accounts(env: ContentEnv): Accoun
       const handle = createContentServer({
         issuer: env.ISSUER_URL,
         audience: env.AUDIENCE,
-        accounts: options.accounts(env),
+        tokens: options.tokens(env),
         customer: (slug) => customerFor(env, slug),
       });
       return handle(request);

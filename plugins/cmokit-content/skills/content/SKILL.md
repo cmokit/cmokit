@@ -16,10 +16,8 @@ link routes, story structures, finishing and measuring.
 ## Before anything
 
 1. Call `account_status`. If CMOkit's tools are missing, the connector is not connected: say so, say
-   that it is in this plugin's Connectors tab and needs only a sign-in, and offer only to draft from
-   what the person says in this conversation, warning that nothing is kept and no brand context is
-   read. If a call is refused because the person works for several brands, ask which, and pass it as
-   `customer` on every call after that. Never pick one for them.
+   how to add it as a connector, and offer only to draft from what the person says in this
+   conversation, warning that nothing is kept and no brand context is read.
 2. If `missing` lists a connection, give the person its one-time link and say what it is for. Never
    accept a key or password in the chat; if they start to paste one, stop them and give the link.
 3. Call `brand_read`. If its version is 0, run onboarding (step 0) before anything else. Write
@@ -39,9 +37,8 @@ Pick one path by what the person already has, say which and why, and let them ch
   Claude Design build the design system from the same files.
 * **The Brand Sprint and a backwards press release, in tandem.** For a new brand, a rebrand, or a
   brand in the founder's head. Run GV's Brand Sprint one question at a time, the person as decider:
-  what, how and why; three values; three audiences, narrowed to one primary and at most one
-  secondary; personality sliders; the competitive landscape. Offer the 20-year roadmap and let them
-  skip it. Push back on generic answers and force each list down to three. Then write a press
+  a 20-year roadmap; what, how and why; three values; three audiences, narrowed to one primary and
+  at most one secondary; personality sliders; the competitive landscape. Push back on generic answers and force each list down to three. Then write a press
   release for the brand's next big moment, as if it had happened: headline, the customer's problem,
   what changes for them in one sentence, a customer quote, a few questions and answers. Where the
   sprint and the release disagree, ask the person to choose. Their headline and quote seed the first

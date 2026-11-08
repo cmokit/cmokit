@@ -52,11 +52,10 @@ them, and nothing has to be hosted for them to work.
 > When a piece is saved with its destination, the content server returns its tracked link for each
 > platform: the destination's URL with `utm_source` set to the platform, `utm_medium` set to `social`,
 > `utm_campaign` set to the id of the thing the piece promotes and `utm_content` set to the piece's
-> id. A promoted thing is whatever the brand promotes as one, kept in the brand context with its
-> pattern: a one-off launch, a recurring series, a distinct event, a format repeated on an open
+> id. A promoted thing is whatever the brand promotes as one, kept with the customer's records with
+> its pattern: a one-off launch, a recurring series, a distinct event, a format repeated on an open
 > schedule, or a product. A series or a format keeps one id across all its dates, so every piece
-> that promotes any of its dates is compared under one campaign. Any UTM parameters already in the
-> destination are replaced; nothing else in its URL changes. The hand-off says where to
+> that promotes any of its dates is compared under one campaign. The hand-off says where to
 > put it: in the profile's link while the piece is the newest, or in any link the platform offers on
 > the post itself. A registration on an event platform is attributed to a piece by its `utm_content`
 > (ADR-0032). A visit to a site behind a self-hosted engine's edge records the same parameters, so
@@ -91,8 +90,8 @@ them, and nothing has to be hosted for them to work.
 
 ### Confirmation
 
-Tests assert the server builds the same link for the same piece every time, with the four parameters,
-that existing UTM parameters are replaced, and that nothing else in the destination's URL changes.
+Tests assert the server builds the same link for the same piece every time, with the four parameters
+and nothing else changed in the destination's URL.
 
 ## Pros and Cons of the Options
 
@@ -135,4 +134,3 @@ TikTok's own help pages on profile links could not be read.
   redirect that points at the current piece would attribute better.
 * A platform makes links in organic posts clickable for the person's account.
 * A destination the customers use drops UTM parameters.
-* People want to compare the routes to a link, so the route is worth tagging.

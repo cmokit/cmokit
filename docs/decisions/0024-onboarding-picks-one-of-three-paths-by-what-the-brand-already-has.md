@@ -75,9 +75,9 @@ published processes where they fit instead of inventing one.
 >   out, usually customers' own words and the closing steps.
 > * **The Brand Sprint and a backwards press release, in tandem.** For a new brand, a rebrand, or a
 >   brand that lives in the founder's head. The sprint runs as published, one question at a time, with
->   the person as decider and Claude facilitating: what, how and why; three values; three audiences,
->   narrowed to one primary and at most one secondary (`CNT-02`); personality sliders; and the
->   competitive landscape. The 20-year roadmap is offered and may be skipped. The press release is
+>   the person as decider and Claude facilitating: a 20-year roadmap; what, how and why; three values;
+>   three audiences, narrowed to one primary and at most one secondary (`CNT-02`); personality
+>   sliders; and the competitive landscape. The press release is
 >   written for the brand's next big moment, such as a flagship event or product: a headline, the
 >   customer's problem, what changes for them in one sentence, a customer quote and a few questions
 >   and answers. The sprint looks from the inside and the release from the outside, so where they

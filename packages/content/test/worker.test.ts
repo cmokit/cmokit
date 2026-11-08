@@ -7,12 +7,9 @@ import { test } from 'node:test';
 import { createContentWorker, type ContentEnv, type DurableObjectState } from '../src/worker.ts';
 import { KEY } from './fixtures.ts';
 
-test('the Worker routes each call to the signed-in person\'s customer object, and refusals come back as tool errors', async () => {
+test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
   const { worker, Customer } = createContentWorker({
-    accounts: () => ({
-      check: async (token) => (token === 't' ? { person: 'ada', audience: 'aud' } : undefined),
-      customersOf: async () => ['acme', 'globex'],
-    }),
+    tokens: () => ({ check: async (token) => (token === 't' ? { person: 'ada', audience: 'aud' } : undefined) }),
   });
   const objects = new Map<string, InstanceType<typeof Customer>>();
   const env = {
@@ -34,10 +31,10 @@ test('the Worker routes each call to the signed-in person\'s customer object, an
       }),
     },
   } satisfies ContentEnv;
-  const call = async (customer: string, name: string, args: object) => {
-    const response = await worker.fetch(new Request('https://content.example/mcp', {
+  const call = async (slug: string, name: string, args: object) => {
+    const response = await worker.fetch(new Request(`https://content.example/customers/${slug}/mcp`, {
       method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: { ...args, customer } } }),
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
     }), env);
     return response;
   };
@@ -45,7 +42,6 @@ test('the Worker routes each call to the signed-in person\'s customer object, an
   assert.equal(read.result.structuredContent.version, 0);
   const refused = await (await call('acme', 'brand_change', { approved: false, base_version: 0, reason: 'x', sections: { voice: 'y' } })).json() as any;
   assert.equal(refused.result.isError, true);
-  const stale = await (await call('globex', 'brand_read', {})).json() as any;
-  assert.equal(stale.result.isError, true, 'the customer object, not the index, decides who its users are');
+  assert.equal((await call('globex', 'brand_read', {})).status, 403);
   assert.deepEqual([...objects.keys()], ['acme', 'globex']);
 });

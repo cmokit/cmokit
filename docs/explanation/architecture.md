@@ -80,7 +80,7 @@ flowchart TB
 
   subgraph cf["CMOkit's Cloudflare account, one deployment for every customer"]
     issuer["Issuer Worker<br/>sign-in"]
-    server["Content server Worker<br/>remote MCP at /mcp<br/>one-time setup pages"]
+    server["Content server Worker<br/>remote MCP at /customers/slug/mcp<br/>one-time setup pages"]
     custdo[("Customer Durable Object<br/>brand context versions, offers, pieces,<br/>tracked links, signals, sealed connections")]
     billing["Hosted lifecycle<br/>subscription and access"]
   end

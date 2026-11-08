@@ -1,11 +1,11 @@
 ---
 status: "proposed"
 kind: "requirement-driven"
-date: 2026-11-08
+date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0029: A small remote MCP server, at one address the plugin declares, is the content plugin's connector, and checks tokens it does not issue
+# ADR-0029: A small remote MCP server, one address per customer, is the content plugin's connector, and checks tokens it does not issue
 
 **Requirements served:** `HST-04`, `HST-05`, `HST-09`, `HST-10`, `HST-11`, `CNT-07`, `CNT-09`, `CNT-11`, `CNT-12`, `CNT-17`, `CNT-19`, `CNT-22`.
 
@@ -35,19 +35,15 @@ the shape it recommends, the resource server checking tokens over a service bind
 * No credential or third party's personal data passes through the conversation (`HST-04`).
 * Works in claude.ai on every surface, with the authorization Claude already speaks (`HST-05`).
 * Stateless and scales to zero, on Cloudflare, with no model (`HST-09`).
-* Setup is as easy as it can be for a person who is not technical: the hosted service comes first,
-  and installing the plugin and signing in is all it takes to connect.
 * The server, not the model, holds which customer a conversation is about (`HST-10`).
 * The server checks tokens and issues none, so the issuer can change without it.
 
 ## Considered Options
 
-* A remote MCP server: a stateless Worker on Streamable HTTP, at one address the plugin declares,
-  finding the customer from the person signed in, checking tokens from a separate issuer, with eight
-  tools
+* A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking
+  tokens from a separate issuer, with eight tools
 * The same, with the MCP server also issuing its own tokens
-* The same, with one address per customer, which the person adds as a custom connector
-* The same, on one address, with every tool always taking the customer as an argument
+* The same, on one address, with every tool taking the customer as an argument
 * No MCP server in v1: the skill alone, with the brand context in a Claude Project and results read
   from the event platform's own connector or a file the person uploads
 * A remote MCP server with a tool for every step of the workflow, the check and link-building
@@ -56,39 +52,30 @@ the shape it recommends, the resource server checking tokens over a service bind
 
 ## Decision Outcome
 
-Chosen option: "A remote MCP server: a stateless Worker on Streamable HTTP, at one address the plugin
-declares, finding the customer from the person signed in, checking tokens from a separate issuer, with
-eight tools", because it holds exactly what Claude's own features cannot, connects with no address to
-copy, and leaves sign-in to the issuer.
+Chosen option: "A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer,
+checking tokens from a separate issuer, with eight tools", because it holds exactly what Claude's own
+features cannot, knows which customer it serves from its address, and leaves sign-in to the issuer.
 
 > The content server is a Worker serving MCP over Streamable HTTP, through Cloudflare's stateless
-> handler, with no session, at one address, `/mcp`. The content plugin declares the hosted address,
-> so a person who installs the plugin connects by signing in, with nothing to paste. Hosted, it runs
-> on CMOkit's account; self-hosted, on the deployer's, from the same package, and a self-hoster adds
-> theirs as a custom connector.
->
-> The server finds the customer a call is for from the person signed in: it asks the issuer which
-> customers the person is a user of (ADR-0030), then checks with that customer's own records, which
-> are the authority. The hosted service gives each customer one user (ADR-0030), so nearly everyone
-> has one customer and never names it. Every tool also takes an optional `customer`: a person who is
-> a user of several must name one, and a call without it is refused with the list, so the model asks
-> the person instead of guessing. Naming a customer the person is not a user of is refused. The
-> one-time pages for connecting a calendar (ADR-0019) stay under the customer's own path, since a
-> person only ever opens them from a link.
+> handler, with no session. Each customer has its own address, `/customers/<slug>/mcp`, and a
+> connection serves that customer alone; a person with two customers adds two connectors, one named
+> for each. Hosted, it runs on CMOkit's account; self-hosted, on the deployer's, from the same
+> package. The content plugin declares the hosted address; a self-hoster adds theirs as a custom
+> connector.
 >
 > The content server issues no token. It publishes Protected Resource Metadata naming the issuer,
 > answers a call without a token by pointing at it, and accepts only tokens the issuer issued for
 > the server's own audience. It reads two settings, the issuer's address and that audience, and
-> checks tokens, and which customers a person is a user of, through one interface, whose adapter for
-> CMOkit's own issuer (ADR-0018) is the library's resource server, run in the content server's own
-> Worker and asking the issuer over a service binding; no third Worker is involved. A token names a
-> person; every tool call checks that the person is a user of the customer it acts for.
+> checks tokens through one interface, whose adapter for CMOkit's own issuer (ADR-0018) is the
+> library's resource server, run in the content server's own Worker and checking each token with the
+> issuer over a service binding; no third Worker is involved. A token names a person; every call
+> checks that the person is a user of the customer the address names.
 >
 > Its tools:
 >
 > | Tool | What only it can do |
 > |---|---|
-> | `account_status` | This customer's connections and subscription, and one-time links to connect, pay, export or close (ADR-0019) |
+> | `account_status` | This customer's connections and subscription, the addresses of the person's other customers, and one-time links to connect, pay, export or close (ADR-0019) |
 > | `brand_read` | The current brand context and its version (ADR-0023) |
 > | `brand_change` | Saves a change the person approved, or restores an earlier version, as a new version with its reason and signals |
 > | `brand_history` | Every version, with when, why and its signals |
@@ -106,30 +93,26 @@ copy, and leaves sign-in to the issuer.
   requests.
 * Good, because guests' names and emails stay between the event platform and CMOkit; the model sees
   counts.
-* Good, because connecting is installing the plugin and signing in: no address to find or paste.
-* Good, because a call can never act on a customer the person is not a user of, whatever the model
-  says.
-* Bad, because a person who works for several customers names one on each call, and a model that
-  names the wrong one of theirs acts on it; the refusal without a name makes it ask first.
+* Good, because a call can never act on a customer other than the one its address names, whatever
+  the model says.
+* Bad, because a person who works for two customers adds and switches between two connectors.
 * Bad, because a person on the Free plan who already has a custom connector cannot add CMOkit's.
 * Neutral, because tools are named for the job, so another chat client that speaks MCP can use them.
 
 ### Confirmation
 
 Tests drive each tool over Streamable HTTP with tokens for people of different customers and assert
-that each reaches only their own customer, that a person with several is refused until they name one,
-that naming another's customer is refused, that the customer's own list of users overrules the
-issuer's index, refusal of a token issued for another audience, that no
+refusal at another customer's address, refusal of a token issued for another audience, that no
 tool's input accepts a credential, and that no result carries a guest's email or name. The connector
 directory's requirement that each tool carry a `title` and a read-only or destructive hint is checked
 in the tests too.
 
 ## Pros and Cons of the Options
 
-### A remote MCP server: a stateless Worker on Streamable HTTP, at one address the plugin declares, finding the customer from the person signed in, checking tokens from a separate issuer, with eight tools
+### A remote MCP server: a stateless Worker on Streamable HTTP, one address per customer, checking tokens from a separate issuer, with eight tools
 
 * Good, because it meets every driver.
-* Bad, because a person with several customers names one on every call.
+* Bad, because a person with several customers keeps several connectors.
 
 ### The same, with the MCP server also issuing its own tokens
 
@@ -137,18 +120,11 @@ in the tests too.
 * Bad, because sign-in and content become one deployment, so changing the issuer changes the content
   server, and any later server of CMOkit's would need a sign-in of its own.
 
-### The same, with one address per customer, which the person adds as a custom connector
-
-* Good, because a call can only ever act on the customer its address names.
-* Bad, because every person finds and pastes an address of their own, which is the hardest step of
-  setup for someone who is not technical, and the plugin can declare no address.
-* Bad, because a person with two customers adds and switches between two connectors.
-
-### The same, on one address, with every tool always taking the customer as an argument
+### The same, on one address, with every tool taking the customer as an argument
 
 * Good, because a person with several customers keeps one connector.
-* Bad, because the model names the customer on every call, even for the many people who have only
-  one, so one wrong guess acts on the wrong customer's records.
+* Bad, because the model names the customer on every call, so one wrong guess acts on the wrong
+  customer's records; the address puts that choice with the person, once.
 
 ### No MCP server in v1: the skill alone, with the brand context in a Claude Project and results read from the event platform's own connector or a file the person uploads
 
@@ -190,10 +166,8 @@ search extract on 2026-10-30. The library's access tokens are not JWTs: each is
 `{userId}:{grantId}:{random-secret}`, kept only as a hash in the issuer's store, so another resource
 server checks one only by asking the issuer, and the adapter for an issuer other than CMOkit's own is
 written when one is wanted. Which MCP protocol
-versions claude.ai sends was not found. An earlier version of this record gave each
-customer its own address, after CFOKit's [record on agent connections](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0067-an-agent-connection-serves-one-company.md);
-it was changed on 2026-11-08 because the hosted service comes first and gives each customer one user,
-so an address per customer made every person's setup harder to protect a case few have.
+versions claude.ai sends was not found. A connection per customer, named in its address, follows
+CFOKit's [record on agent connections](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0067-an-agent-connection-serves-one-company.md).
 
 **Follow-on obligations.** A package for the content server, which CLAUDE.md's list of packages does
 not yet name; the server's entries in the deployment reference; a listing in Anthropic's connector
@@ -206,4 +180,4 @@ the skill in step.
 
 * Claude documents a store a skill can read and write in any conversation, so some tools can go.
 * A tool goes unused across customers for a quarter.
-* Many people work for several customers, so naming one on every call becomes a burden.
+* People with several customers find switching connectors a burden.
