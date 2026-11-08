@@ -1,0 +1,40 @@
+{
+  "name": "@cmokit/issuer",
+  "version": "0.1.0",
+  "description": "CMOkit's issuer, as a Cloudflare Worker: signs a person in with an email code, Google, GitHub or Meta, keeps no password, and issues the tokens the content server checks.",
+  "license": "Apache-2.0",
+  "author": "Growth Science LLC",
+  "homepage": "https://github.com/cmokit/cmokit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmokit/cmokit.git",
+    "directory": "packages/issuer"
+  },
+  "bugs": "https://github.com/cmokit/cmokit/issues",
+  "type": "module",
+  "exports": {
+    ".": {
+      "cmokit-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "cmokit-source": "./src/worker.ts",
+      "types": "./dist/worker.d.ts",
+      "default": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^1.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

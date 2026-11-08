@@ -5,9 +5,10 @@
 //   export default worker;
 //
 // with `Customer` bound as the Durable Object class CUSTOMERS, one object per customer, named by the
-// slug its address carries (ADR-0030). Every variable and secret it reads is in the deployment
-// reference. How tokens are checked is passed in: the adapter for CMOkit's own issuer (ADR-0018,
-// ADR-0029) comes with the issuer. The only host-specific code in the content server lives here.
+// slug its path carries (ADR-0030). Every variable and secret it reads is in the deployment
+// reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
+// issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
+// binding. The only host-specific code in the content server lives here.
 
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
 import { createContentServer, type CustomerPages, type Tokens } from './index.ts';
@@ -24,6 +25,25 @@ export interface ContentEnv {
   AUDIENCE: string;
   /** 32 random bytes as base64, which seal each customer's credentials. A secret. */
   CREDENTIAL_KEY: string;
+  /** CMOkit's issuer, as a service binding, when its tokens are checked with `issuerTokens`. */
+  ISSUER?: IssuerBinding;
+}
+
+/** What CMOkit's issuer offers the content server over its service binding. */
+export interface IssuerBinding {
+  validateToken(resource: string, token: string): Promise<{ userId: string; audience: string; props: { person: string; customer: string } } | null>;
+}
+
+/** Checks tokens with CMOkit's own issuer, for the content server's audience alone. */
+export function issuerTokens(env: ContentEnv): Tokens {
+  return {
+    async check(token) {
+      if (!env.ISSUER) throw new Error('The ISSUER service binding is not set');
+      const valid = await env.ISSUER.validateToken(env.AUDIENCE, token);
+      if (!valid) return undefined;
+      return { person: valid.userId, audience: valid.audience, customer: valid.props?.customer };
+    },
+  };
 }
 
 export interface DurableObjectNamespace {

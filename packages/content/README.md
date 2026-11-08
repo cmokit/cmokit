@@ -1,7 +1,8 @@
 # @cmokit/content
 
 The content server, as a Cloudflare Worker. It is the remote MCP server behind the `cmokit-content`
-plugin: each customer has its own address, `/customers/<slug>/mcp`, and a Durable Object of its own
+plugin: it serves the plugin's one hosted address at `/mcp`, as the customer chosen at sign-in, and
+each customer's own path, `/customers/<slug>/mcp`; each customer has a Durable Object of its own
 that keeps the brand context's versions, the promotable things, the pieces with their tracked links
 and signals, and the customer's sealed connections. It runs no model; every model step runs in the
 person's own Claude.
@@ -10,7 +11,7 @@ person's own Claude.
   `piece_save`, `pieces_list` and `results_read`, over Streamable HTTP with no session.
 - **Sign-in:** it checks bearer tokens issued for its own audience by CMOkit's issuer, which it
   names in its Protected Resource Metadata, and issues none. A person must be a user of the customer
-  the address names.
+  the path names, or, at `/mcp`, of the customer their sign-in chose.
 - **Connections:** a calendar key is entered on a one-time page of the server's own, never in the
   chat, checked with the platform, and kept sealed with AES-GCM.
 - **Tracked links:** each piece's link is its destination with `utm_source`, `utm_medium`,
@@ -22,15 +23,14 @@ person's own Claude.
 A deployment's Worker:
 
 ```ts
-import { createContentWorker } from '@cmokit/content/worker';
-import { tokens } from './issuer.ts';
+import { createContentWorker, issuerTokens } from '@cmokit/content/worker';
 
-const { worker, Customer } = createContentWorker({ tokens });
+const { worker, Customer } = createContentWorker({ tokens: issuerTokens });
 
 export { Customer };
 export default worker;
 ```
 
-`tokens(env)` returns the issuer's token check. The issuer's adapter is not in this package yet. The
+`issuerTokens` checks each token with `@cmokit/issuer`'s Worker over the `ISSUER` service binding. The
 Worker's bindings, variables and secrets are in the
 [deployment reference](../../docs/reference/deployment.md).

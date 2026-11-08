@@ -2,8 +2,16 @@
   "name": "cmokit-content",
   "version": "0.1.0",
   "description": "Plans, writes and checks a brand's Reels, carousels and Stories from its brand context and event calendar, through CMOkit's connector, and reviews what worked each week.",
-  "author": { "name": "Growth Science LLC" },
+  "author": {
+    "name": "Growth Science LLC"
+  },
   "homepage": "https://github.com/cmokit/cmokit/tree/main/plugins/cmokit-content#readme",
   "repository": "https://github.com/cmokit/cmokit",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "mcpServers": {
+    "cmokit": {
+      "type": "http",
+      "url": "https://mcp.cmokit.ai/mcp"
+    }
+  }
 }

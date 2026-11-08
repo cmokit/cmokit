@@ -99,8 +99,9 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > a client only if every redirect it names is Claude's callback over https, or a loopback address over
 > http (`127.0.0.1`, `[::1]` or `localhost`, on any port, since Claude Code's callback is
 > `http://localhost:PORT/callback`). It requires PKCE with S256, and names itself in every
-> authorization response. A token names the person and nothing else; which customer a connection
-> serves is named in its address (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
+> authorization response. A token names the person and the customer the connection serves, which
+> the sign-in picks: a person with one customer is signed in to it, a person with several chooses
+> one, and a person with none is told so and given no token (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
 
 A person signing in and connecting their Claude to the content server:
 

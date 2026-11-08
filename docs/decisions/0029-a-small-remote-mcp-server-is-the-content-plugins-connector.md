@@ -5,7 +5,7 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0029: A small remote MCP server, one address per customer, is the content plugin's connector, and checks tokens it does not issue
+# ADR-0029: A small remote MCP server at one hosted address, where sign-in picks the customer, is the content plugin's connector, and checks tokens it does not issue
 
 **Requirements served:** `HST-04`, `HST-05`, `HST-09`, `HST-10`, `HST-11`, `CNT-07`, `CNT-09`, `CNT-11`, `CNT-12`, `CNT-17`, `CNT-19`, `CNT-22`.
 
@@ -57,19 +57,20 @@ checking tokens from a separate issuer, with eight tools", because it holds exac
 features cannot, knows which customer it serves from its address, and leaves sign-in to the issuer.
 
 > The content server is a Worker serving MCP over Streamable HTTP, through Cloudflare's stateless
-> handler, with no session. Each customer has its own address, `/customers/<slug>/mcp`, and a
-> connection serves that customer alone; a person with two customers adds two connectors, one named
-> for each. Hosted, it runs on CMOkit's account; self-hosted, on the deployer's, from the same
-> package. The content plugin declares the hosted address, and signing in routes the person to their
-> customer's address; a self-hoster adds theirs as a custom connector.
+> handler, with no session. Each customer has its own path, `/customers/<slug>/mcp`, and a
+> connection serves one customer alone. Hosted, it runs on CMOkit's account; self-hosted, on the
+> deployer's, from the same package. The content plugin declares the hosted address,
+> `https://mcp.cmokit.ai/mcp`, and signing in routes the person to their customer: the sign-in picks
+> the customer and the token names it, and a person with several customers chooses one at sign-in.
+> A self-hoster adds theirs as a custom connector.
 >
 > The content server issues no token. It publishes Protected Resource Metadata naming the issuer,
 > answers a call without a token by pointing at it, and accepts only tokens the issuer issued for
 > the server's own audience. It reads two settings, the issuer's address and that audience, and
 > checks tokens through one interface, whose adapter for CMOkit's own issuer (ADR-0018) is the
 > library's resource server, run in the content server's own Worker and checking each token with the
-> issuer over a service binding; no third Worker is involved. A token names a person; every call
-> checks that the person is a user of the customer the address names.
+> issuer over a service binding; no third Worker is involved. A token names a person and a customer; every call
+> checks that the person is a user of the customer the path names, or, at `/mcp`, the token names.
 >
 > Its tools:
 >
@@ -93,9 +94,9 @@ features cannot, knows which customer it serves from its address, and leaves sig
   requests.
 * Good, because guests' names and emails stay between the event platform and CMOkit; the model sees
   counts.
-* Good, because a call can never act on a customer other than the one its address names, whatever
-  the model says.
-* Bad, because a person who works for two customers adds and switches between two connectors.
+* Good, because a call can never act on a customer other than the one its path or token names,
+  whatever the model says.
+* Bad, because a person who works for two customers signs in again to switch between them.
 * Bad, because a person on the Free plan who already has a custom connector cannot add CMOkit's.
 * Neutral, because tools are named for the job, so another chat client that speaks MCP can use them.
 
