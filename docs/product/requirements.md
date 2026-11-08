@@ -10,7 +10,7 @@ requirements cite no decision record.
 | Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. CMOkit's hosted content service is a service, and it neither hosts nor publishes to any site. |
 | A page builder or CMS | Pages are made with whatever builds the site: a static site generator, a CMS or anything else. |
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
-| Ad buying and bidding | Spend is an input to cost of acquisition, not something CMOkit manages. A brand's audiences let a person aim their own ads at the people their content is for; CMOkit places no ad. |
+| Ad budgets and ad accounts | Paid acquisition is part of the loop: CMOkit traffics ads in the person's own ad account, after their approval and within the budget they set, analyzes how they perform and plans the next round, and automates more of that as the person allows. The ad account, the budget and the money stay the person's; CMOkit holds no ad account of its own and never sets or raises a budget. |
 | Editing and posting video | Footage is edited, and posts are published and scheduled, in the person's own tools. CMOkit posts nothing for anyone and automates no direct messages. |
 | Compliance review | The content check flags claims a person may want to look at twice. It blocks nothing, gives no legal advice and is not a compliance engine. |
 | Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOkit counts credits, in the product's units, and keeps nothing about money. |
