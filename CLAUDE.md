@@ -15,6 +15,11 @@ with `node` directly. No second language without a record. `npm run check` type-
 decision records and the package boundaries, and `npm test` runs every package's tests with Node's
 test runner; CI runs both on every pull request. (ADR-0007)
 
+## Pull requests
+
+Open a pull request ready for review, never as a draft, once `npm run check` and `npm test` pass,
+and stop. Merge only when a maintainer tells you to. (ADR-0038)
+
 ## Packages
 
 `packages/*` are npm workspaces, each published on its own: `@cmokit/cli` (configuration and the

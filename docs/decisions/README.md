@@ -42,3 +42,4 @@ from [adr-template.md](adr-template.md).
 | [0035](0035-the-issuers-tokens-are-kept-in-workers-kv-by-cloudflares-oauth-library.md) | The issuer's tokens are kept in Workers KV by Cloudflare's OAuth library, and everything else in Durable Objects | Proposed |
 | [0036](0036-a-funnel-piece-is-measured-by-reading-the-sites-own-posthog-read-only.md) | A piece sent to a page the engine serves is measured by reading the site's own PostHog, read-only | Proposed |
 | [0037](0037-platform-ai-content-rules-are-a-reviewed-file-in-the-skill-refreshed-monthly-in-ci.md) | Platforms' rules on AI-made content are a reviewed file in the content skill, refreshed monthly by a model in CI that proposes a pull request | Proposed |
+| [0038](0038-a-pull-request-is-opened-ready-for-review-and-merged-only-when-a-maintainer-says.md) | A pull request is opened ready for review, and merged only when a maintainer says so | Proposed |
