@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
-import { createContentWorker, type ContentEnv, type DurableObjectState } from '../src/worker.ts';
+import { createContentWorker, issuerTokens, type ContentEnv, type DurableObjectState } from '../src/worker.ts';
 import { KEY } from './fixtures.ts';
 
 test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
@@ -44,4 +44,21 @@ test('the Worker routes each address to its customer\'s object, and refusals com
   assert.equal(refused.result.isError, true);
   assert.equal((await call('globex', 'brand_read', {})).status, 403);
   assert.deepEqual([...objects.keys()], ['acme', 'globex']);
+});
+
+test('issuerTokens checks a token with the issuer for the content server\'s own audience', async () => {
+  const asked: [string, string][] = [];
+  const env = {
+    AUDIENCE: 'https://content.example/mcp',
+    ISSUER: {
+      async validateToken(resource: string, token: string) {
+        asked.push([resource, token]);
+        return token === 'good' ? { userId: 'ada', audience: resource, props: { person: 'ada', customer: 'acme' } } : null;
+      },
+    },
+  } as unknown as ContentEnv;
+  const tokens = issuerTokens(env);
+  assert.deepEqual(await tokens.check('good'), { person: 'ada', audience: 'https://content.example/mcp', customer: 'acme' });
+  assert.equal(await tokens.check('bad'), undefined);
+  assert.deepEqual(asked, [['https://content.example/mcp', 'good'], ['https://content.example/mcp', 'bad']]);
 });

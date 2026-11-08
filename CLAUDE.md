@@ -25,7 +25,7 @@ and stop. Merge only when a maintainer tells you to. (ADR-0038)
 `packages/*` are npm workspaces, each published on its own: `@cmokit/cli` (configuration and the
 `cmokit` command), `@cmokit/astro` (the Astro integration), `@cmokit/edge` (the Worker),
 `@cmokit/lifecycle` (the lifecycle), `@cmokit/content` (the content server, the content plugin's
-connector) and `create-cmokit` (the starter). `@cmokit/edge` never depends on `@cmokit/lifecycle`.
+connector), `@cmokit/issuer` (the issuer, sign-in) and `create-cmokit` (the starter). `@cmokit/edge` never depends on `@cmokit/lifecycle`.
 Each package's source is `src/`, built to `dist/` for publishing. Its exports name `src/` first under
 the `cmokit-source` condition, which the repository's type check and tests use, so nothing is built
 to be tested; CI builds the starter site against the built packages. (ADR-0011)

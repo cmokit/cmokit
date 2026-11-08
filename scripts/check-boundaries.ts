@@ -1,7 +1,9 @@
 // Checks the package boundaries of ADR-0003, ADR-0010, ADR-0013, ADR-0015 and ADR-0032: the edge
 // depends, directly or through another package, on neither the lifecycle nor a database client; no
 // package depends on a database client; the edge's, the lifecycle's and the content server's handlers
-// name no bought tool, only their adapters and the Workers that wire them do; and the edge reaches nothing of
+// name no bought tool, only their adapters and the Workers that wire them do, and the issuer's likewise; only the
+// issuer names a KV namespace, and no code of CMOkit's reads or writes the OAuth library's (ADR-0035); and the edge
+// reaches nothing of
 // the command line's but its configuration, so it never holds the experiments tool's administrative
 // key. Also ADR-0022's: the content plugin declares no local MCP server, so everything in it works in
 // chat. Run with `npm run check:boundaries`.
@@ -14,7 +16,7 @@ const packages = join(root, 'packages');
 
 const FORBIDDEN_FOR_EDGE = ['@cmokit/lifecycle', 'pg', 'postgres', '@electric-sql/pglite', 'kysely', 'drizzle-orm', '@prisma/client'];
 const DATABASE_CLIENTS = FORBIDDEN_FOR_EDGE.slice(1);
-const WIRING = ['posthog.ts', 'sendgrid.ts', 'luma.ts', 'worker.ts'];
+const WIRING = ['posthog.ts', 'sendgrid.ts', 'luma.ts', 'worker.ts', 'workers.d.ts'];
 const TOOLS = /posthog|growthbook|statsig|cloudflare|sendgrid|twilio|customer\.io|luma/i;
 
 const errors: string[] = [];
@@ -49,11 +51,22 @@ for (const dir of readdirSync(packages)) {
 }
 
 const edgeSource = join(packages, 'edge', 'src');
-for (const pkg of ['edge', 'lifecycle', 'content']) {
+for (const pkg of ['edge', 'lifecycle', 'content', 'issuer']) {
   const source = join(packages, pkg, 'src');
   for (const file of readdirSync(source)) {
     if (!file.endsWith('.ts') || WIRING.includes(file)) continue;
     if (TOOLS.test(readFileSync(join(source, file), 'utf8'))) errors.push(`packages/${pkg}/src/${file} names a bought tool`);
+  }
+}
+
+// Only the issuer names a KV namespace, its OAuth library's, and it hands the namespace to the library alone.
+for (const dir of readdirSync(packages)) {
+  const source = join(packages, dir, 'src');
+  if (!existsSync(source)) continue;
+  for (const file of readdirSync(source).filter((f) => f.endsWith('.ts'))) {
+    const text = readFileSync(join(source, file), 'utf8');
+    if (dir !== 'issuer' && /OAUTH_KV|KVNamespace/.test(text)) errors.push(`packages/${dir}/src/${file} names a KV namespace`);
+    if (/OAUTH_KV\s*\.\s*(get|put|list|delete|getWithMetadata)\b/.test(text)) errors.push(`packages/${dir}/src/${file} reads or writes the OAuth library's namespace`);
   }
 }
 

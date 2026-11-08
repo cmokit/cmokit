@@ -1,8 +1,10 @@
-// The content server (ADR-0029): CMOkit's remote MCP server for the content plugin, one address per
-// customer, serving MCP over Streamable HTTP with no session, and the one-time pages that take a key
-// (ADR-0019). It issues no token: it names its issuer in Protected Resource Metadata and accepts only
-// tokens the issuer issued for its audience, for a person who is a user of the customer the address
-// names (HST-10). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
+// The content server (ADR-0029): CMOkit's remote MCP server for the content plugin, serving MCP over
+// Streamable HTTP with no session, and the one-time pages that take a key (ADR-0019). Each customer
+// has its own path, `/customers/<slug>/mcp`. The content plugin declares one hosted address, with the
+// path `/mcp`, and a call there is routed to the customer the person chose when signing in, which the
+// issuer's grant names. It issues no token: it names its issuer in Protected Resource Metadata and
+// accepts only tokens the issuer issued for its audience, for a person who is a user of the customer
+// served (HST-10). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { Refusal } from './customer.ts';
@@ -18,8 +20,11 @@ export { aesGcmVault, type Vault } from './vault.ts';
 
 /** Checks a bearer token with the issuer that issued it. */
 export interface Tokens {
-  /** The person the token names and the audience it was issued for, or undefined when it is not valid. */
-  check(token: string): Promise<{ person: string; audience: string } | undefined>;
+  /**
+   * The person the token names, the audience it was issued for and the customer chosen when signing
+   * in, or undefined when it is not valid.
+   */
+  check(token: string): Promise<{ person: string; audience: string; customer?: string } | undefined>;
 }
 
 /** What the one-time pages call on a customer's records. */
@@ -42,6 +47,9 @@ const VERSIONS = ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26'];
 const SLUG = '([a-z0-9][a-z0-9-]{0,62})';
 const MCP = new RegExp(`^/customers/${SLUG}/mcp$`);
 const METADATA = new RegExp(`^/\\.well-known/oauth-protected-resource/customers/${SLUG}/mcp$`);
+const ONE_SLUG = new RegExp(`^${SLUG}$`);
+const HOSTED = '/mcp';
+const HOSTED_METADATA = '/.well-known/oauth-protected-resource/mcp';
 const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
 
 type Message = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, any> };
@@ -51,30 +59,28 @@ export function createContentServer(options: ContentServerOptions) {
     const url = new URL(request.url);
     let match: RegExpMatchArray | null;
 
-    if ((match = url.pathname.match(METADATA))) {
-      if (request.method !== 'GET') return new Response(null, { status: 405, headers: { allow: 'GET' } });
-      return Response.json({
-        resource: `${url.origin}/customers/${match[1]}/mcp`,
-        authorization_servers: [options.issuer],
-        bearer_methods_supported: ['header'],
-        resource_name: 'CMOkit',
-      });
-    }
+    if ((match = url.pathname.match(METADATA))) return metadata(request, `${url.origin}/customers/${match[1]}/mcp`, options.issuer);
+    if (url.pathname === HOSTED_METADATA) return metadata(request, `${url.origin}${HOSTED}`, options.issuer);
 
     if ((match = url.pathname.match(CONNECT))) return connectPage(request, url, options.customer(match[1]));
 
-    if ((match = url.pathname.match(MCP))) {
+    const slug = url.pathname.match(MCP)?.[1];
+    if (slug !== undefined || url.pathname === HOSTED) {
       if (request.method !== 'POST') return new Response(null, { status: 405, headers: { allow: 'POST' } });
-      const slug = match[1];
       const challenge = () => new Response(null, {
         status: 401,
-        headers: { 'www-authenticate': `Bearer resource_metadata="${url.origin}/.well-known/oauth-protected-resource/customers/${slug}/mcp"` },
+        headers: { 'www-authenticate': `Bearer resource_metadata="${url.origin}/.well-known/oauth-protected-resource${url.pathname}"` },
       });
       const token = request.headers.get('authorization')?.match(/^Bearer (\S+)$/i)?.[1];
       if (!token) return challenge();
       const checked = await options.tokens.check(token);
       if (!checked || checked.audience !== options.audience) return challenge();
-      const customer = options.customer(slug);
+      // At the hosted address, the customer is the one the person chose when signing in.
+      const served = slug ?? checked.customer;
+      if (served === undefined || !ONE_SLUG.test(served)) {
+        return new Response('This sign-in names no customer. Sign in again.', { status: 403 });
+      }
+      const customer = options.customer(served);
       if (!(await customer.isUser(checked.person))) {
         return new Response('This account is not a user of this customer.', { status: 403 });
       }
@@ -88,12 +94,17 @@ export function createContentServer(options: ContentServerOptions) {
         return Response.json(failure(null, -32600, 'Send one JSON-RPC message per request'), { status: 400 });
       }
       if (message.id === undefined) return new Response(null, { status: 202 });
-      const answer = await respond(message, { person: checked.person, base: `${url.origin}/customers/${slug}`, customer });
+      const answer = await respond(message, { person: checked.person, base: `${url.origin}/customers/${served}`, customer });
       return Response.json(answer);
     }
 
     return new Response('Not found', { status: 404 });
   };
+}
+
+function metadata(request: Request, resource: string, issuer: string): Response {
+  if (request.method !== 'GET') return new Response(null, { status: 405, headers: { allow: 'GET' } });
+  return Response.json({ resource, authorization_servers: [issuer], bearer_methods_supported: ['header'], resource_name: 'CMOkit' });
 }
 
 async function respond(message: Message, context: { person: string; base: string; customer: CustomerCalls }) {

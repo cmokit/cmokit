@@ -79,8 +79,8 @@ flowchart TB
   end
 
   subgraph cf["CMOkit's Cloudflare account, one deployment for every customer"]
-    issuer["Issuer Worker<br/>sign-in"]
-    server["Content server Worker<br/>remote MCP at /customers/slug/mcp<br/>one-time setup pages"]
+    issuer["Issuer Worker<br/>sign-in by email code, Google, GitHub or Meta<br/>person and identity Durable Objects, tokens in Workers KV"]
+    server["Content server Worker<br/>remote MCP at /mcp, served as the customer<br/>chosen at sign-in, and at /customers/slug/mcp<br/>one-time setup pages"]
     custdo[("Customer Durable Object<br/>brand context versions, offers, pieces,<br/>tracked links, signals, sealed connections")]
     billing["Hosted lifecycle<br/>subscription and access"]
   end
@@ -111,7 +111,7 @@ flowchart TB
   cli --> posthog
 
   classDef designed stroke-dasharray:6 4
-  class task,lp,issuer,billing,future designed
+  class task,lp,billing,future designed
 ```
 
 Dashed parts and calls are designed but not yet in this repository. Every model step runs in the

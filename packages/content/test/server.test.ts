@@ -9,6 +9,10 @@ const tokens: Tokens = {
     if (token === 'ada-token') return { person: 'ada', audience: ORIGIN };
     if (token === 'bob-token') return { person: 'bob', audience: ORIGIN };
     if (token === 'other-audience') return { person: 'ada', audience: 'https://elsewhere.example' };
+    if (token === 'ada-chose-acme') return { person: 'ada', audience: ORIGIN, customer: 'acme' };
+    if (token === 'ada-chose-globex') return { person: 'ada', audience: ORIGIN, customer: 'globex' };
+    if (token === 'ada-chose-nothing') return { person: 'ada', audience: ORIGIN };
+    if (token === 'ada-chose-a-path') return { person: 'ada', audience: ORIGIN, customer: '../acme' };
     return undefined;
   },
 };
@@ -19,7 +23,7 @@ async function server() {
   await globex.customer.addUser('bob');
   const customers: Record<string, typeof acme.customer> = { acme: acme.customer, globex: globex.customer };
   const handle = createContentServer({ issuer: 'https://auth.example', audience: ORIGIN, tokens, customer: (slug) => customers[slug] ?? newCustomer().customer });
-  const rpc = (slug: string, token: string | undefined, method: string, params: object = {}, id: number | null = 1) => handle(new Request(`${ORIGIN}/customers/${slug}/mcp`, {
+  const rpc = (slug: string | null, token: string | undefined, method: string, params: object = {}, id: number | null = 1) => handle(new Request(slug === null ? `${ORIGIN}/mcp` : `${ORIGIN}/customers/${slug}/mcp`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...(token ? { authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ jsonrpc: '2.0', ...(id === null ? {} : { id }), method, params }),
@@ -43,6 +47,28 @@ test('Protected Resource Metadata names the issuer, and a call without a valid t
     assert.equal(refused.status, 401, `token ${token}`);
     assert.equal(refused.headers.get('www-authenticate'), `Bearer resource_metadata="${ORIGIN}/.well-known/oauth-protected-resource/customers/acme/mcp"`);
   }
+});
+
+test('the hosted address serves the customer chosen at sign-in, and only to its users', async () => {
+  const { handle, rpc } = await server();
+  const metadata = await handle(new Request(`${ORIGIN}/.well-known/oauth-protected-resource/mcp`));
+  assert.deepEqual(await metadata.json(), {
+    resource: `${ORIGIN}/mcp`, authorization_servers: ['https://auth.example'],
+    bearer_methods_supported: ['header'], resource_name: 'CMOkit',
+  });
+  const refused = await rpc(null, undefined, 'tools/list');
+  assert.equal(refused.status, 401);
+  assert.equal(refused.headers.get('www-authenticate'), `Bearer resource_metadata="${ORIGIN}/.well-known/oauth-protected-resource/mcp"`);
+
+  const brand = await rpc(null, 'ada-chose-acme', 'tools/call', { name: 'brand_read', arguments: {} });
+  assert.equal(brand.status, 200);
+  const result = (await brand.json() as { result: { structuredContent: { version: number } } }).result;
+  assert.equal(typeof result.structuredContent.version, 'number');
+
+  assert.equal((await rpc(null, 'ada-chose-globex', 'tools/list')).status, 403);
+  assert.equal((await rpc(null, 'ada-chose-nothing', 'tools/list')).status, 403);
+  assert.equal((await rpc(null, 'ada-chose-a-path', 'tools/list')).status, 403);
+  assert.equal((await rpc(null, 'other-audience', 'tools/list')).status, 401);
 });
 
 test('a person is refused at another customer\'s address', async () => {
