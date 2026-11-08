@@ -9,6 +9,7 @@ import {
   EMAIL,
   EVENT_NAME,
   LEADS_PATH,
+  SUBSCRIPTIONS_PATH,
   LEAD_COOKIE,
   PREVIEW_PARAM,
   RELAY_PATH,
@@ -59,7 +60,10 @@ export interface Lifecycle {
   capture(lead: CapturedLead): Promise<void>;
   /** A later conversion by a captured lead, which may end its sequence. */
   event(key: string, name: string): Promise<void>;
-  /** Passes on a public request under LEADS_PATH: an unsubscribe, or the sending service's events. */
+  /**
+   * Passes on a public request under LEADS_PATH or SUBSCRIPTIONS_PATH: an unsubscribe, the sending
+   * service's events, or the payment processor's.
+   */
   forward(request: Request): Promise<Response>;
 }
 
@@ -84,7 +88,7 @@ export interface EdgeOptions {
 const YEAR = 60 * 60 * 24 * 365;
 
 /** The lifecycle's routes the public may reach through the edge. */
-const PUBLIC_LEADS = new Set([`${LEADS_PATH}/unsubscribe`, `${LEADS_PATH}/events`]);
+const PUBLIC_LEADS = new Set([`${LEADS_PATH}/unsubscribe`, `${LEADS_PATH}/events`, `${SUBSCRIPTIONS_PATH}/events`]);
 
 /**
  * The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. Each
@@ -107,7 +111,7 @@ export function createEdge(options: EdgeOptions): (request: Request) => Promise<
     const url = new URL(request.url);
     try {
       if (url.pathname === CONVERT_PATH) return await convert(request, running, options, later);
-      if (url.pathname.startsWith(`${LEADS_PATH}/`)) {
+      if (url.pathname.startsWith(`${LEADS_PATH}/`) || url.pathname.startsWith(`${SUBSCRIPTIONS_PATH}/`)) {
         const lifecycle = options.tools.lifecycle;
         if (!lifecycle || !PUBLIC_LEADS.has(url.pathname)) return new Response('Not found', { status: 404 });
         return await lifecycle.forward(request);

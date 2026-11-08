@@ -10,7 +10,7 @@ import { PLATFORMS } from './links.ts';
 
 /** The calls a tool makes on its customer's records, whether held here or in a Durable Object. */
 export type CustomerCalls = {
-  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'isUser']: Customer[K];
+  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'isUser' | 'access' | 'billing']: Customer[K];
 };
 
 export interface Context {

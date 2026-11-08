@@ -25,12 +25,14 @@ A deployment's Worker:
 ```ts
 import { createContentWorker, issuerTokens } from '@cmokit/content/worker';
 
-const { worker, Customer } = createContentWorker({ tokens: issuerTokens });
+const { worker, Customer, Access } = createContentWorker({ tokens: issuerTokens });
 
-export { Customer };
+export { Customer, Access };
 export default worker;
 ```
 
-`issuerTokens` checks each token with `@cmokit/issuer`'s Worker over the `ISSUER` service binding. The
+`issuerTokens` checks each token with `@cmokit/issuer`'s Worker over the `ISSUER` service binding.
+`Access` is the entrypoint the lifecycle's `PRODUCT` binding names, which makes a customer at its
+first checkout and gives or revokes its access (ADR-0017). The
 Worker's bindings, variables and secrets are in the
 [deployment reference](../../docs/reference/deployment.md).

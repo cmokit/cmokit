@@ -141,14 +141,37 @@ export class Customer {
 
   /** Access as the lifecycle last set it (ADR-0017); a self-hosted customer with none set has access. */
   async setAccess(access: 'active' | 'trial' | 'lapsed'): Promise<void> {
-    this.#sql.all('INSERT INTO settings (name, value) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET value = excluded.value', 'access', access);
+    this.#set('access', access);
+  }
+
+  async access(): Promise<'active' | 'trial' | 'lapsed'> {
+    return (this.#setting('access') ?? 'active') as 'active' | 'trial' | 'lapsed';
+  }
+
+  /** What the lifecycle calls at a customer's first checkout: the person who paid is its first user. */
+  async provision(person: string, billing: string): Promise<void> {
+    await this.addUser(person);
+    this.#set('billing', billing);
+  }
+
+  /** The customer's id at the payment processor, if it subscribed through the lifecycle. */
+  async billing(): Promise<string | undefined> {
+    return this.#setting('billing');
+  }
+
+  #set(name: string, value: string): void {
+    this.#sql.all('INSERT INTO settings (name, value) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET value = excluded.value', name, value);
+  }
+
+  #setting(name: string): string | undefined {
+    return this.#sql.all('SELECT value FROM settings WHERE name = ?', name)[0]?.value as string | undefined;
   }
 
   // Setup (ADR-0019).
 
   /** What is connected and what is missing, with a one-time link to connect each missing thing. */
   async status(person: string, base: string) {
-    const access = this.#sql.all("SELECT value FROM settings WHERE name = 'access'")[0]?.value ?? 'active';
+    const access = await this.access();
     const connections = this.#sql.all('SELECT vendor, name, connected_at FROM connections').map((row) => ({
       vendor: row.vendor as string, calendar: row.name as string, connected_at: iso(row.connected_at as number),
     }));

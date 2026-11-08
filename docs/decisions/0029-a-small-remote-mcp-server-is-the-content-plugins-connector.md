@@ -62,6 +62,8 @@ features cannot, knows which customer it serves from its address, and leaves sig
 > deployer's, from the same package. The content plugin declares the hosted address,
 > `https://mcp.cmokit.ai/mcp`, and signing in routes the person to their customer: the sign-in picks
 > the customer and the token names it, and a person with several customers chooses one at sign-in.
+> A person with none is signed in to no customer, offered only the subscription that makes one, and
+> then served that customer without signing in again (ADR-0017).
 > A self-hoster adds theirs as a custom connector.
 >
 > The content server issues no token. It publishes Protected Resource Metadata naming the issuer,

@@ -2,11 +2,13 @@
 // content server. It signs a person in with an email code, Google, GitHub or Meta, keeps no password,
 // and finishes the authorization with a grant that names the person and the customer the connection
 // serves, chosen here: the content plugin declares one hosted address, and signing in routes the
-// person to their customer's records (ADR-0029). The protocol itself (client registration, PKCE,
+// person to their customer's records (ADR-0029). A person who is no customer's user yet is still
+// signed in, with a grant that names no customer, so they can start a subscription (ADR-0017). The
+// protocol itself (client registration, PKCE,
 // codes, tokens, their storage) is the OAuth library's, wired in worker.ts (ADR-0035); this handler
 // owns only the sign-in pages and uses the web-standard Request and Response alone (ADR-0003).
 
-import { choosePage, codePage, notYetPage, problemPage, signInPage, type ClientFacts } from './pages.ts';
+import { choosePage, codePage, problemPage, signInPage, type ClientFacts } from './pages.ts';
 import type { Provider } from './providers.ts';
 import { SENDS_PER_NETWORK, type CodeCheck } from './accounts.ts';
 
@@ -39,8 +41,8 @@ export interface SignInOAuth<R extends AuthRequest = AuthRequest> {
 /** What a grant carries, encrypted by the library, and what the content server's token check returns. */
 export interface Grant {
   person: string;
-  /** The slug of the customer this connection serves. */
-  customer: string;
+  /** The slug of the customer this connection serves, or null for a person who had none at sign-in. */
+  customer: string | null;
 }
 
 export interface IdentityRecords {
@@ -54,6 +56,7 @@ export interface IdentityRecords {
 export interface PersonRecords {
   addIdentity(name: string, email: string | null, now: number): Promise<void>;
   customers(): Promise<string[]>;
+  addCustomer(slug: string, now: number): Promise<void>;
 }
 
 /** The issuer's records, each in an object of its own (ADR-0030). */
@@ -212,7 +215,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     const records = accounts.person(person);
     await records.addIdentity(identity, email, now());
     const customers = await records.customers();
-    if (customers.length === 0) return notYetPage(headers);
+    if (customers.length === 0) return complete(request, person, null, headers);
     if (customers.length === 1) return complete(request, person, customers[0], headers);
     const upstream = await oauth.beginUpstream(request, { data: { way: 'choose', person, customers } satisfies Upstream, headers });
     return choosePage({ customers, state: upstream.state, headers: upstream.headers });
@@ -226,7 +229,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     return complete(resumed.request, resumed.data.person, customer, resumed.headers);
   }
 
-  async function complete(request: R, person: string, customer: string, headers: Headers): Promise<Response> {
+  async function complete(request: R, person: string, customer: string | null, headers: Headers): Promise<Response> {
     const { redirectTo } = await oauth.completeAuthorization({ request, userId: person, metadata: {}, scope: request.scope, props: { person, customer } });
     return redirect(redirectTo, headers);
   }

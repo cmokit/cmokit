@@ -178,15 +178,21 @@ async function tokenFor(worker: any, location: string, clientId: string, verifie
 }
 
 test('an email code signs a person in, and the token names them and their customer', async () => {
-  const { worker, addCustomer, identities } = setup();
+  const { worker, identities } = setup();
   const net = outside();
   try {
+    // A person who is no customer's user yet is signed in all the same, to a grant that names none,
+    // so they can start a subscription (ADR-0017).
     const first = await emailSignIn(worker, 'Ada@Example.com', net.mail);
-    assert.equal(first.done.status, 200);
-    assert.match(await first.done.text(), /doesn't belong to a CMOkit customer yet/);
-
+    assert.equal(first.done.status, 302);
+    const none = await tokenFor(worker, first.done.headers.get('location')!, first.clientId, first.verifier);
     const person = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string }).result;
-    await addCustomer(person, 'acme');
+    assert.deepEqual((await worker.validateToken(AUDIENCE, none))!.props, { person, customer: null });
+    assert.deepEqual(await worker.customers(person), []);
+
+    // The lifecycle makes acme for them at checkout, through the content server.
+    await worker.addCustomer(person, 'acme');
+    assert.deepEqual(await worker.customers(person), ['acme']);
 
     const second = await emailSignIn(worker, 'ada@example.com', net.mail);
     assert.equal(second.done.status, 302);
@@ -326,7 +332,7 @@ test('signing in with Google and with an email code at the same address makes tw
     const away = await go('/authorize', { form: { handle: hidden(signIn, 'handle'), way: 'google' } });
     const state = new URL(away.headers.get('location')!).searchParams.get('state')!;
     const back = await go(`/callback?${new URLSearchParams({ state, code: 'google-code' })}`);
-    assert.equal(back.status, 200);
+    assert.equal(back.status, 302);
     const exchange = net.calls.find((c) => c.url === 'https://oauth2.googleapis.com/token')!;
     const sent = new URLSearchParams(String(exchange.init!.body));
     assert.equal(sent.get('code'), 'google-code');

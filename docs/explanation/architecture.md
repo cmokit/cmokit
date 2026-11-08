@@ -82,7 +82,7 @@ flowchart TB
     issuer["Issuer Worker<br/>sign-in by email code, Google, GitHub or Meta<br/>person and identity Durable Objects, tokens in Workers KV"]
     server["Content server Worker<br/>remote MCP at /mcp, served as the customer<br/>chosen at sign-in, and at /customers/slug/mcp<br/>one-time setup pages"]
     custdo[("Customer Durable Object<br/>brand context versions, offers, pieces,<br/>tracked links, signals, sealed connections")]
-    billing["Hosted lifecycle<br/>subscription and access"]
+    billing["Hosted lifecycle<br/>trial, subscription and access"]
   end
 
   edge["Edge Worker"]
@@ -90,6 +90,7 @@ flowchart TB
   posthog["PostHog"]
   edits["Edits"]
   insta["Instagram"]
+  stripe["Stripe"]
 
   person -- "signs in" --> issuer
   content -- "account_status, brand_read, brand_change, brand_history, offers_list, piece_save, pieces_list, results_read" --> server
@@ -98,7 +99,9 @@ flowchart TB
   future -. "the same tools and context" .-> server
   server -- "checks tokens" --> issuer
   server --> custdo
-  server -. "access" .-> billing
+  server -- "checkout and portal links" --> billing
+  billing -- "makes the customer, gives and revokes access" --> server
+  billing -- "hosted checkout and portal, subscription events" --> stripe
   server -- "events, and registrations and revenue per utm_content" --> luma
   server -. "read-only" .-> posthog
   content -- "carousels, covers, text cards" --> design

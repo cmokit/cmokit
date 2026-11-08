@@ -101,7 +101,8 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > `http://localhost:PORT/callback`). It requires PKCE with S256, and names itself in every
 > authorization response. A token names the person and the customer the connection serves, which
 > the sign-in picks: a person with one customer is signed in to it, a person with several chooses
-> one, and a person with none is told so and given no token (ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
+> one, and a person with none is signed in to no customer and offered only the subscription that
+> makes one (ADR-0017, ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
 
 A person signing in and connecting their Claude to the content server:
 
