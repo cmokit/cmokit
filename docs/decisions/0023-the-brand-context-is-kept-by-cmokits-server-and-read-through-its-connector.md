@@ -77,7 +77,7 @@ sequenceDiagram
   participant C as Content skill
   participant S as Content server
 
-  C->>U: seven-step brand exercise, about 50 minutes (ADR-0024)
+  C->>U: onboarding, on the path that fits what the brand has (ADR-0024)
   Note over C,U: gather, what and why, positioning, audiences,<br/>values and lines, voice, examples and tells
   U-->>C: confirms
   C->>S: brand_change, first version

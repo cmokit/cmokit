@@ -23,6 +23,21 @@ SendGrid's event webhook posts to `https://<the site's domain>/_cmokit/leads/eve
 turned on and the delivered, open, click, bounce, dropped, spam report, unsubscribe and group
 unsubscribe events selected.
 
+## The content server Worker
+
+The hosted content service runs it on CMOkit's own account; a self-hoster deploys the same Worker
+from `@cmokit/content`.
+
+| Name | Kind | Required | What it is |
+|---|---|---|---|
+| `CUSTOMERS` | Durable Object binding | Yes | Each customer's records, in an object of its own, named by the slug in the customer's address. |
+| `ISSUER_URL` | Worker variable | Yes | The issuer's address, named in the server's Protected Resource Metadata. |
+| `AUDIENCE` | Worker variable | Yes | The audience the issuer issues the content server's tokens for. A token for any other audience is refused. |
+| `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
+
+A customer's credentials are not among these: each is entered by the customer on a one-time page of
+the content server and kept sealed in that customer's object.
+
 ## The deploy
 
 | Name | Kind | Required | What it is |
