@@ -1,6 +1,7 @@
 # On every pull request and every push to main: type-checks, checks the decision records and the
 # package boundaries, runs the tests, builds every package, and builds the starter site against the
-# built packages (ADR-0001, ADR-0002, ADR-0007, ADR-0011).
+# built packages, and bundles hosted CMOkit's Workers without deploying them (ADR-0001, ADR-0002,
+# ADR-0007, ADR-0011, ADR-0016).
 name: check
 
 on:
@@ -25,3 +26,4 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run build:starter
+      - run: npm run check:hosted
