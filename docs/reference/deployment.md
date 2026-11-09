@@ -85,10 +85,10 @@ id, which is not a secret.
 ## The hosted deploy
 
 The `deploy-hosted` workflow in this repository deploys hosted CMOkit's issuer and content server
-from `hosted/`, when a maintainer runs it from `main`. Each Worker has a custom domain,
-`auth.cmokit.ai` and `mcp.cmokit.ai`, so the first deploy creates their DNS records. It reads these
-from the repository's `production` environment, which only `main` can deploy from; [Set up hosted
-CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
+from `hosted/` on every push to `main`, or when a maintainer runs it. Each Worker has a custom
+domain, `auth.cmokit.ai` and `mcp.cmokit.ai`, so the first deploy creates their DNS records. It
+reads these from the repository's `production` environment, which only `main` can deploy from; [Set
+up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 
 | Name | Kind | Required | What it is |
 |---|---|---|---|

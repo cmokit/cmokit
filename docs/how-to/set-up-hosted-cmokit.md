@@ -125,11 +125,12 @@ Facebook.
 
 ## 7. Deploy
 
-On GitHub, open **Actions > deploy-hosted > Run workflow**, leave the branch on `main`, and run it.
-It deploys the issuer, then the content server. Its summary notes any sign-in way that's still off, and whether subscriptions are on.
+Every merge to `main` deploys: GitHub runs **deploy-hosted**, which deploys the issuer, then the
+content server. Its summary notes any sign-in way that's still off, and whether subscriptions are on.
+Enter the values above before the first merge, or that run stops and names what's missing.
 
-Run it again whenever you change a value above. It redeploys the two Workers and changes nothing
-else.
+After you change a value above, open **Actions > deploy-hosted > Run workflow**, leave the branch on
+`main`, and run it. It redeploys the two Workers and changes nothing else.
 
 ## 8. Subscriptions
 
