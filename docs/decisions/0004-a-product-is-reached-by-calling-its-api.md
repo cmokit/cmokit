@@ -51,6 +51,11 @@ a product but its API.
 > For each lifecycle event, configuration names the call to make, and every call names the customer it
 > acts on. The product sends CMOkit no lifecycle event. A call that fails is retried from the retry of
 > the event that caused it, and is safe to repeat.
+>
+> A product whose Worker runs on the same Cloudflare account as the lifecycle, as hosted CMOkit's
+> content server does, is reached instead by a service binding to a named entrypoint of that Worker,
+> whose calls are fixed in its code rather than configured. CMOkit's own issuer gives tokens only to a
+> person who signs in (ADR-0018, ADR-0035), so it has none for the lifecycle as an OAuth client.
 
 ### Consequences
 
@@ -61,6 +66,8 @@ a product but its API.
   CMOkit only when CMOkit next asks. CMOkit asks before each renewal.
 * Bad, because a call the product refuses for good, after its retries stop, needs a person, so it is
   alerted.
+* Bad, because a product on CMOkit's own account is reached by calls fixed in code, so changing them
+  means a release of both Workers rather than a change of configuration.
 
 ### Confirmation
 
@@ -96,5 +103,7 @@ nothing already configured would change.
 
 ## Revisit when
 
+* CMOkit's issuer can give a token to a client that no person signed in, so the lifecycle can reach
+  a product on CMOkit's own account the same way it reaches any other.
 * A product's own events need to reach messaging quickly, such as a milestone that should trigger a
   nurture step, and asking on a schedule is too slow.
