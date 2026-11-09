@@ -81,3 +81,31 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 
 The `cmokit experiments` commands also need `analytics.posthog.project` in `cmokit.config.ts`: the project's
 id, which is not a secret.
+
+## The hosted deploy
+
+The `deploy-hosted` workflow in this repository deploys hosted CMOkit's issuer and content server
+from `hosted/` on every push to `main`, or when a maintainer runs it. Each Worker has a custom
+domain, `auth.cmokit.ai` and `mcp.cmokit.ai`, so the first deploy creates their DNS records. It
+reads these from the repository's `production` environment, which only `main` can deploy from; [Set
+up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
+
+| Name | Kind | Required | What it is |
+|---|---|---|---|
+| `CLOUDFLARE_ACCOUNT_ID` | Variable | Yes | CMOkit's own Cloudflare account. |
+| `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone. |
+| `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
+| `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
+| `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |
+| `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | Deployed as the issuer's of the same names. |
+
+The issuer's `ISSUER_URL`, `AUDIENCE` and `MAIL_FROM`, and the content server's `ISSUER_URL` and
+`AUDIENCE`, are in their `wrangler.jsonc`. The content server's `LIFECYCLE` binding names
+`cmokit-site-lifecycle`, the lifecycle Worker of CMOkit's own site, which binds back to its `Access`
+entrypoint as `PRODUCT`. Neither can be deployed first with the other's binding, so until that Worker
+exists, the workflow deploys the content server without `LIFECYCLE`, and running it again once the
+site is deployed adds it.
+
+A site that sells a subscription also sets the secrets `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+for its own deploy, which deploys them as the lifecycle Worker's secrets of the same names.

@@ -5,3 +5,5 @@ dist/
 # Working files of a policy refresh run by hand (ADR-0037).
 policy-refresh-report.md
 policy-refresh-pr.md
+# Written by the deploy-hosted workflow for a first deploy.
+hosted/content/wrangler.first.json

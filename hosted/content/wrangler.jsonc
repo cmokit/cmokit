@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cmokit-content",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  // A Worker custom domain: the deploy creates the DNS record and the certificate.
+  "routes": [{ "pattern": "mcp.cmokit.ai", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "ISSUER_URL": "https://auth.cmokit.ai",
+    "AUDIENCE": "https://mcp.cmokit.ai/mcp"
+  },
+  "durable_objects": { "bindings": [{ "name": "CUSTOMERS", "class_name": "Customer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Customer"] }],
+  // The issuer, deployed first. The billing lifecycle is CMOkit's own site's lifecycle Worker, which
+  // binds back to `Access`; until it exists, the workflow deploys without it.
+  "services": [
+    { "binding": "ISSUER", "service": "cmokit-issuer" },
+    { "binding": "LIFECYCLE", "service": "cmokit-site-lifecycle" }
+  ],
+  "observability": { "enabled": true }
+}

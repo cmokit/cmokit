@@ -1,0 +1,27 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cmokit-issuer",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  // The OAuth library fetches a client's metadata document, and needs this flag to do so.
+  "compatibility_flags": ["global_fetch_strictly_public"],
+  // A Worker custom domain: the deploy creates the DNS record and the certificate.
+  "routes": [{ "pattern": "auth.cmokit.ai", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "ISSUER_URL": "https://auth.cmokit.ai",
+    "AUDIENCE": "https://mcp.cmokit.ai/mcp",
+    "MAIL_FROM": "signin@cmokit.ai"
+  },
+  // The OAuth library's grants, codes and hashed tokens. The first deploy creates the namespace.
+  "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "IDENTITIES", "class_name": "Identity" },
+      { "name": "PEOPLE", "class_name": "Person" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Identity", "Person"] }],
+  "observability": { "enabled": true }
+}

@@ -6,7 +6,8 @@
 # Suppressions access) and the variable SENDGRID_WEBHOOK_KEY (the signed event webhook's verification
 # key). The experiments sync once it has the secret POSTHOG_PERSONAL_API_KEY (a personal API key
 # scoped to the project, with experiment:write, feature_flag:write, query:read and
-# experiment_saved_metric:read).
+# experiment_saved_metric:read). A site that sells a subscription also sets the secrets
+# STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, and binds its product in lifecycle/wrangler.jsonc.
 name: deploy
 
 on:
@@ -58,7 +59,11 @@ jobs:
       - name: Deploy the lifecycle
         run: |
           secrets="$RUNNER_TEMP/lifecycle-secrets.json"
-          node -e 'const k = process.env.SENDGRID_API_KEY; require("fs").writeFileSync(process.argv[1], JSON.stringify(k ? { SENDGRID_API_KEY: k } : {}))' "$secrets"
+          node -e '
+            const names = ["SENDGRID_API_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"];
+            const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
+            require("fs").writeFileSync(process.argv[1], JSON.stringify(set));
+          ' "$secrets"
           npx wrangler deploy --config lifecycle/wrangler.jsonc --secrets-file "$secrets" ${SENDGRID_WEBHOOK_KEY:+--var "SENDGRID_WEBHOOK_KEY:$SENDGRID_WEBHOOK_KEY"}
           rm "$secrets"
           if [ -z "$SENDGRID_API_KEY" ]; then echo "::notice::Leads are not sent messages; set the secret SENDGRID_API_KEY."; fi
@@ -67,6 +72,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           SENDGRID_WEBHOOK_KEY: ${{ vars.SENDGRID_WEBHOOK_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
       - run: npx wrangler deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

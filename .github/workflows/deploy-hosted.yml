@@ -1,0 +1,101 @@
+# Deploys hosted CMOkit (ADR-0016) to CMOkit's own Cloudflare account: the issuer at auth.cmokit.ai,
+# then the content server at mcp.cmokit.ai. It runs on every push to main, so merging a pull request
+# deploys, and a maintainer can also start it from the Actions tab. It deploys only from main: the job
+# runs in the production environment, which only main may deploy to, and holds the deploy's
+# variables and secrets. Each Worker's custom domain makes Cloudflare create its DNS record and
+# certificate on the first deploy. Every variable and secret it reads is in the deployment reference,
+# and how to get each one is in docs/how-to/set-up-hosted-cmokit.md.
+name: deploy-hosted
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-hosted
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # The environment's branch rule refuses any other branch; this check says so before it starts.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Check the required settings
+        run: |
+          missing=""
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID (variable)"
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN (secret)"
+          [ -n "$CREDENTIAL_KEY" ] || missing="$missing CREDENTIAL_KEY (secret)"
+          if [ -n "$missing" ]; then echo "::error::Not set:$missing"; exit 1; fi
+        env:
+          CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
+
+      # The issuer first, since the content server's service binding names it.
+      - name: Deploy the issuer
+        run: |
+          secrets="$RUNNER_TEMP/issuer-secrets.json"
+          node -e '
+            const names = ["SENDGRID_API_KEY", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_SECRET", "META_APP_SECRET"];
+            const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
+            require("fs").writeFileSync(process.argv[1], JSON.stringify(set));
+          ' "$secrets"
+          vars=()
+          for name in GOOGLE_CLIENT_ID GITHUB_CLIENT_ID META_APP_ID; do
+            [ -n "${!name}" ] && vars+=(--var "$name:${!name}")
+          done
+          npx wrangler deploy --config hosted/issuer/wrangler.jsonc --secrets-file "$secrets" "${vars[@]}"
+          rm "$secrets"
+          [ -n "$SENDGRID_API_KEY" ] || echo "::notice::Sign-in by email code is off; set the secret SENDGRID_API_KEY."
+          { [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; } || echo "::notice::Sign-in with Google is off; set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."
+          { [ -n "$GITHUB_CLIENT_ID" ] && [ -n "$GITHUB_CLIENT_SECRET" ]; } || echo "::notice::Sign-in with GitHub is off; set GH_CLIENT_ID and GH_CLIENT_SECRET."
+          { [ -n "$META_APP_ID" ] && [ -n "$META_APP_SECRET" ]; } || echo "::notice::Sign-in with Facebook is off; set META_APP_ID and META_APP_SECRET."
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          # GitHub reserves names that start with GITHUB_, so the repository's are GH_.
+          GITHUB_CLIENT_ID: ${{ vars.GH_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          META_APP_ID: ${{ vars.META_APP_ID }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+
+      # The billing lifecycle is CMOkit's own site's lifecycle Worker, which binds back to the content
+      # server, so neither can be deployed first with the other's binding. Until it exists, the content
+      # server is deployed without it; once it does, running this workflow again adds it.
+      - name: Deploy the content server
+        run: |
+          secrets="$RUNNER_TEMP/content-secrets.json"
+          node -e 'require("fs").writeFileSync(process.argv[1], JSON.stringify({ CREDENTIAL_KEY: process.env.CREDENTIAL_KEY }))' "$secrets"
+          config=hosted/content/wrangler.jsonc
+          if ! npx wrangler deployments list --name cmokit-site-lifecycle > /dev/null 2>&1; then
+            config=hosted/content/wrangler.first.json
+            node -e '
+              const fs = require("fs");
+              const source = fs.readFileSync("hosted/content/wrangler.jsonc", "utf8").replace(/^\s*\/\/.*$/gm, "");
+              const config = JSON.parse(source);
+              config.services = config.services.filter((s) => s.binding !== "LIFECYCLE");
+              fs.writeFileSync(process.argv[1], JSON.stringify(config, null, 2));
+            ' "$config"
+            echo "::notice::The billing lifecycle (cmokit-site-lifecycle) is not deployed yet, so subscriptions are off. Run this workflow again once it is."
+          fi
+          npx wrangler deploy --config "$config" --secrets-file "$secrets"
+          rm "$secrets"
+        env:
+          CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
