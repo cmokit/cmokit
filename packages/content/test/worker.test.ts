@@ -2,10 +2,23 @@
 // same JSON boundary it crosses on Cloudflare, refusals included.
 
 import assert from 'node:assert/strict';
+import { registerHooks } from 'node:module';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
-import { createContentWorker, issuerTokens, type ContentEnv, type DurableObjectState } from '../src/worker.ts';
+import type { ContentEnv, DurableObjectState } from '../src/worker.ts';
 import { KEY } from './fixtures.ts';
+
+// The Worker imports the Workers runtime's entrypoint class; on Node it is a stand-in.
+registerHooks({
+  resolve(specifier, context, next) {
+    if (specifier === 'cloudflare:workers') {
+      return { url: 'data:text/javascript,export class WorkerEntrypoint { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }', shortCircuit: true };
+    }
+    return next(specifier, context);
+  },
+});
+
+const { createContentWorker, issuerTokens, lifecycleBilling } = await import('../src/worker.ts');
 
 test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
   const { worker, Customer } = createContentWorker({
@@ -61,4 +74,66 @@ test('issuerTokens checks a token with the issuer for the content server\'s own 
   assert.deepEqual(await tokens.check('good'), { person: 'ada', audience: 'https://content.example/mcp', customer: 'acme' });
   assert.equal(await tokens.check('bad'), undefined);
   assert.deepEqual(asked, [['https://content.example/mcp', 'good'], ['https://content.example/mcp', 'bad']]);
+});
+
+test('the lifecycle\'s entrypoint makes a customer with the person who paid as its user, and sets its access', async () => {
+  const { Customer, Access } = createContentWorker({ tokens: () => ({ check: async () => undefined }) });
+  const objects = new Map<string, InstanceType<typeof Customer>>();
+  const added: string[] = [];
+  const env = {
+    ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY,
+    ISSUER: {
+      validateToken: async () => null,
+      customers: async () => [],
+      addCustomer: async (person: string, customer: string) => void added.push(`${person} ${customer}`),
+    },
+    CUSTOMERS: {
+      idFromName: (name: string) => name,
+      get: (id: unknown) => ({
+        fetch: (input: string, init?: RequestInit) => {
+          let object = objects.get(id as string);
+          if (!object) {
+            const db = new DatabaseSync(':memory:');
+            const ctx: DurableObjectState = { storage: { sql: { exec: (q, ...p) => ({ toArray: () => db.prepare(q).all(...(p as never[])) as never }) } } };
+            object = new Customer(ctx, env);
+            objects.set(id as string, object);
+          }
+          return object.fetch(new Request(input, init));
+        },
+      }),
+    },
+  } satisfies ContentEnv;
+  const access = new Access({}, env);
+  const ask = async (call: string, ...args: unknown[]) => {
+    const response = await env.CUSTOMERS.get('cacme').fetch(`https://customer/${call}`, { method: 'POST', body: JSON.stringify(args) });
+    return ((await response.json()) as { result: unknown }).result;
+  };
+  await access.provision('cacme', 'ada', 'cus_1');
+  await access.provision('cacme', 'ada', 'cus_1');
+  assert.equal(await ask('isUser', 'ada'), true);
+  assert.equal(await ask('isUser', 'bob'), false);
+  assert.equal(await ask('billing'), 'cus_1');
+  assert.deepEqual(added, ['ada cacme', 'ada cacme']);
+  await access.access('cacme', 'lapsed');
+  assert.equal(await ask('access'), 'lapsed');
+  await assert.rejects(access.provision('../x', 'ada', 'cus_1'));
+});
+
+test('lifecycleBilling asks the lifecycle for checkout and portal links', async () => {
+  assert.equal(lifecycleBilling({} as ContentEnv), undefined);
+  const asked: { url: string; body: unknown }[] = [];
+  const billing = lifecycleBilling({
+    LIFECYCLE: {
+      fetch: async (url: string, init?: RequestInit) => {
+        asked.push({ url, body: JSON.parse(String(init!.body)) });
+        return Response.json({ url: 'https://pay.example/1' });
+      },
+    },
+  } as unknown as ContentEnv)!;
+  assert.equal(await billing.checkout('ada', { successUrl: 'https://c.example/ok', cancelUrl: 'https://c.example/no' }), 'https://pay.example/1');
+  assert.equal(await billing.portal('cus_1', 'https://c.example/back'), 'https://pay.example/1');
+  assert.deepEqual(asked, [
+    { url: 'https://lifecycle.internal/internal/checkout', body: { person: 'ada', successUrl: 'https://c.example/ok', cancelUrl: 'https://c.example/no' } },
+    { url: 'https://lifecycle.internal/internal/portal', body: { billing: 'cus_1', returnUrl: 'https://c.example/back' } },
+  ]);
 });

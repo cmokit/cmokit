@@ -23,6 +23,18 @@ export function gonePage(): Response {
   return html('<h1>This link has expired</h1><p>It was already used, or is more than a few minutes old. Ask Claude for a new one.</p>', 410);
 }
 
+const SUBSCRIPTION = {
+  started: ['Your trial has started', 'Close this page and go back to Claude, and ask it to carry on setting up.'],
+  cancelled: ['No subscription was started', 'Nothing was charged. Close this page and go back to Claude whenever you are ready.'],
+  managed: ['You are back from billing', 'Close this page and go back to Claude.'],
+} as const;
+
+/** Where the payment processor's hosted pages send the person back to. */
+export function subscriptionPage(state: string): Response {
+  const [title, text] = SUBSCRIPTION[state as keyof typeof SUBSCRIPTION] ?? SUBSCRIPTION.managed;
+  return html(`<h1>${title}</h1><p>${text}</p>`, 200);
+}
+
 function html(body: string, status: number): Response {
   return new Response(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

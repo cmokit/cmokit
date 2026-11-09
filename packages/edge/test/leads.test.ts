@@ -85,11 +85,13 @@ test('no lead is captured without an address, for an event that starts no sequen
   assert.equal(response.headers.get('set-cookie'), null);
 });
 
-test('only the lifecycle\'s public routes are passed on', async () => {
+test('only the lifecycle\'s public routes, its unsubscribes and the sender\'s and payment processor\'s events, are passed on', async () => {
   const edge = setup();
   assert.equal(await (await edge.get('/_cmokit/leads/unsubscribe?s=welcome&l=k&t=t')).text(), 'from the lifecycle');
   assert.equal((await edge.get('/_cmokit/leads/events')).status, 200);
   assert.equal((await edge.get('/_cmokit/leads/anything')).status, 404);
-  assert.deepEqual(edge.forwarded, ['/_cmokit/leads/unsubscribe', '/_cmokit/leads/events']);
+  assert.equal((await edge.get('/_cmokit/subscriptions/events')).status, 200);
+  assert.equal((await edge.get('/_cmokit/subscriptions/anything')).status, 404);
+  assert.deepEqual(edge.forwarded, ['/_cmokit/leads/unsubscribe', '/_cmokit/leads/events', '/_cmokit/subscriptions/events']);
   assert.equal((await setup(false).get('/_cmokit/leads/unsubscribe')).status, 404);
 });

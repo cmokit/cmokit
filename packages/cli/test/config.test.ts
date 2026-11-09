@@ -99,3 +99,14 @@ test('sequences resolve their delays, and their problems are reported', () => {
     'sequence "second": needs at least one message',
   ]);
 });
+
+test('a subscription names its price and trial, and resolves without its processor\'s name', () => {
+  const sold: Config = { ...valid, subscription: { trialDays: 14, stripe: { price: 'price_1Abc' } } };
+  assert.deepEqual(problems(sold), []);
+  assert.deepEqual(resolve(sold).subscription, { trialDays: 14, price: 'price_1Abc' });
+  assert.equal(resolve(valid).subscription, undefined);
+  assert.deepEqual(problems({ ...valid, subscription: { trialDays: 1.5, stripe: { price: 'prod_1Abc' } } }), [
+    'subscription.trialDays must be a whole number of days from 0 to 730',
+    'subscription.stripe.price must be a price id, such as price_1Abc',
+  ]);
+});

@@ -7,7 +7,7 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOkit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken` over a service binding (ADR-0029). Every variable and secret it reads is in
+// Worker `validateToken`, `customers` and `addCustomer` over a service binding (ADR-0029, ADR-0017). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
@@ -57,6 +57,8 @@ export interface IssuerEntrypoint {
   new (ctx: unknown, env: IssuerEnv): {
     fetch(request: Request): Promise<Response>;
     validateToken(resource: string, token: string): Promise<ValidatedToken | null>;
+    customers(person: string): Promise<string[]>;
+    addCustomer(person: string, customer: string): Promise<void>;
   };
 }
 
@@ -168,6 +170,16 @@ export function createIssuerWorker(): { Issuer: IssuerEntrypoint; Identity: Obje
     /** What the content server calls over its service binding to check a token for its audience. */
     validateToken(resource: string, token: string): Promise<ValidatedToken | null> {
       return authorizationServer(this.env).validateToken<Grant>(resource, token, this.env);
+    }
+
+    /** The customers a person is a user of, for a token that names none. */
+    customers(person: string): Promise<string[]> {
+      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).customers();
+    }
+
+    /** What the content server calls when the lifecycle makes a customer for a person (ADR-0017). */
+    addCustomer(person: string, customer: string): Promise<void> {
+      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).addCustomer(customer, Date.now());
     }
   }
 

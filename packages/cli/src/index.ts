@@ -72,6 +72,18 @@ export interface Config {
     };
   };
   sequences?: Sequence[];
+  /**
+   * A subscription the product sells (ADR-0017): its plan's price in the payment processor and its
+   * free trial. The product's Worker gives and revokes access as each subscription changes.
+   */
+  subscription?: {
+    /** Days of free trial before the first charge. */
+    trialDays: number;
+    stripe: {
+      /** The plan's recurring price id, such as price_1Abc. */
+      price: string;
+    };
+  };
 }
 
 /** A configuration with its defaults filled in and its paths normalized, as the edge uses it. */
@@ -89,6 +101,8 @@ export interface Resolved {
   /** How messages are sent, named for the job: the sending service's own settings are its adapter's. */
   messaging?: { from: string; fromName: string; address: string; unsubscribeGroup: number };
   sequences: (Required<Omit<Sequence, 'messages'>> & { messages: (Message & { afterMs: number })[] })[];
+  /** The subscription the product sells, named for the job: the price id is the payments adapter's. */
+  subscription?: { trialDays: number; price: string };
 }
 
 export const CONVERT_PATH = '/_cmokit/convert';
@@ -102,6 +116,11 @@ export const LEADS_PATH = '/_cmokit/leads';
 /** The lifecycle's routes for a captured lead and a lead's later conversion, which only the edge reaches. */
 export const LIFECYCLE_LEAD = '/internal/lead';
 export const LIFECYCLE_EVENT = '/internal/event';
+/** Where the edge passes the payment processor's events to the lifecycle. */
+export const SUBSCRIPTIONS_PATH = '/_cmokit/subscriptions';
+/** The lifecycle's routes for a product's checkout and portal links, which only the product's Worker reaches. */
+export const LIFECYCLE_CHECKOUT = '/internal/checkout';
+export const LIFECYCLE_PORTAL = '/internal/portal';
 /** The cookie that remembers a visitor's lead, so a later conversion can end its sequence. */
 export const LEAD_COOKIE = 'cmokit_lead';
 /** A form field carrying a lead's email address. */
@@ -173,6 +192,11 @@ export function problems(config: Config): string[] {
     }
   }
   found.push(...sequenceProblems(config));
+  const s = config.subscription;
+  if (s) {
+    if (!(Number.isInteger(s.trialDays) && s.trialDays >= 0 && s.trialDays <= 730)) found.push('subscription.trialDays must be a whole number of days from 0 to 730');
+    if (!/^price_[A-Za-z0-9]+$/.test(s.stripe?.price ?? '')) found.push('subscription.stripe.price must be a price id, such as price_1Abc');
+  }
   return found;
 }
 
@@ -236,6 +260,7 @@ export function resolve(config: Config): Resolved {
   return {
     analytics: { posthog: { key, host, app: appHost(host), ...(project === undefined ? {} : { project }) } },
     ...(m ? { messaging: { from: m.from, fromName: m.fromName ?? '', address: m.address, unsubscribeGroup: m.sendgrid.unsubscribeGroup } } : {}),
+    ...(config.subscription ? { subscription: { trialDays: config.subscription.trialDays, price: config.subscription.stripe.price } } : {}),
     sequences: (config.sequences ?? []).map((q) => ({
       name: q.name,
       start: q.start,

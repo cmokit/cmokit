@@ -66,9 +66,73 @@ test('the hosted address serves the customer chosen at sign-in, and only to its 
   assert.equal(typeof result.structuredContent.version, 'number');
 
   assert.equal((await rpc(null, 'ada-chose-globex', 'tools/list')).status, 403);
-  assert.equal((await rpc(null, 'ada-chose-nothing', 'tools/list')).status, 403);
   assert.equal((await rpc(null, 'ada-chose-a-path', 'tools/list')).status, 403);
   assert.equal((await rpc(null, 'other-audience', 'tools/list')).status, 401);
+});
+
+test('a person who had no customer at sign-in is served the one they have now, or offered a subscription', async () => {
+  const acme = await readyCustomer();
+  const customers: Record<string, typeof acme.customer> = { acme: acme.customer };
+  const theirs: Record<string, string[]> = { ada: [] };
+  const asked: object[] = [];
+  const handle = createContentServer({
+    issuer: 'https://auth.example', audience: ORIGIN, tokens,
+    customer: (slug) => customers[slug] ?? newCustomer().customer,
+    customersOf: async (person) => theirs[person] ?? [],
+    billing: {
+      checkout: async (person, back) => { asked.push({ person, ...back }); return 'https://checkout.example/c/1'; },
+      portal: async (billing, returnUrl) => `https://billing.example/${billing}?back=${encodeURIComponent(returnUrl)}`,
+    },
+  });
+  type Answer = { result: { tools?: { name: string }[]; structuredContent?: any; isError?: boolean; content?: { text: string }[] } };
+  const rpc = async (method: string, params: object = {}): Promise<Answer> => {
+    const response = await handle(new Request(`${ORIGIN}/mcp`, {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ada-chose-nothing' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    }));
+    return response.json() as Promise<Answer>;
+  };
+
+  // No customer yet: account_status alone, with a checkout link that comes back to the server's own page.
+  assert.deepEqual((await rpc('tools/list')).result.tools!.map((t) => t.name), ['account_status']);
+  const status = (await rpc('tools/call', { name: 'account_status', arguments: {} })).result.structuredContent;
+  assert.deepEqual(status, { access: 'none', connections: [], missing: [{ what: 'subscription', label: 'CMOkit', link: 'https://checkout.example/c/1' }] });
+  assert.deepEqual(asked, [{ person: 'ada', successUrl: `${ORIGIN}/subscription?s=started`, cancelUrl: `${ORIGIN}/subscription?s=cancelled` }]);
+  assert.equal((await rpc('tools/call', { name: 'brand_read', arguments: {} })).result.isError, true);
+  const page = await handle(new Request(`${ORIGIN}/subscription?s=started`));
+  assert.match(await page.text(), /Your trial has started/);
+
+  // After checkout the lifecycle made acme with ada as its user; the same token now reaches it.
+  theirs.ada = ['acme'];
+  await acme.customer.provision('ada', 'cus_123');
+  assert.equal((await rpc('tools/list')).result.tools!.length, TOOLS.length);
+  const subscribed = (await rpc('tools/call', { name: 'account_status', arguments: {} })).result.structuredContent;
+  assert.equal(subscribed.subscription.manage, `https://billing.example/cus_123?back=${encodeURIComponent(`${ORIGIN}/subscription?s=managed`)}`);
+
+  // A lapsed customer keeps account_status, and every other tool refuses.
+  await acme.customer.setAccess('lapsed');
+  const closed = (await rpc('tools/call', { name: 'brand_read', arguments: {} })).result;
+  assert.equal(closed.isError, true);
+  assert.match(closed.content![0].text, /lapsed/);
+  assert.equal((await rpc('tools/call', { name: 'account_status', arguments: {} })).result.structuredContent.access, 'lapsed');
+  await acme.customer.setAccess('active');
+  assert.equal((await rpc('tools/call', { name: 'brand_read', arguments: {} })).result.isError, undefined);
+
+  // Two customers since sign-in: the person signs in again to choose.
+  theirs.ada = ['acme', 'globex'];
+  const two = await handle(new Request(`${ORIGIN}/mcp`, {
+    method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ada-chose-nothing' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+  }));
+  assert.equal(two.status, 403);
+});
+
+test('without billing, a person who is no customer\'s user is told to ask whoever runs the server', async () => {
+  const { rpc } = await server();
+  const response = await rpc(null, 'ada-chose-nothing', 'tools/call', { name: 'account_status', arguments: {} });
+  const { result } = await response.json() as { result: { isError: boolean; content: { text: string }[] } };
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /Ask whoever runs it/);
 });
 
 test('a person is refused at another customer\'s address', async () => {

@@ -1,15 +1,18 @@
 // The lifecycle's handler, on web-standard Request and Response only (ADR-0003). It captures the
 // leads the edge passes it into their sequences (ADR-0014), ends a lead's sequence on a stopping
 // event, an unsubscribe or the sending service's report of a bounce or complaint, and records every
-// message's events in analytics. Its internal routes are reached only through the edge's service
+// message's events in analytics. For a product that sells a subscription, it makes checkout and portal
+// links and acts on the payment processor's events (ADR-0017, subscriptions.ts). Its internal routes are reached only through the edge's service
 // binding; the edge passes on only the public ones, under LEADS_PATH.
 
-import { EMAIL, LEADS_PATH, LIFECYCLE_EVENT, LIFECYCLE_LEAD, type Resolved } from '@cmokit/cli';
+import { EMAIL, LEADS_PATH, LIFECYCLE_CHECKOUT, LIFECYCLE_EVENT, LIFECYCLE_LEAD, LIFECYCLE_PORTAL, SUBSCRIPTIONS_PATH, type Resolved } from '@cmokit/cli';
 import type { Capture } from './lead.ts';
+import type { createSubscriptions } from './subscriptions.ts';
 
 export { Lead, type Capture, type LeadDeps } from './lead.ts';
 export { parse, render, type Rendered } from './render.ts';
 export type { Row, Sql } from './sql.ts';
+export { accessFor, createSubscriptions, type Access, type Payments, type Product, type Subscription } from './subscriptions.ts';
 
 /** A message ready to send. */
 export interface Outgoing {
@@ -70,6 +73,8 @@ export interface LifecycleOptions {
   leads: Leads;
   messaging: Messaging;
   analytics: Analytics;
+  /** Absent when the product sells no subscription, or the payment processor is not set up. */
+  subscriptions?: ReturnType<typeof createSubscriptions>;
 }
 
 const STOPPING: Partial<Record<Report['kind'], string>> = {
@@ -85,6 +90,12 @@ export function createLifecycle(options: LifecycleOptions): (request: Request) =
     if (request.method === 'POST' && url.pathname === LIFECYCLE_EVENT) return event(request);
     if (url.pathname === `${LEADS_PATH}/unsubscribe`) return unsubscribe(request, url);
     if (request.method === 'POST' && url.pathname === `${LEADS_PATH}/events`) return reports(request);
+    const subscriptions = options.subscriptions;
+    if (subscriptions && request.method === 'POST') {
+      if (url.pathname === LIFECYCLE_CHECKOUT) return subscriptions.checkout(request);
+      if (url.pathname === LIFECYCLE_PORTAL) return subscriptions.portal(request);
+      if (url.pathname === `${SUBSCRIPTIONS_PATH}/events`) return subscriptions.events(request);
+    }
     return new Response('Not found', { status: 404 });
   };
 

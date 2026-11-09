@@ -4,12 +4,14 @@
 // path `/mcp`, and a call there is routed to the customer the person chose when signing in, which the
 // issuer's grant names. It issues no token: it names its issuer in Protected Resource Metadata and
 // accepts only tokens the issuer issued for its audience, for a person who is a user of the customer
-// served (HST-10). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
+// served (HST-10). A person who had no customer when they signed in is served the one they have now;
+// a person with none is offered only account_status, whose link starts a subscription (ADR-0017). A
+// customer whose access has lapsed keeps account_status and nothing else. Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { Refusal } from './customer.ts';
-import { donePage, gonePage, keyPage } from './pages.ts';
-import { INSTRUCTIONS, TOOLS, type CustomerCalls } from './tools.ts';
+import { donePage, gonePage, keyPage, subscriptionPage } from './pages.ts';
+import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece } from './customer.ts';
 export { tally, type EventSummary, type Events, type GuestFacts, type Tally } from './events.ts';
@@ -33,6 +35,14 @@ export interface CustomerPages {
   connect(token: string, key: string): Promise<{ ok: true; calendar: string } | { ok: false; problem: string }>;
 }
 
+/** The lifecycle's links for a hosted customer's subscription (ADR-0017). */
+export interface Billing {
+  /** A checkout link that starts a trial and makes a customer with the person as its first user. */
+  checkout(person: string, returnTo: { successUrl: string; cancelUrl: string }): Promise<string>;
+  /** A link to the customer's subscription portal. */
+  portal(billing: string, returnUrl: string): Promise<string>;
+}
+
 export interface ContentServerOptions {
   /** The issuer's address, named in Protected Resource Metadata. */
   issuer: string;
@@ -41,7 +51,14 @@ export interface ContentServerOptions {
   tokens: Tokens;
   /** The records of the customer whose slug the address names. */
   customer(slug: string): CustomerCalls & CustomerPages;
+  /** The customers a person is a user of, for a token that names none. */
+  customersOf?(person: string): Promise<string[]>;
+  /** Absent when this server sells no subscription, as when it is self-hosted. */
+  billing?: Billing;
 }
+
+const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
+  + 'account_status has the link to manage the subscription.';
 
 const VERSIONS = ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26'];
 const SLUG = '([a-z0-9][a-z0-9-]{0,62})';
@@ -51,6 +68,7 @@ const ONE_SLUG = new RegExp(`^${SLUG}$`);
 const HOSTED = '/mcp';
 const HOSTED_METADATA = '/.well-known/oauth-protected-resource/mcp';
 const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
+const SUBSCRIPTION = '/subscription';
 
 type Message = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, any> };
 
@@ -63,6 +81,7 @@ export function createContentServer(options: ContentServerOptions) {
     if (url.pathname === HOSTED_METADATA) return metadata(request, `${url.origin}${HOSTED}`, options.issuer);
 
     if ((match = url.pathname.match(CONNECT))) return connectPage(request, url, options.customer(match[1]));
+    if (url.pathname === SUBSCRIPTION && request.method === 'GET') return subscriptionPage(url.searchParams.get('s') ?? '');
 
     const slug = url.pathname.match(MCP)?.[1];
     if (slug !== undefined || url.pathname === HOSTED) {
@@ -75,13 +94,17 @@ export function createContentServer(options: ContentServerOptions) {
       if (!token) return challenge();
       const checked = await options.tokens.check(token);
       if (!checked || checked.audience !== options.audience) return challenge();
-      // At the hosted address, the customer is the one the person chose when signing in.
-      const served = slug ?? checked.customer;
-      if (served === undefined || !ONE_SLUG.test(served)) {
-        return new Response('This sign-in names no customer. Sign in again.', { status: 403 });
+      // At the hosted address, the customer is the one the person chose when signing in, or, when
+      // they had none then, the one they have now.
+      let served = slug ?? checked.customer;
+      if (served === undefined) {
+        const customers = options.customersOf ? await options.customersOf(checked.person) : [];
+        if (customers.length > 1) return new Response('This account belongs to more than one customer. Sign in again to choose one.', { status: 403 });
+        served = customers[0];
       }
-      const customer = options.customer(served);
-      if (!(await customer.isUser(checked.person))) {
+      if (served !== undefined && !ONE_SLUG.test(served)) return new Response('This sign-in names no customer. Sign in again.', { status: 403 });
+      const customer = served === undefined ? undefined : options.customer(served);
+      if (customer && !(await customer.isUser(checked.person))) {
         return new Response('This account is not a user of this customer.', { status: 403 });
       }
       let message: Message;
@@ -94,7 +117,14 @@ export function createContentServer(options: ContentServerOptions) {
         return Response.json(failure(null, -32600, 'Send one JSON-RPC message per request'), { status: 400 });
       }
       if (message.id === undefined) return new Response(null, { status: 202 });
-      const answer = await respond(message, { person: checked.person, base: `${url.origin}/customers/${served}`, customer });
+      const back = (state: string) => `${url.origin}${SUBSCRIPTION}?s=${state}`;
+      if (!customer) return Response.json(await respondUnsubscribed(message, checked.person, options.billing, back));
+      const { billing } = options;
+      const manage = billing ? async () => {
+        const held = await customer.billing();
+        return held ? billing.portal(held, back('managed')) : undefined;
+      } : undefined;
+      const answer = await respond(message, { person: checked.person, base: `${url.origin}/customers/${served}`, customer }, manage);
       return Response.json(answer);
     }
 
@@ -107,26 +137,57 @@ function metadata(request: Request, resource: string, issuer: string): Response 
   return Response.json({ resource, authorization_servers: [issuer], bearer_methods_supported: ['header'], resource_name: 'CMOkit' });
 }
 
-async function respond(message: Message, context: { person: string; base: string; customer: CustomerCalls }) {
+function initialized(id: string | number | null, params: Record<string, any>) {
+  const asked = params.protocolVersion;
+  return success(id, {
+    protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
+    capabilities: { tools: {} },
+    serverInfo: { name: 'cmokit-content', title: 'CMOkit', version: '0.1.0' },
+    instructions: INSTRUCTIONS,
+  });
+}
+
+const listed = (tool: Tool) => { const { call: _call, ...rest } = tool; return rest; };
+const result = (id: string | number | null, data: unknown) => {
+  const structured = Array.isArray(data) ? { items: data } : data as Record<string, unknown>;
+  return success(id, { content: [{ type: 'text', text: JSON.stringify(structured, null, 1) }], structuredContent: structured });
+};
+const refused = (id: string | number | null, text: string) => success(id, { content: [{ type: 'text', text }], isError: true });
+
+/** A signed-in person who is no customer's user yet: account_status alone, with the link to subscribe. */
+async function respondUnsubscribed(message: Message, person: string, billing: Billing | undefined, back: (state: string) => string) {
   const { id = null, method, params = {} } = message;
-  if (method === 'initialize') {
-    const asked = params.protocolVersion;
-    return success(id, {
-      protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
-      capabilities: { tools: {} },
-      serverInfo: { name: 'cmokit-content', title: 'CMOkit', version: '0.1.0' },
-      instructions: INSTRUCTIONS,
-    });
-  }
+  const status = TOOLS.find((t) => t.name === 'account_status')!;
+  if (method === 'initialize') return initialized(id, params);
   if (method === 'ping') return success(id, {});
-  if (method === 'tools/list') return success(id, { tools: TOOLS.map(({ call: _call, ...tool }) => tool) });
+  if (method === 'tools/list') return success(id, { tools: [listed(status)] });
+  if (method === 'tools/call') {
+    if (params.name !== status.name) return refused(id, 'This account has no CMOkit subscription yet. Call account_status for the link to start one.');
+    if (!billing) return refused(id, 'This account is not a user of any customer on this server. Ask whoever runs it to add you.');
+    const link = await billing.checkout(person, { successUrl: back('started'), cancelUrl: back('cancelled') });
+    return result(id, { access: 'none', connections: [], missing: [{ what: 'subscription', label: 'CMOkit', link }] });
+  }
+  return failure(id, -32601, `Method not found: ${method}`);
+}
+
+async function respond(message: Message, context: { person: string; base: string; customer: CustomerCalls }, manage?: () => Promise<string | undefined>) {
+  const { id = null, method, params = {} } = message;
+  if (method === 'initialize') return initialized(id, params);
+  if (method === 'ping') return success(id, {});
+  if (method === 'tools/list') return success(id, { tools: TOOLS.map(listed) });
   if (method === 'tools/call') {
     const tool = TOOLS.find((t) => t.name === params.name);
     if (!tool) return failure(id, -32602, `Unknown tool: ${params.name}`);
+    const isStatus = tool.name === 'account_status';
+    if (!isStatus && (await context.customer.access()) === 'lapsed') return refused(id, LAPSED);
     try {
       const data = await tool.call(params.arguments ?? {}, context);
-      const structured = Array.isArray(data) ? { items: data } : data as Record<string, unknown>;
-      return success(id, { content: [{ type: 'text', text: JSON.stringify(structured, null, 1) }], structuredContent: structured });
+      if (isStatus && manage) {
+        // The status still answers when the billing portal cannot be reached.
+        const link = await manage().catch(() => undefined);
+        if (link) return result(id, { ...data as Record<string, unknown>, subscription: { manage: link } });
+      }
+      return result(id, data);
     } catch (error) {
       if (error instanceof Refusal || (error as Error).name === 'Refusal') {
         return success(id, { content: [{ type: 'text', text: (error as Error).message }], isError: true });

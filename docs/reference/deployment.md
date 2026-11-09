@@ -9,7 +9,7 @@ secrets, and are never committed.
 | Name | Kind | Required | What it is |
 |---|---|---|---|
 | `CMOKIT_ORIGIN` | Worker variable | No | Where the site is fetched from. Leave it unset when the Worker is routed on the site's own domain. |
-| `LIFECYCLE` | Service binding | When the site sends messages | The site's lifecycle Worker, which the edge passes leads, unsubscribes and SendGrid's events to. |
+| `LIFECYCLE` | Service binding | When the site sends messages or sells a subscription | The site's lifecycle Worker, which the edge passes leads, unsubscribes, SendGrid's events and Stripe's events to. |
 
 ## The lifecycle Worker
 
@@ -18,10 +18,19 @@ secrets, and are never committed.
 | `LEADS` | Durable Object binding | Yes | Each lead's place in its sequence, in an object of its own. |
 | `SENDGRID_API_KEY` | Worker secret | To send messages | A SendGrid API key with Mail Send and Suppressions access. Until it is set, no lead is captured. |
 | `SENDGRID_WEBHOOK_KEY` | Worker variable | To read SendGrid's events | The verification key of SendGrid's signed event webhook, which is public. Until it is set, the events are refused. |
+| `STRIPE_SECRET_KEY` | Worker secret | To sell a subscription | A Stripe restricted key that can write Checkout Sessions and customer portal sessions and read subscriptions. Until it and `PRODUCT` are set, there is no checkout. |
+| `STRIPE_WEBHOOK_SECRET` | Worker secret | To sell a subscription | The signing secret of the Stripe webhook endpoint. Until it is set, Stripe's events are refused. |
+| `PRODUCT` | Service binding | To sell a subscription | The product's Worker, at its `Access` entrypoint, which gives and revokes a customer's access. For hosted CMOkit, the content server's Worker. |
 
 SendGrid's event webhook posts to `https://<the site's domain>/_cmokit/leads/events`, with signing
 turned on and the delivered, open, click, bounce, dropped, spam report, unsubscribe and group
 unsubscribe events selected.
+
+A product that sells a subscription names its Stripe price and trial in `cmokit.config.ts`, as
+`subscription: { trialDays, stripe: { price } }`; the price is made in Stripe. Stripe's webhook posts
+to `https://<the site's domain>/_cmokit/subscriptions/events`, with the
+`customer.subscription.created`, `.updated`, `.deleted`, `.paused` and `.resumed` events selected.
+The customer portal is turned on in Stripe's settings.
 
 ## The content server Worker
 
@@ -33,7 +42,8 @@ from `@cmokit/content`.
 | `CUSTOMERS` | Durable Object binding | Yes | Each customer's records, in an object of its own, named by the slug in the customer's address. |
 | `ISSUER_URL` | Worker variable | Yes | The issuer's address, named in the server's Protected Resource Metadata. |
 | `AUDIENCE` | Worker variable | Yes | The audience the issuer issues the content server's tokens for, the server's own `https://<host>/mcp`. A token for any other audience is refused. |
-| `ISSUER` | Service binding | Yes | The issuer's Worker, which checks each token. |
+| `ISSUER` | Service binding | Yes | The issuer's Worker, which checks each token and knows each person's customers. |
+| `LIFECYCLE` | Service binding | To sell a subscription | The lifecycle Worker that makes checkout and portal links. Without it, a person with no customer is told to ask whoever runs it to add them. |
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
 
 A customer's credentials are not among these: each is entered by the customer on a one-time page of

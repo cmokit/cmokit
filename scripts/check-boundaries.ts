@@ -16,8 +16,8 @@ const packages = join(root, 'packages');
 
 const FORBIDDEN_FOR_EDGE = ['@cmokit/lifecycle', 'pg', 'postgres', '@electric-sql/pglite', 'kysely', 'drizzle-orm', '@prisma/client'];
 const DATABASE_CLIENTS = FORBIDDEN_FOR_EDGE.slice(1);
-const WIRING = ['posthog.ts', 'sendgrid.ts', 'luma.ts', 'worker.ts', 'workers.d.ts'];
-const TOOLS = /posthog|growthbook|statsig|cloudflare|sendgrid|twilio|customer\.io|luma/i;
+const WIRING = ['posthog.ts', 'sendgrid.ts', 'luma.ts', 'stripe.ts', 'worker.ts', 'workers.d.ts'];
+const TOOLS = /posthog|growthbook|statsig|cloudflare|sendgrid|stripe|twilio|customer\.io|luma/i;
 
 const errors: string[] = [];
 

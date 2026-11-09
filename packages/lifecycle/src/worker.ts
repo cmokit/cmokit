@@ -6,7 +6,9 @@
 //
 // with the site's CMOkit configuration and its message templates bundled into it at deploy
 // (ADR-0008), and `Lead` bound as the Durable Object class LEADS. It has no route of its own: the
-// edge reaches it through a service binding. The only host-specific code in the lifecycle lives here.
+// edge reaches it through a service binding, and so does a product's Worker that asks it for checkout
+// and portal links. It reaches the product through a service binding named PRODUCT (ADR-0017). The
+// only host-specific code in the lifecycle lives here.
 
 import { LIFECYCLE_LEAD, defineConfig, resolve, type Config, type Resolved } from '@cmokit/cli';
 import { createLifecycle, type Leads, type Messaging } from './index.ts';
@@ -14,6 +16,8 @@ import { Lead as LeadLogic, type Capture } from './lead.ts';
 import { parse } from './render.ts';
 import { posthog } from './posthog.ts';
 import { sendgrid } from './sendgrid.ts';
+import { stripe } from './stripe.ts';
+import { createSubscriptions, type Product } from './subscriptions.ts';
 import type { Sql } from './sql.ts';
 
 export interface LifecycleEnv {
@@ -22,6 +26,12 @@ export interface LifecycleEnv {
   SENDGRID_API_KEY?: string;
   /** SendGrid's signed event webhook verification key. Public. */
   SENDGRID_WEBHOOK_KEY?: string;
+  /** A Stripe key that can write Checkout Sessions and portal sessions and read subscriptions. A secret. */
+  STRIPE_SECRET_KEY?: string;
+  /** The Stripe webhook endpoint's signing secret. A secret. */
+  STRIPE_WEBHOOK_SECRET?: string;
+  /** The product's Worker, whose API gives and revokes a customer's access. */
+  PRODUCT?: Product;
 }
 
 export interface DurableObjectNamespace {
@@ -138,7 +148,10 @@ export function createLifecycleWorker(config: Config, templates: Record<string, 
       if (!env.SENDGRID_API_KEY && new URL(request.url).pathname === LIFECYCLE_LEAD) {
         return new Response('SENDGRID_API_KEY is not set', { status: 503 });
       }
-      const handle = createLifecycle({ config: resolved, leads: leadsFor(env), messaging: messagingFor(env), analytics });
+      const subscriptions = resolved.subscription && env.STRIPE_SECRET_KEY && env.PRODUCT
+        ? createSubscriptions({ config: resolved, payments: stripe({ key: env.STRIPE_SECRET_KEY, webhookSecret: env.STRIPE_WEBHOOK_SECRET }), product: env.PRODUCT })
+        : undefined;
+      const handle = createLifecycle({ config: resolved, leads: leadsFor(env), messaging: messagingFor(env), analytics, subscriptions });
       return handle(request);
     },
   };

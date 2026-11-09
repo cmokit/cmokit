@@ -83,10 +83,6 @@ ${choices}
 </form>`, 200, options.headers);
 }
 
-export function notYetPage(headers: Headers): Response {
-  return page("You're signed in", `<p>This account doesn't belong to a CMOkit customer yet, so there's nothing to connect. You can close this window.</p>`, 200, headers);
-}
-
 export function problemPage(message: string, status = 400, headers = new Headers()): Response {
   return page("This sign-in can't go on", `<p>${escape(message)}</p><p class="note">Start again from the app you were connecting.</p>`, status, headers);
 }
