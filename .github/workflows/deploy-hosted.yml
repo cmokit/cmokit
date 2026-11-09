@@ -1,6 +1,7 @@
 # Deploys hosted CMOkit (ADR-0016) to CMOkit's own Cloudflare account: the issuer at auth.cmokit.ai,
 # then the content server at mcp.cmokit.ai. It runs only when a maintainer starts it from the Actions
-# tab, never on a push. Each Worker's custom domain makes Cloudflare create its DNS record and
+# tab, never on a push, and only from main: the job runs in the production environment, which only
+# main may deploy to, and holds the deploy's variables and secrets. Each Worker's custom domain makes Cloudflare create its DNS record and
 # certificate on the first deploy. Every variable and secret it reads is in the deployment reference,
 # and how to get each one is in docs/how-to/set-up-hosted-cmokit.md.
 name: deploy-hosted
@@ -17,7 +18,10 @@ concurrency:
 
 jobs:
   deploy:
+    # The environment's branch rule refuses any other branch; this check says so before it starts.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: production
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

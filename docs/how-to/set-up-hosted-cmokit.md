@@ -18,13 +18,23 @@ record and certificate in Cloudflare.
 
 ## Where values go
 
-Every value goes into the repository's settings on GitHub: **cmokit/cmokit > Settings > Secrets and
-variables > Actions**.
+Every value goes into a GitHub environment named `production`, which only `main` can deploy from.
+Make it once, first:
 
-- A **secret** goes on the **Secrets** tab, with **New repository secret**. Nobody can read it back,
-  including you.
-- A **variable** goes on the **Variables** tab, with **New repository variable**. Variables hold ids
-  that aren't secret.
+1. Open **cmokit/cmokit > Settings > Environments** and choose **New environment**. Name it
+   `production`.
+2. Under **Deployment branches and tags**, choose **Selected branches and tags**, then **Add
+   deployment branch or tag rule**, and enter `main`.
+
+Then enter each value on that environment's page, **Settings > Environments > production**:
+
+- A **secret** goes under **Environment secrets**, with **Add environment secret**. Nobody can read
+  it back, including you.
+- A **variable** goes under **Environment variables**, with **Add environment variable**. Variables
+  hold ids that aren't secret.
+
+A value saved as a repository secret or variable also works, but then any workflow on any branch can
+read it, so keep every value in the environment.
 
 The name must match this guide exactly.
 
@@ -115,8 +125,8 @@ Facebook.
 
 ## 7. Deploy
 
-On GitHub, open **Actions > deploy-hosted > Run workflow**. It deploys the issuer, then the content
-server. Its summary notes any sign-in way that's still off, and whether subscriptions are on.
+On GitHub, open **Actions > deploy-hosted > Run workflow**, leave the branch on `main`, and run it.
+It deploys the issuer, then the content server. Its summary notes any sign-in way that's still off, and whether subscriptions are on.
 
 Run it again whenever you change a value above. It redeploys the two Workers and changes nothing
 else.
