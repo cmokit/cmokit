@@ -55,6 +55,7 @@ export interface IdentityRecords {
 
 export interface PersonRecords {
   addIdentity(name: string, email: string | null, now: number): Promise<void>;
+  email(): Promise<string | null>;
   customers(): Promise<string[]>;
   addCustomer(slug: string, now: number): Promise<void>;
 }

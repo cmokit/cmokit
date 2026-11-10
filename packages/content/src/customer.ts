@@ -179,7 +179,7 @@ export class Customer {
     const { events } = this.#deps;
     if (!connections.some((c) => c.vendor === events.vendor)) {
       missing.push({
-        what: 'event platform', vendor: events.vendor, label: events.label,
+        what: 'event platform', vendor: events.vendor, label: events.label, optional: true,
         link: `${base}/connect?t=${await this.#link(person, events.vendor)}`,
         expires: iso(this.#now() + LINK_MS),
       });

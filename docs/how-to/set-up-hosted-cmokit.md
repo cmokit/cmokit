@@ -123,7 +123,17 @@ Facebook.
 2. Open **Settings > API Keys > Create API Key**. Choose **Restricted Access**, set **Mail Send** to
    **Full Access**, and create the key. Save it as the secret `SENDGRID_API_KEY`.
 
-## 7. Deploy
+## 7. Activate your own account
+
+During the closed beta, a person gets in without paying when their email address is on hosted
+CMOkit's list of activated addresses. Save the variable `ACTIVATED_EMAILS` with your own address.
+For more than one, separate them with commas.
+
+Use the address your sign-in proves: the primary email address on your GitHub account, or your Google
+address. Facebook never counts, because CMOkit doesn't take its address as proven. The first time
+you use CMOkit after signing in, it makes a customer of your own, with you as its only user.
+
+## 8. Deploy
 
 Every merge to `main` deploys: GitHub runs **deploy-hosted**, which deploys the issuer, then the
 content server. Its summary notes any sign-in way that's still off, and whether subscriptions are on.
@@ -132,7 +142,7 @@ Enter the values above before the first merge, or that run stops and names what'
 After you change a value above, open **Actions > deploy-hosted > Run workflow**, leave the branch on
 `main`, and run it. It redeploys the two Workers and changes nothing else.
 
-## 8. Subscriptions
+## 9. Subscriptions
 
 Hosted CMOkit is billed by the lifecycle of CMOkit's own site (ADR-0017), so this part is set up in
 that site's repository, the one made from the starter, not in this one. Do it in a Stripe sandbox

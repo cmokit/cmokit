@@ -45,6 +45,7 @@ from `@cmokit/content`.
 | `ISSUER` | Service binding | Yes | The issuer's Worker, which checks each token and knows each person's customers. |
 | `LIFECYCLE` | Service binding | To sell a subscription | The lifecycle Worker that makes checkout and portal links. Without it, a person with no customer is told to ask whoever runs it to add them. |
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
+| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them gets a customer of their own at their first call. |
 
 A customer's credentials are not among these: each is entered by the customer on a one-time page of
 the content server and kept sealed in that customer's object.
@@ -95,6 +96,7 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `CLOUDFLARE_ACCOUNT_ID` | Variable | Yes | CMOkit's own Cloudflare account. |
 | `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone. |
 | `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
+| `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |

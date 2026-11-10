@@ -20,6 +20,9 @@ link routes, story structures, finishing and measuring.
    conversation, warning that nothing is kept and no brand context is read.
 2. If `missing` lists a connection, give the person its one-time link and say what it is for. Never
    accept a key or password in the chat; if they start to paste one, stop them and give the link.
+   A connection marked `optional` is the event platform: offer it only to a brand that sells events,
+   once, and go on without it otherwise. Without it, the offers are what the person names, and
+   results are the numbers they report.
 3. Call `brand_read`. If its version is 0, run onboarding (step 0) before anything else. Write
    everything from the version you read, and keep its number for `brand_change`.
 4. If the person has no Claude Design system published as their default, write without visuals, say
@@ -69,6 +72,8 @@ colours and fonts go nowhere, they are the design system's). Show the whole cont
    into promotable things, as `references/reels.md` describes. Show the grouping; the person confirms
    how events group, each pattern, old names, and what not to promote. Save the list as `offers` with
    `brand_change` once they approve it. After that, ask only about new titles.
+   With no event platform connected, `offers_list` returns the offers alone: ask what they sell,
+   and save each as an offer, with the pattern `product` for something sold rather than scheduled.
 2. Rebuild the What's on view from the dates open now: the next 14 days, each promotable thing's
    next date and when it last had a piece, and anything with open dates and no recent content.
 3. Plan a few pieces, in order, by pattern (`references/reels.md`), leaning towards what the last

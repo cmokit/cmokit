@@ -9,6 +9,7 @@ test('a missing calendar gets a one-time link, and the key given on its page is 
   const status = await customer.status('ada', BASE);
   assert.equal(status.access, 'active');
   assert.equal(status.missing.length, 1);
+  assert.equal(status.missing[0].optional, true);
   const token = new URL(status.missing[0].link).searchParams.get('t')!;
   assert.ok(status.missing[0].link.startsWith(`${BASE}/connect?t=`));
 

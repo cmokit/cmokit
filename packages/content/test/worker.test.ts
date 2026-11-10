@@ -18,7 +18,7 @@ registerHooks({
   },
 });
 
-const { createContentWorker, issuerTokens, lifecycleBilling } = await import('../src/worker.ts');
+const { activatedEmails, activatedSlug, createContentWorker, issuerTokens, lifecycleBilling } = await import('../src/worker.ts');
 
 test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
   const { worker, Customer } = createContentWorker({
@@ -86,6 +86,7 @@ test('the lifecycle\'s entrypoint makes a customer with the person who paid as i
       validateToken: async () => null,
       customers: async () => [],
       addCustomer: async (person: string, customer: string) => void added.push(`${person} ${customer}`),
+      email: async () => null,
     },
     CUSTOMERS: {
       idFromName: (name: string) => name,
@@ -136,4 +137,73 @@ test('lifecycleBilling asks the lifecycle for checkout and portal links', async 
     { url: 'https://lifecycle.internal/internal/checkout', body: { person: 'ada', successUrl: 'https://c.example/ok', cancelUrl: 'https://c.example/no' } },
     { url: 'https://lifecycle.internal/internal/portal', body: { billing: 'cus_1', returnUrl: 'https://c.example/back' } },
   ]);
+});
+
+test('a person whose proven address is activated gets one customer of their own at their first call, with no checkout', async () => {
+  const people: Record<string, { token: string; email: string | null }> = {
+    ada: { token: 'ta', email: 'Ada@Example.com' },
+    bob: { token: 'tb', email: 'bob@example.com' },
+    cy: { token: 'tc', email: null },
+  };
+  const { worker, Customer } = createContentWorker({
+    tokens: () => ({
+      check: async (token) => {
+        const person = Object.keys(people).find((p) => people[p].token === token);
+        return person ? { person, audience: 'aud' } : undefined;
+      },
+    }),
+  });
+  const objects = new Map<string, InstanceType<typeof Customer>>();
+  const theirs: Record<string, string[]> = {};
+  const env = {
+    ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY,
+    ACTIVATED_EMAILS: ' ada@example.com,  someone@example.com ',
+    ISSUER: {
+      validateToken: async () => null,
+      customers: async (person: string) => theirs[person] ?? [],
+      addCustomer: async (person: string, customer: string) => {
+        theirs[person] = [...new Set([...(theirs[person] ?? []), customer])];
+      },
+      email: async (person: string) => people[person]?.email ?? null,
+    },
+    CUSTOMERS: {
+      idFromName: (name: string) => name,
+      get: (id: unknown) => ({
+        fetch: (input: string, init?: RequestInit) => {
+          let object = objects.get(id as string);
+          if (!object) {
+            const db = new DatabaseSync(':memory:');
+            const ctx: DurableObjectState = { storage: { sql: { exec: (q, ...p) => ({ toArray: () => db.prepare(q).all(...(p as never[])) as never }) } } };
+            object = new Customer(ctx, env);
+            objects.set(id as string, object);
+          }
+          return object.fetch(new Request(input, init));
+        },
+      }),
+    },
+  } satisfies ContentEnv;
+  const tools = async (token: string) => {
+    const response = await worker.fetch(new Request('https://content.example/mcp', {
+      method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    }), env);
+    return ((await response.json()) as { result: { tools: { name: string }[] } }).result.tools.map((t) => t.name);
+  };
+
+  assert.deepEqual(activatedEmails(env), new Set(['ada@example.com', 'someone@example.com']));
+  const slug = await activatedSlug('ada');
+  assert.match(slug, /^c[0-9a-f]{15}$/);
+  assert.equal(await activatedSlug('ada'), slug);
+
+  // Ada's address is activated, in any case: her first call makes her customer, and every tool is hers.
+  assert.ok((await tools('ta')).length > 1);
+  assert.deepEqual(theirs.ada, [slug]);
+  assert.ok((await tools('ta')).length > 1);
+  assert.deepEqual([...objects.keys()], [slug]);
+
+  // Bob's address is not activated, and Cy proved none: each is offered account_status alone.
+  assert.deepEqual(await tools('tb'), ['account_status']);
+  assert.deepEqual(await tools('tc'), ['account_status']);
+  assert.equal(theirs.bob, undefined);
+  assert.deepEqual([...objects.keys()], [slug]);
 });

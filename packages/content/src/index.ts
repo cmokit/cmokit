@@ -5,8 +5,10 @@
 // issuer's grant names. It issues no token: it names its issuer in Protected Resource Metadata and
 // accepts only tokens the issuer issued for its audience, for a person who is a user of the customer
 // served (HST-10). A person who had no customer when they signed in is served the one they have now;
-// a person with none is offered only account_status, whose link starts a subscription (ADR-0017). A
-// customer whose access has lapsed keeps account_status and nothing else. Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
+// a person with none is offered only account_status, whose link starts a subscription (ADR-0017),
+// unless they were activated without a checkout, as in a closed beta: then their first call makes
+// their customer, with them as its first user (CUS-03). A customer whose access has lapsed keeps
+// account_status and nothing else. Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { Refusal } from './customer.ts';
@@ -55,6 +57,11 @@ export interface ContentServerOptions {
   customersOf?(person: string): Promise<string[]>;
   /** Absent when this server sells no subscription, as when it is self-hosted. */
   billing?: Billing;
+  /**
+   * Makes a customer, with the person as its first user, for a person activated without a checkout,
+   * and returns its slug; undefined for anyone else. Safe to repeat for the same person.
+   */
+  activate?(person: string): Promise<string | undefined>;
 }
 
 const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
@@ -100,7 +107,7 @@ export function createContentServer(options: ContentServerOptions) {
       if (served === undefined) {
         const customers = options.customersOf ? await options.customersOf(checked.person) : [];
         if (customers.length > 1) return new Response('This account belongs to more than one customer. Sign in again to choose one.', { status: 403 });
-        served = customers[0];
+        served = customers[0] ?? (options.activate ? await options.activate(checked.person) : undefined);
       }
       if (served !== undefined && !ONE_SLUG.test(served)) return new Response('This sign-in names no customer. Sign in again.', { status: 403 });
       const customer = served === undefined ? undefined : options.customer(served);
