@@ -136,9 +136,11 @@ you use CMOkit after signing in, you become CMOkit's customer: it makes your fir
 its only user. You can add more brands on your account page at `app.cmokit.ai`.
 
 To let people in from CMOkit's own waitlist, open your account page, copy the slug after "Brand",
-save it as the variable `WAITLIST_CUSTOMER`, and deploy again. Your account page then lists the
-waitlist, most referrals first, with an Activate button for each person, which emails them their
-activation. Until the site's lifecycle is deployed, only `ACTIVATED_EMAILS` counts.
+save it as the variable `WAITLIST_CUSTOMER`, and deploy again. Then, under Waitlist on your account
+page, save your site's address, such as `https://cmokit.ai`, and paste the form the page gives you
+into your site. Your account page lists everyone who joins, most referrals first, with an Activate
+button for each. Activating someone lets them sign in and use CMOkit. CMOkit sends no email yet, so
+tell them yourself.
 
 To ask every user to accept the beta terms first, publish them, then save the variable `TERMS_URL`
 with their address and `TERMS_VERSION` with their version, such as the date they were published.

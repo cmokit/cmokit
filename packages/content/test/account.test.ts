@@ -16,15 +16,10 @@ const tokens: Tokens = {
   },
 };
 
-async function server(options: { terms?: boolean; brands?: boolean; owner?: string; down?: boolean } = {}) {
+async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string } = {}) {
   const acme = await readyCustomer();
   const exchanged: URLSearchParams[] = [];
   const added: [string, string][] = [];
-  const activated: string[] = [];
-  const waitlist = [
-    { email: 'cy@example.com', joined: '2026-11-09T10:00:00.000Z', referrals: 2, activated: null as string | null },
-    { email: 'di@example.com', joined: '2026-11-09T11:00:00.000Z', referrals: 0, activated: '2026-11-10T09:00:00.000Z' },
-  ];
   const handle = createContentServer({
     issuer: ISSUER, audience: ORIGIN, tokens,
     customer: (slug) => (slug === 'acme' ? acme.customer : newCustomer().customer),
@@ -38,26 +33,14 @@ async function server(options: { terms?: boolean; brands?: boolean; owner?: stri
       },
       email: async (person) => (person === 'ada' ? 'ada@example.com' : null),
       ...(options.brands ? { addBrand: async (person: string, name: string) => { added.push([person, name]); return 'cfo-kit-0a1b2c'; } } : {}),
-      ...(options.owner ? {
-        waitlist: {
-          owner: options.owner,
-          list: async () => { if (options.down) throw new Error('404'); return waitlist; },
-          activate: async (email: string) => {
-            if (options.down) throw new Error('404');
-            const entry = waitlist.find((w) => w.email === email);
-            if (!entry) return { found: false, sent: false };
-            activated.push(email);
-            return { found: true, sent: true };
-          },
-        },
-      } : {}),
+      ...(options.cmokit ? { cmokitWaitlist: options.cmokit } : {}),
     },
   });
   const get = (path: string, cookie?: string) => handle(new Request(`${APP}${path}`, cookie ? { headers: { cookie } } : {}));
   const post = (path: string, form: Record<string, string>, cookie: string, origin = APP) => handle(new Request(`${APP}${path}`, {
     method: 'POST', body: new URLSearchParams(form), headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' },
   }));
-  return { handle, get, post, exchanged, added, activated };
+  return { handle, get, post, exchanged, added, acme: acme.customer };
 }
 
 const session = (token: string) => `__Host-cmokit-session=${token}`;
@@ -109,7 +92,7 @@ test('signing in sends the person to the issuer with PKCE, and the callback keep
   assert.equal(refused.headers.get('location'), '/signin');
 });
 
-test('the page shows the signed-in account, its brand context and connections, and changes nothing', async () => {
+test('the page shows the signed-in account, its brand context and connections, and changes none of them', async () => {
   const { get } = await server({ terms: true });
   const page = await get('/', session('ada-token'));
   assert.equal(page.status, 200);
@@ -120,7 +103,7 @@ test('the page shows the signed-in account, its brand context and connections, a
   assert.match(html, /not accepted .*the beta terms/);
   assert.match(html, /\/customers\/acme\/terms\?t=/);
   assert.match(html, /ask Claude/);
-  assert.doesNotMatch(html, /<form[^>]*action="\/(?!signout)/);
+  assert.doesNotMatch(html, /<form[^>]*action="\/(?!signout|waitlist\/sites)/, 'its only change is the waitlist\'s site addresses');
 });
 
 test('without a valid session, the page and the export send the person to sign in', async () => {
@@ -175,31 +158,37 @@ test('any user of a brand adds another, from the account page\'s own form only',
   assert.equal(added.length, 1);
 });
 
-test('the brand that owns the waitlist lists it, ranked, and activates people one by one', async () => {
-  const { get, post, activated } = await server({ owner: 'acme' });
-  const html = await (await get('/', session('ada-token'))).text();
-  assert.match(html, /<h2>Beta waitlist<\/h2>/);
-  assert.match(html, /cy@example\.com, joined 2026-11-09, 2 referrals: <form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
-  assert.match(html, /di@example\.com, joined 2026-11-09, 0 referrals: activated 2026-11-10/);
+test('a brand\'s users list its sites, get the form to paste, and activate people from its ranked waitlist', async () => {
+  const { get, post, handle, acme } = await server();
+  let html = await (await get('/', session('ada-token'))).text();
+  assert.match(html, /<h2>Waitlist<\/h2>/);
+  assert.match(html, /Add your site's address first/);
+  assert.doesNotMatch(html, /lets them sign in and use CMOkit/, 'only CMOkit\'s own brand grants CMOkit');
+
+  const saved = await post('/waitlist/sites', { sites: 'brand.example\nhttps://www.brand.example' }, session('ada-token'));
+  assert.equal(saved.headers.get('location'), '/?sites=saved');
+  assert.deepEqual(await acme.waitlistSites(), ['https://brand.example', 'https://www.brand.example']);
+  assert.equal((await post('/waitlist/sites', { sites: 'http://brand.example' }, session('ada-token'))).headers.get('location'), '/?sites=invalid');
+  assert.equal((await post('/waitlist/sites', { sites: 'evil.example' }, session('ada-token'), 'https://evil.example')).status, 403);
+
+  const joined = await handle(new Request(`${APP}/join/acme`, {
+    method: 'POST', body: new URLSearchParams({ email: 'cy@example.com' }), headers: { origin: 'https://brand.example', accept: 'application/json' },
+  }));
+  assert.equal(joined.status, 200);
+  html = await (await get('/', session('ada-token'))).text();
+  assert.match(html, /action=&#34;https:\/\/app\.example\/join\/acme&#34;/, 'the snippet names this brand\'s join address');
+  assert.match(html, /cy@example\.com, joined \d{4}-\d{2}-\d{2}, 0 referrals: <form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
+
   const done = await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'));
   assert.equal(done.status, 303);
-  assert.equal(done.headers.get('location'), '/?activated=sent');
-  assert.deepEqual(activated, ['cy@example.com']);
+  assert.equal(done.headers.get('location'), '/?activated=done');
+  assert.ok((await acme.waitlistList())[0].activated);
+  assert.match(await (await get('/?activated=done', session('ada-token'))).text(), /CMOkit sends no email yet/);
   assert.equal((await post('/waitlist/activate', { email: 'zed@example.com' }, session('ada-token'))).headers.get('location'), '/?activated=missing');
-  assert.equal((await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'), 'https://evil.example')).status, 403);
+  assert.equal((await post('/waitlist/activate', { email: 'cy@example.com' }, session('bob-token'))).status, 403, 'not a user of this brand');
 });
 
-test('any other brand sees no waitlist and cannot activate anyone', async () => {
-  const { get, post, activated } = await server({ owner: 'cmokit' });
-  assert.doesNotMatch(await (await get('/', session('ada-token'))).text(), /Beta waitlist/);
-  assert.equal((await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'))).status, 404);
-  assert.deepEqual(activated, []);
-});
-
-test('when the site\'s lifecycle cannot answer, the owner\'s page still shows and says so', async () => {
-  const { get, post } = await server({ owner: 'acme', down: true });
-  const page = await get('/', session('ada-token'));
-  assert.equal(page.status, 200);
-  assert.match(await page.text(), /The waitlist can't be read yet/);
-  assert.equal((await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'))).headers.get('location'), '/?activated=failed');
+test('on CMOkit\'s own brand, the page says activating someone lets them use CMOkit', async () => {
+  const { get } = await server({ cmokit: 'acme' });
+  assert.match(await (await get('/', session('ada-token'))).text(), /Activating someone here lets them sign in and use CMOkit/);
 });

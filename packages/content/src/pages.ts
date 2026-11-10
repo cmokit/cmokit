@@ -1,9 +1,11 @@
 // The one-time pages: on one a person enters a key for a vendor that only issues keys (ADR-0019), and
 // the key travels from the person's browser to the content server, never through a conversation; on
 // another a user accepts the server's terms (ADR-0039). The account page shows a signed-in person their
-// account (ADR-0041), where they add a brand and, for the waitlist's owner, activate people (ADR-0042).
+// account (ADR-0041), where they add a brand (ADR-0042) and run the brand's waitlist (ADR-0043).
 
-import { SECTIONS, type BrandContext } from './customer.ts';
+import { SECTIONS, type BrandContext, type WaitlistEntry } from './customer.ts';
+
+export type { WaitlistEntry } from './customer.ts';
 
 export function keyPage(page: { label: string; help: string; token: string; problem?: string }): Response {
   return html(`<h1>Connect ${escape(page.label)}</h1>
@@ -55,14 +57,6 @@ export function subscriptionPage(state: string): Response {
   return html(`<h1>${title}</h1><p>${text}</p>`, 200);
 }
 
-/** One person on a site's waitlist, as the account page lists it, ranked by referrals. */
-export interface WaitlistEntry {
-  email: string;
-  joined: string;
-  referrals: number;
-  activated: string | null;
-}
-
 /** What the account page shows. Absent `customer` means the person is no customer's user yet. */
 export interface AccountView {
   email: string | null;
@@ -73,8 +67,16 @@ export interface AccountView {
     slug: string;
     /** Whether the person can add another brand here. */
     addBrand: boolean;
-    /** The bound site's waitlist, when this brand owns it. */
-    waitlist?: WaitlistEntry[] | 'unavailable';
+    /** The brand's waitlist, ranked by referrals, and how a site joins it (ADR-0043). */
+    waitlist?: {
+      people: WaitlistEntry[];
+      /** The site addresses whose pages may add people. */
+      sites: string[];
+      /** The form and script a site pastes into a page. */
+      snippet: string;
+      /** Whether activating someone on this list lets them use CMOkit itself, as on CMOkit's own brand. */
+      grantsCmokit: boolean;
+    };
     access: string;
     connections: { vendor: string; name: string }[];
     missing: { label: string; link: string; optional: boolean }[];
@@ -86,7 +88,7 @@ export interface AccountView {
 
 const ACCESS: Record<string, string> = { trial: 'Free trial', active: 'Active', lapsed: 'Lapsed: pay to reopen your records' };
 
-/** A signed-in person's account (ADR-0041). It changes nothing; changes are made in Claude. */
+/** A signed-in person's account (ADR-0041). Its brand context and settings are changed in Claude; brands and the waitlist here. */
 export function accountPage(view: AccountView): Response {
   const who = `${view.notice ? `<p role="status"><strong>${escape(view.notice)}</strong></p>` : ''}<p>Signed in${view.email ? ` as ${escape(view.email)}` : ''}.</p>`;
   const signOut = '<form method="post" action="/signout"><button type="submit">Sign out</button></form>';
@@ -114,13 +116,20 @@ export function accountPage(view: AccountView): Response {
   <input id="brand-name" name="name" maxlength="60" required>
   <button type="submit">Add a brand</button>
 </form>` : '';
-  const waitlist = c.waitlist === 'unavailable'
-    ? '<h2>Beta waitlist</h2><p>The waitlist can\'t be read yet. The site\'s lifecycle needs a newer release.</p>'
-    : c.waitlist ? `<h2>Beta waitlist</h2>
-${c.waitlist.length ? `<p>${c.waitlist.length} on the waitlist, most referrals first. Activating someone emails them, and they can sign in and use CMOkit.</p>
-<ul>${c.waitlist.map((w) => `<li>${escape(w.email)}, joined ${escape(w.joined.slice(0, 10))}, ${w.referrals} referral${w.referrals === 1 ? '' : 's'}: ${w.activated
-    ? `activated ${escape(w.activated.slice(0, 10))}`
-    : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(w.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
+  const w = c.waitlist;
+  const waitlist = w ? `<h2>Waitlist</h2>
+<p>People join from a form on your site. Joining gives no access until you activate them.${w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>
+<form method="post" action="/waitlist/sites">
+  <label for="waitlist-sites">Your site addresses, one per line</label>
+  <textarea id="waitlist-sites" name="sites" rows="3" style="display:block;width:100%;box-sizing:border-box;font:inherit">${escape(w.sites.join('\n'))}</textarea>
+  <button type="submit">Save site addresses</button>
+</form>
+${w.sites.length ? `<p>Paste this into a page on ${w.sites.length === 1 ? 'that site' : 'those sites'}:</p>
+<pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem"><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}
+${w.people.length ? `<p>${w.people.length} on the waitlist, most referrals first.</p>
+<ul>${w.people.map((p) => `<li>${escape(p.email)}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}: ${p.activated
+    ? `activated ${escape(p.activated.slice(0, 10))}`
+    : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
   return html(`<h1>Your CMOkit account</h1>${who}
 <p>Brand: ${escape(c.slug)}.</p>
 <p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>

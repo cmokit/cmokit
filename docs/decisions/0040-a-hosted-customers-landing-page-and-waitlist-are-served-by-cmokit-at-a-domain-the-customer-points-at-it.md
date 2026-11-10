@@ -95,6 +95,9 @@ of its own, made before the second customer. ADR-0016's account of what is hoste
 
 **Reversal cost.** Low: a customer's custom domain is one record they can point elsewhere.
 
+**Related.** A customer's waitlist is kept by the content server and joined from a page on any host,
+including one the customer hosts themselves (ADR-0043).
+
 ## Revisit when
 
 * A customer cannot add a record at their DNS provider.
