@@ -59,7 +59,7 @@ requirements cite no decision record.
 | **LEAD-01** | A captured lead reaches the messaging tool with its channel and variant without a person acting. | Must | Proposed |
 | **LEAD-02** | No secret that can write to a bought tool is ever sent to a browser. | Must | Proposed |
 | **LEAD-03** | A lead is told what will be sent to them and can stop it in one step. | Must | Proposed |
-| **LEAD-04** | A site can keep a waitlist. Joining gives no access: a maintainer activates each person, who is then sent the site's activation message, and a product the site sells lets an activated person in. Each person on the list has a referral link of their own, and the list is ranked by how many people joined through it. | Must | Proposed |
+| **LEAD-04** | A site can keep a waitlist. Joining gives no access: a maintainer activates each person, who is then sent the site's activation message, and a product the site sells lets an activated person in. Each person on the list has a referral link of their own, which keeps every query parameter of the page they joined on, and the list is ranked by how many people joined through it. | Must | Proposed |
 
 ## Subscriptions — `SUB-`
 

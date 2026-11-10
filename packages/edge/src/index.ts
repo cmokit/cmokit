@@ -275,9 +275,11 @@ async function convert(
       const key = await leadKey(email);
       later(tools.lifecycle.capture({ key, email, visitor, event: name, origin: site, properties }));
       set.push(cookie(LEAD_COOKIE, key));
-      // The person's own referral link is the page they joined on, carrying their code (ADR-0014).
+      // The person's own referral link is the page they joined on, with every query parameter it
+      // had, carrying their code in place of any code they arrived with (ADR-0014, LEAD-04).
       if (waitlist) {
-        const link = new URL(page && URL.canParse(page) && new URL(page).origin === site ? bareUrl(page) : `${site}/`);
+        const link = new URL(page && URL.canParse(page) && new URL(page).origin === site ? page : `${site}/`);
+        link.hash = '';
         link.searchParams.set(waitlist.referral, await referralCode(key));
         answer = JSON.stringify({ referral: link.href });
       }

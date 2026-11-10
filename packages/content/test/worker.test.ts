@@ -253,6 +253,14 @@ test('lifecycleWaitlist lists the site\'s waitlist and activates people over the
   ]);
 });
 
+test('a lifecycle with no waitlist, or too old to know the route, is not read as a missing address', async () => {
+  for (const answer of [new Response('Not found', { status: 404 }), Response.json({ waitlist: null }, { status: 404 })]) {
+    const LIFECYCLE = { fetch: async () => answer.clone() };
+    const waitlist = lifecycleWaitlist({ LIFECYCLE, WAITLIST_CUSTOMER: 'cmokit-1a2b3c' } as unknown as ContentEnv)!;
+    await assert.rejects(waitlist.activate('cy@example.com'), /answered 404/);
+  }
+});
+
 test('a new brand\'s slug comes from its name, with a random end, and is always a valid slug', () => {
   assert.match(brandSlug('CFO Kit'), /^cfo-kit-[0-9a-f]{6}$/);
   assert.match(brandSlug('Café & Co.'), /^cafe-co-[0-9a-f]{6}$/);
