@@ -11,8 +11,8 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-The engine is deployed by its adopter, per site, to the adopter's own Cloudflare account (ADR-0003),
-and it stays that way. What is offered hosted is content production: a customer sets it up with a
+A self-hosted adopter deploys the engine, per site, to its own Cloudflare account (ADR-0003). A
+hosted customer's site engine is run for it, as ADR-0040 records. What is offered hosted is content production: a customer sets it up with a
 CMOkit account, a subscription and, if it sells through one, its event platform, with no Cloudflare
 account, repository or terminal of its own (`HST-01`). Content needs none of the engine (`CNT-21`).
 Many customers share whatever CMOkit runs for them, and nothing done for one may read or change
@@ -51,8 +51,8 @@ Durable Objects already give each customer storage no other customer's request c
 > CMOkit's own Cloudflare account, serving every hosted customer. Each customer's state is kept in
 > Durable Objects named by the customer's id (ADR-0030), and every request is authorized as a person
 > acting for one customer, so every call names the customer it acts on. A self-hosted deployment runs
-> the same Workers with customers of its own. The hosted services call no model. The engine, its edge
-> and its experiments are not part of the hosted service.
+> the same Workers with customers of its own. The hosted services call no model. A hosted customer's
+> site engine, its edge and its lifecycle, is a deployment of its own (ADR-0040).
 
 The parts of the content service, and what each calls:
 

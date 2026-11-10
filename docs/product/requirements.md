@@ -7,7 +7,7 @@ requirements cite no decision record.
 
 | Topic | Boundary |
 |---|---|
-| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. CMOkit's hosted content service is a service, and it neither hosts nor publishes to any site. |
+| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. Hosted CMOkit runs a customer site's edge and lifecycle, and it neither hosts nor publishes to any site. |
 | A page builder or CMS | Pages are made with whatever builds the site: a static site generator, a CMS or anything else. |
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
 | Ad budgets and ad accounts | Paid acquisition is part of the loop: CMOkit traffics ads in the person's own ad account, after their approval and within the budget they set, analyzes how they perform and plans the next round, and automates more of that as the person allows. The ad account, the budget and the money stay the person's; CMOkit holds no ad account of its own and never sets or raises a budget. |
@@ -79,7 +79,7 @@ requirements cite no decision record.
 |---|---|---|---|
 | **CUS-01** | A customer is who pays: one customer at the payment processor, with one or more users. A person may be a user of several customers. A product without organizations has customers of one user. | Must | Proposed |
 | **CUS-02** | Every subscription, credit grant, credit balance and change of access belongs to a customer. | Must | Proposed |
-| **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. A person activated without paying, as in a closed beta, gets a customer of their own at their first use, with them as its first user. | Must | Proposed |
+| **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. A person activated without paying, as in a closed beta, gets a customer of their own, with them as its first user. | Must | Proposed |
 | **CUS-04** | Revenue from a customer is attributed to the channel and variant of the person who converted it. A user who joins later is attributed to the invitation that brought them. | Must | Proposed |
 | **CUS-05** | Billing and credit balance messages go to a customer's billing contacts. Product messages go to its users. | Must | Proposed |
 
@@ -127,7 +127,7 @@ requirements cite no decision record.
 
 ## Hosted offering (`HST-`)
 
-What CMOkit's hosted content service must do, and how a customer is set up for it. The engine stays self-hosted.
+What hosted CMOkit must do, and how a customer is set up for it. A self-hosted adopter runs the engine on an account of its own; for a hosted customer, CMOkit runs it.
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
@@ -144,6 +144,8 @@ What CMOkit's hosted content service must do, and how a customer is set up for i
 | **HST-13** | A customer can export everything CMOkit holds for it, in a readable form, and close its account, which deletes what CMOkit holds. | Must | Proposed |
 | **HST-14** | CMOkit is its own first customer: its own site, on GitHub Pages, is built with CMOkit, and the short-form content that markets CMOkit to creators is made with the content plugin. | Must | Proposed |
 | **HST-15** | While hosted CMOkit is in a closed beta, a user accepts its beta terms, on a page of CMOkit's that the conversation links to, before using anything but their account's status, and accepts each new version of them again. | Must | Proposed |
+| **HST-16** | A hosted customer's site has its waitlist, referral links and messages run for it by CMOkit, with no Cloudflare account, repository or deploy of the customer's own. The site itself stays where its owner builds and hosts it. | Must | Proposed |
+| **HST-17** | A customer views and manages its profile, its brand context and the settings its CMOkit skills use, on CMOkit's account page at `app.cmokit.ai`, where an activated person's account is. | Must | Proposed |
 
 ## Content (`CNT-`)
 

@@ -51,13 +51,16 @@ the page.
 CMOkit's content production is also offered as a commercial hosted service, for content marketers
 and creators who post a lot of short-form video and sell something through it: an event, an offer, a
 launch, a subscription. Most of them are not developers. They work in Claude, on the desktop, on the
-web and on their phone, with no terminal and no repository. The engine stays self-hosted. CMOkit
-stays open source, and anyone can still run the engine, and the content service, themselves.
+web and on their phone, with no terminal and no repository. For them, CMOkit also runs their site's
+waitlist, referral links and messages, while their site stays where they host it. CMOkit stays open
+source, and anyone can still run the engine, and the content service, themselves.
 
 * **Very little to set up.** A customer creates a CMOkit account and subscribes, and connects the
   event platform they sell through and their site's analytics, if they have them. There is no
   terminal, no repository work and no Cloudflare account of their own.
 * **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude.
+* **An account page of their own.** At `app.cmokit.ai`, a customer views and manages its profile,
+  its brand context and the settings its skills use.
 * **Signing in is only signing in.** A CMOkit account signs in with an email address, Google, GitHub
   or Meta. Signing in identifies the person and grants nothing else; anything more, such as
   connecting an event platform, is asked for on its own, when it is needed.
