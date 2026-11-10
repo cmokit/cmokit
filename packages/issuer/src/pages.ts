@@ -76,7 +76,7 @@ export function codePage(options: { address: string; state: string; problem?: st
 
 export function choosePage(options: { customers: string[]; state: string; headers: Headers }): Response {
   const choices = options.customers.map((slug, i) => `<label><input type="radio" name="customer" value="${escape(slug)}"${i === 0 ? ' checked' : ''} style="width:auto"> ${escape(slug)}</label><br>`).join('\n');
-  return page('Which customer?', `<p>Your account belongs to more than one CMOkit customer. This connection will serve the one you choose.</p>
+  return page('Which brand?', `<p>Your account has more than one CMOkit brand. This connection will serve the one you choose.</p>
 <form method="post" action="/choose?state=${encodeURIComponent(options.state)}">
 ${choices}
 <button class="primary">Continue</button>

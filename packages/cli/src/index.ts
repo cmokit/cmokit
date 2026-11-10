@@ -153,6 +153,12 @@ export const WAITLIST_PATH = '/_cmokit/waitlist';
 /** The lifecycle's route that answers whether an address is activated, which only a product's Worker reaches. */
 export const LIFECYCLE_ACTIVATED = '/internal/activated';
 /**
+ * The lifecycle's routes that list its waitlist and activate a person on it for a product's account
+ * page, which only a product's Worker reaches, so they carry no waitlist key (ADR-0042).
+ */
+export const LIFECYCLE_WAITLIST = '/internal/waitlist';
+export const LIFECYCLE_ACTIVATE = '/internal/activate';
+/**
  * The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. A
  * visit records those it was requested with, so the channel reaches analytics even when the browser's
  * script is blocked.

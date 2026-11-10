@@ -98,6 +98,7 @@ jobs:
           vars=()
           [ -n "$ACTIVATED_EMAILS" ] && vars+=(--var "ACTIVATED_EMAILS:$ACTIVATED_EMAILS")
           [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] && vars+=(--var "TERMS_URL:$TERMS_URL" --var "TERMS_VERSION:$TERMS_VERSION")
+          [ -n "$WAITLIST_CUSTOMER" ] && vars+=(--var "WAITLIST_CUSTOMER:$WAITLIST_CUSTOMER")
           npx wrangler deploy --config "$config" --secrets-file "$secrets" "${vars[@]}"
           rm "$secrets"
           [ -n "$ACTIVATED_EMAILS" ] || echo "::notice::Nobody is activated without a checkout; set the variable ACTIVATED_EMAILS."
@@ -107,3 +108,4 @@ jobs:
           ACTIVATED_EMAILS: ${{ vars.ACTIVATED_EMAILS }}
           TERMS_URL: ${{ vars.TERMS_URL }}
           TERMS_VERSION: ${{ vars.TERMS_VERSION }}
+          WAITLIST_CUSTOMER: ${{ vars.WAITLIST_CUSTOMER }}

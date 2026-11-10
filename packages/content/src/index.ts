@@ -100,7 +100,7 @@ const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
 const TERMS_PAGE = new RegExp(`^/customers/${SLUG}/terms$`);
 const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for the link to read and accept them.';
 const SUBSCRIPTION = '/subscription';
-const AMBIGUOUS = 'This account belongs to more than one customer. Sign in again to choose one.';
+const AMBIGUOUS = 'This account has more than one brand. Sign in again to choose one.';
 
 /** A sign-in that names no one customer. */
 class Ambiguous extends Error {}

@@ -97,6 +97,21 @@ test('activating sends the activation message once, with the configured link', a
   assert.equal(missing.status, 404);
 });
 
+test('a product\'s account page lists the waitlist and activates people over its binding, with no key', async () => {
+  const w = setup({ waitlistKey: '' });
+  await w.join('k1', 'ada@example.com');
+  await w.join('k2', 'bo@example.com', await referralCode('k1'));
+  const listed = await w.call('/internal/waitlist', { method: 'POST', body: '{}' });
+  const { waitlist } = await listed.json() as { waitlist: { email: string; referrals: number; activated: string | null }[] };
+  assert.deepEqual(waitlist.map((p) => [p.email, p.referrals, p.activated]), [['ada@example.com', 1, null], ['bo@example.com', 0, null]]);
+  const activate = (email: string) => w.call('/internal/activate', { method: 'POST', body: JSON.stringify({ email }) });
+  assert.deepEqual(await (await activate('ada@example.com')).json(), { email: 'ada@example.com', activated: true, sent: true });
+  assert.deepEqual(await (await activate('ada@example.com')).json(), { email: 'ada@example.com', activated: true, sent: false });
+  assert.equal(w.sent.length, 1);
+  assert.equal((await activate('zed@example.com')).status, 404);
+  assert.equal((await w.call('/internal/waitlist')).status, 404, 'only a POST, as a product makes it');
+});
+
 test('a product asks whether an address is activated, in any case', async () => {
   const w = setup();
   await w.join('k1', 'ada@example.com');

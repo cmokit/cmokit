@@ -132,11 +132,13 @@ For more than one, separate them with commas.
 
 Use the address your sign-in proves: the primary email address on your GitHub account, or your Google
 address. Facebook never counts, because CMOkit doesn't take its address as proven. The first time
-you use CMOkit after signing in, it makes a customer of your own, with you as its only user.
+you use CMOkit after signing in, you become CMOkit's customer: it makes your first brand, with you as
+its only user. You can add more brands on your account page at `app.cmokit.ai`.
 
-Once CMOkit's own site has its waitlist, you can also let people in from it: `cmokit waitlist
-activate <their address> --site https://cmokit.ai` activates them there, and the content server
-asks the site's lifecycle about them. Until the site's lifecycle is deployed, only this list counts.
+To let people in from CMOkit's own waitlist, open your account page, copy the slug after "Brand",
+save it as the variable `WAITLIST_CUSTOMER`, and deploy again. Your account page then lists the
+waitlist, most referrals first, with an Activate button for each person, which emails them their
+activation. Until the site's lifecycle is deployed, only `ACTIVATED_EMAILS` counts.
 
 To ask every user to accept the beta terms first, publish them, then save the variable `TERMS_URL`
 with their address and `TERMS_VERSION` with their version, such as the date they were published.

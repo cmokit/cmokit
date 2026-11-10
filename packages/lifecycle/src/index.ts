@@ -2,15 +2,16 @@
 // leads the edge passes it into their sequences (ADR-0014), ends a lead's sequence on a stopping
 // event, an unsubscribe or the sending service's report of a bounce or complaint, and records every
 // message's events in analytics. It keeps the site's waitlist: a form's event joins it, a maintainer
-// reads it and activates people with the waitlist key, each activation sends the activation message,
+// reads it and activates people, with the waitlist key or on the product's account page over its
+// service binding (ADR-0042), each activation sends the activation message,
 // and a product asks whether an address is activated (ADR-0014). For a product that sells a
 // subscription, it makes checkout and portal links and acts on the payment processor's events
 // (ADR-0017, subscriptions.ts). Its internal routes are reached only through service bindings; the
 // edge passes on only the public ones, under LEADS_PATH, SUBSCRIPTIONS_PATH and WAITLIST_PATH.
 
 import {
-  EMAIL, LEADS_PATH, LIFECYCLE_ACTIVATED, LIFECYCLE_CHECKOUT, LIFECYCLE_EVENT, LIFECYCLE_LEAD, LIFECYCLE_PORTAL,
-  SUBSCRIPTIONS_PATH, WAITLIST_PATH, type Resolved,
+  EMAIL, LEADS_PATH, LIFECYCLE_ACTIVATE, LIFECYCLE_ACTIVATED, LIFECYCLE_CHECKOUT, LIFECYCLE_EVENT, LIFECYCLE_LEAD, LIFECYCLE_PORTAL,
+  LIFECYCLE_WAITLIST, SUBSCRIPTIONS_PATH, WAITLIST_PATH, type Resolved,
 } from '@cmokit/cli';
 import type { Capture } from './lead.ts';
 import { render } from './render.ts';
@@ -119,6 +120,8 @@ export function createLifecycle(options: LifecycleOptions): (request: Request) =
     if (request.method === 'POST' && url.pathname === LIFECYCLE_LEAD) return lead(request);
     if (request.method === 'POST' && url.pathname === LIFECYCLE_EVENT) return event(request);
     if (request.method === 'POST' && url.pathname === LIFECYCLE_ACTIVATED) return activated(request);
+    if (request.method === 'POST' && url.pathname === LIFECYCLE_WAITLIST) return listed();
+    if (request.method === 'POST' && url.pathname === LIFECYCLE_ACTIVATE) return activateFrom(request);
     if (url.pathname === WAITLIST_PATH || url.pathname === `${WAITLIST_PATH}/activate`) return admin(request, url);
     if (url.pathname === `${LEADS_PATH}/unsubscribe`) return unsubscribe(request, url);
     if (request.method === 'POST' && url.pathname === `${LEADS_PATH}/events`) return reports(request);
@@ -170,9 +173,22 @@ export function createLifecycle(options: LifecycleOptions): (request: Request) =
     if (!(await same(given, waitlistKey))) return new Response(null, { status: 401, headers: { 'www-authenticate': 'Bearer' } });
     if (url.pathname === WAITLIST_PATH) {
       if (request.method !== 'GET') return new Response(null, { status: 405, headers: { allow: 'GET' } });
-      return Response.json({ waitlist: await waitlist.list() }, { headers: { 'cache-control': 'no-store' } });
+      return listed();
     }
     if (request.method !== 'POST') return new Response(null, { status: 405, headers: { allow: 'POST' } });
+    return activateFrom(request);
+  }
+
+  // The product's account page lists the waitlist and activates people over its service binding,
+  // which only the product's Worker has, so these internal routes carry no key (ADR-0042).
+  async function listed(): Promise<Response> {
+    if (!options.waitlist || !config.waitlist) return new Response('Not found', { status: 404 });
+    return Response.json({ waitlist: await options.waitlist.list() }, { headers: { 'cache-control': 'no-store' } });
+  }
+
+  async function activateFrom(request: Request): Promise<Response> {
+    const { waitlist } = options;
+    if (!waitlist || !config.waitlist) return new Response('Not found', { status: 404 });
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     if (typeof body.email !== 'string' || !EMAIL.test(body.email.trim())) return new Response(null, { status: 400 });
     const result = await waitlist.activate(body.email);
