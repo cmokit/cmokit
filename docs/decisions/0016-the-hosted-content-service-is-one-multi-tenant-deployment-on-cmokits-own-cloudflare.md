@@ -12,7 +12,7 @@ decision-makers: [Geoff]
 ## Context and Problem Statement
 
 A self-hosted adopter deploys the engine, per site, to its own Cloudflare account (ADR-0003). A
-hosted customer's waitlist, referral links and messages are served from CMOkit's own domains, as
+hosted customer's landing page, waitlist, referral links and messages are served by CMOkit, as
 ADR-0040 records. What is offered hosted is content production: a customer sets it up with a CMOkit
 account, a subscription and, if it sells through one, its event platform, with no Cloudflare account,
 repository or terminal of its own (`HST-01`). Content needs none of the engine (`CNT-21`).
@@ -53,7 +53,7 @@ Durable Objects already give each customer storage no other customer's request c
 > Durable Objects named by the customer's id (ADR-0030), and every request is authorized as a person
 > acting for one customer, so every call names the customer it acts on. A self-hosted deployment runs
 > the same Workers with customers of its own. The hosted services call no model. A hosted customer's
-> waitlist, referral links and messages are served from CMOkit's own domains (ADR-0040).
+> landing page, waitlist, referral links and messages are served by CMOkit (ADR-0040).
 
 The parts of the content service, and what each calls:
 
