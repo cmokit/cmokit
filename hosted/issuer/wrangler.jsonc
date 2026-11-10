@@ -12,7 +12,8 @@
   "vars": {
     "ISSUER_URL": "https://auth.cmokit.ai",
     "AUDIENCE": "https://mcp.cmokit.ai/mcp",
-    "MAIL_FROM": "signin@cmokit.ai"
+    "MAIL_FROM": "signin@cmokit.ai",
+    "APP_URL": "https://app.cmokit.ai"
   },
   // The OAuth library's grants, codes and hashed tokens. The first deploy creates the namespace.
   "kv_namespaces": [{ "binding": "OAUTH_KV" }],

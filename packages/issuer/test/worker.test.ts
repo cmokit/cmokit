@@ -415,3 +415,14 @@ test('the sign-in page cannot be framed, and escapes what the client says about 
   assert.doesNotMatch(html, /<script>x/);
   assert.match(html, /name isn't verified/);
 });
+
+test("the account page's callback is allowed only where the deployment names it", async () => {
+  const { allowedRedirect } = await import('../src/index.ts');
+  const { appRedirects } = await import('../src/worker.ts');
+  const extra = appRedirects({ APP_URL: 'https://app.cmokit.ai' } as Parameters<typeof appRedirects>[0]);
+  assert.deepEqual(extra, ['https://app.cmokit.ai/callback']);
+  assert.equal(allowedRedirect('https://app.cmokit.ai/callback', extra), true);
+  assert.equal(allowedRedirect('https://app.cmokit.ai/callback'), false);
+  assert.equal(allowedRedirect('https://app.cmokit.ai/elsewhere', extra), false);
+  assert.deepEqual(appRedirects({} as Parameters<typeof appRedirects>[0]), []);
+});

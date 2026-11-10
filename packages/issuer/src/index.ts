@@ -82,13 +82,18 @@ export interface SignInOptions<R extends AuthRequest> {
   /** The network a request came from, for the limit on codes sent. */
   network(request: Request): string;
   now?(): number;
+  /** Redirects allowed beside Claude's callback and loopback, as the account page's callback (ADR-0041). */
+  redirects?: readonly string[];
 }
 
-/** The redirects a client may name: Claude's callback over https, or a loopback address over http (ADR-0018). */
+/**
+ * The redirects a client may name: Claude's callback over https, a loopback address over http
+ * (ADR-0018), or one this deployment names for its own account page (ADR-0041).
+ */
 export const CLAUDE_CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
 
-export function allowedRedirect(uri: string): boolean {
-  if (uri === CLAUDE_CALLBACK) return true;
+export function allowedRedirect(uri: string, extra: readonly string[] = []): boolean {
+  if (uri === CLAUDE_CALLBACK || extra.includes(uri)) return true;
   let url: URL;
   try {
     url = new URL(uri);
@@ -145,7 +150,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
   async function start(request: Request): Promise<Response> {
     const parsed = await oauth.parseAuthRequest(request);
     const client = await oauth.lookupClient(parsed.clientId);
-    if (!client || !client.redirectUris.every(allowedRedirect)) {
+    if (!client || !client.redirectUris.every((uri) => allowedRedirect(uri, options.redirects))) {
       return problemPage('This app sends sign-ins somewhere CMOkit does not allow, so it cannot connect.');
     }
     return signIn(parsed, new Headers());

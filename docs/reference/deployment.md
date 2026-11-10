@@ -54,6 +54,7 @@ from `@cmokit/content`.
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
 | `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or whom the lifecycle's waitlist has activated, gets a customer of their own at their first call. |
 | `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version. When both are set, a user who has not accepted that version is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
+| `APP_URL` | Worker variable | No | Where the account page is served, as `https://app.cmokit.ai`, at a route of this Worker (ADR-0041). It needs the `ISSUER` binding and the issuer's own `APP_URL`. Without it, no account page is served. |
 
 A customer's credentials are not among these: each is entered by the customer on a one-time page of
 the content server and kept sealed in that customer's object.
@@ -74,6 +75,7 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 | `AUDIENCE` | Worker variable | Yes | The content server's `AUDIENCE`, the one audience the issuer issues tokens for. |
 | `SENDGRID_API_KEY` | Worker secret | For email codes | A SendGrid key with Mail Send access. |
 | `MAIL_FROM` | Worker variable | For email codes | The address codes come from, verified with SendGrid. |
+| `APP_URL` | Worker variable | For the account page | The content server's `APP_URL`. The issuer allows `<APP_URL>/callback` as a redirect only when it is set (ADR-0041). |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | A Google OAuth client. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Variable, secret | For GitHub | A GitHub OAuth app. |
 | `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | A Meta app with Facebook Login. |
@@ -97,7 +99,8 @@ id, which is not a secret. The `cmokit waitlist` command reads the lifecycle's `
 
 The `deploy-hosted` workflow in this repository deploys hosted CMOkit's issuer and content server
 from `hosted/` on every push to `main`, or when a maintainer runs it. Each Worker has a custom
-domain, `auth.cmokit.ai` and `mcp.cmokit.ai`, so the first deploy creates their DNS records. It
+domain, `auth.cmokit.ai` and `mcp.cmokit.ai`, and the content server also serves the account page at
+`app.cmokit.ai`, so the first deploy creates their DNS records. It
 reads these from the repository's `production` environment, which only `main` can deploy from; [Set
 up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 
@@ -113,8 +116,8 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |
 | `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | Deployed as the issuer's of the same names. |
 
-The issuer's `ISSUER_URL`, `AUDIENCE` and `MAIL_FROM`, and the content server's `ISSUER_URL` and
-`AUDIENCE`, are in their `wrangler.jsonc`. The content server's `LIFECYCLE` binding names
+The issuer's `ISSUER_URL`, `AUDIENCE`, `MAIL_FROM` and `APP_URL`, and the content server's
+`ISSUER_URL`, `AUDIENCE` and `APP_URL`, are in their `wrangler.jsonc`. The content server's `LIFECYCLE` binding names
 `cmokit-site-lifecycle`, the lifecycle Worker of CMOkit's own site, which binds back to its `Access`
 entrypoint as `PRODUCT`. Neither can be deployed first with the other's binding, so until that Worker
 exists, the workflow deploys the content server without `LIFECYCLE`, and running it again once the

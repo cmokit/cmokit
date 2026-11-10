@@ -13,10 +13,12 @@
 // accept them (ADR-0039). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
+import { handleAccount, isAccountPath, type AccountOptions } from './account.ts';
 import { Refusal } from './customer.ts';
 import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
+export type { AccountOptions } from './account.ts';
 export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece } from './customer.ts';
 export { tally, type EventSummary, type Events, type GuestFacts, type Tally } from './events.ts';
 export { PLATFORMS, trackedLink, type Platform } from './links.ts';
@@ -41,6 +43,8 @@ export interface CustomerPages {
   termsLink(person: string): Promise<{ token: string; expires: string }>;
   termsFor(token: string): Promise<boolean>;
   acceptTerms(token: string, version: string): Promise<boolean>;
+  /** Everything held for the customer, for the person to download (HST-13). */
+  exportAll(): Promise<{ json: string; markdown: string }>;
 }
 
 /** Terms every user accepts before using the server, as a closed beta's (ADR-0039). */
@@ -78,6 +82,8 @@ export interface ContentServerOptions {
   activate?(person: string): Promise<string | undefined>;
   /** Absent when users accept no terms on this server, as when it is self-hosted. */
   terms?: Terms;
+  /** The account page, at an origin of its own; absent when this server serves none (ADR-0041). */
+  account?: AccountOptions;
 }
 
 const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
@@ -94,6 +100,10 @@ const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
 const TERMS_PAGE = new RegExp(`^/customers/${SLUG}/terms$`);
 const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for the link to read and accept them.';
 const SUBSCRIPTION = '/subscription';
+const AMBIGUOUS = 'This account belongs to more than one customer. Sign in again to choose one.';
+
+/** A sign-in that names no one customer. */
+class Ambiguous extends Error {}
 
 type Message = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, any> };
 
@@ -101,6 +111,33 @@ export function createContentServer(options: ContentServerOptions) {
   return async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     let match: RegExpMatchArray | null;
+
+    // The customer a sign-in serves at the hosted address: the one the person chose when signing in,
+    // or, when they had none then, the one they have now, or one made for them when activated.
+    const served = async (checked: { person: string; customer?: string }): Promise<string | undefined> => {
+      if (checked.customer !== undefined) return checked.customer;
+      const customers = options.customersOf ? await options.customersOf(checked.person) : [];
+      if (customers.length > 1) throw new Ambiguous();
+      return customers[0] ?? (options.activate ? await options.activate(checked.person) : undefined);
+    };
+
+    const { account } = options;
+    if (account && url.origin === account.origin && isAccountPath(url.pathname)) {
+      try {
+        return await handleAccount(request, url, account, {
+          issuer: options.issuer, audience: options.audience, tokens: options.tokens, billing: options.billing, terms: options.terms,
+          customer: options.customer,
+          served: async (checked) => {
+            const slug = await served(checked);
+            if (slug !== undefined && !ONE_SLUG.test(slug)) throw new Ambiguous();
+            return slug;
+          },
+        });
+      } catch (error) {
+        if (error instanceof Ambiguous) return new Response(AMBIGUOUS, { status: 403 });
+        throw error;
+      }
+    }
 
     if ((match = url.pathname.match(METADATA))) return metadata(request, `${url.origin}/customers/${match[1]}/mcp`, options.issuer);
     if (url.pathname === HOSTED_METADATA) return metadata(request, `${url.origin}${HOSTED}`, options.issuer);
@@ -124,14 +161,15 @@ export function createContentServer(options: ContentServerOptions) {
       if (!checked || checked.audience !== options.audience) return challenge();
       // At the hosted address, the customer is the one the person chose when signing in, or, when
       // they had none then, the one they have now.
-      let served = slug ?? checked.customer;
-      if (served === undefined) {
-        const customers = options.customersOf ? await options.customersOf(checked.person) : [];
-        if (customers.length > 1) return new Response('This account belongs to more than one customer. Sign in again to choose one.', { status: 403 });
-        served = customers[0] ?? (options.activate ? await options.activate(checked.person) : undefined);
+      let chosen: string | undefined;
+      try {
+        chosen = slug ?? await served(checked);
+      } catch (error) {
+        if (error instanceof Ambiguous) return new Response(AMBIGUOUS, { status: 403 });
+        throw error;
       }
-      if (served !== undefined && !ONE_SLUG.test(served)) return new Response('This sign-in names no customer. Sign in again.', { status: 403 });
-      const customer = served === undefined ? undefined : options.customer(served);
+      if (chosen !== undefined && !ONE_SLUG.test(chosen)) return new Response('This sign-in names no customer. Sign in again.', { status: 403 });
+      const customer = chosen === undefined ? undefined : options.customer(chosen);
       if (customer && !(await customer.isUser(checked.person))) {
         return new Response('This account is not a user of this customer.', { status: 403 });
       }
@@ -152,7 +190,7 @@ export function createContentServer(options: ContentServerOptions) {
         const held = await customer.billing();
         return held ? billing.portal(held, back('managed')) : undefined;
       } : undefined;
-      const base = `${url.origin}/customers/${served}`;
+      const base = `${url.origin}/customers/${chosen}`;
       const { terms } = options;
       const unaccepted = terms && !(await customer.termsAccepted(checked.person, terms.version)) ? async () => {
         const { token, expires } = await customer.termsLink(checked.person);

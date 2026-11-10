@@ -8,10 +8,11 @@ You enter every key yourself. A key never goes in a chat, an email, an issue or 
 repository. GitHub keeps each one as an encrypted secret, and the deploy hands it to the Worker that
 needs it (ADR-0008).
 
-When you're done, there are two addresses:
+When you're done, there are three addresses:
 
 - `https://auth.cmokit.ai`, the sign-in page (the issuer).
 - `https://mcp.cmokit.ai/mcp`, the address people add to Claude (the content server).
+- `https://app.cmokit.ai`, where people see their account (the content server's account page).
 
 You set up no DNS for them. Each one is a Worker custom domain, so the first deploy creates its DNS
 record and certificate in Cloudflare.

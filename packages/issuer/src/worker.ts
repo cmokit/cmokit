@@ -36,6 +36,8 @@ export interface IssuerEnv {
   GITHUB_CLIENT_SECRET?: string;
   META_APP_ID?: string;
   META_APP_SECRET?: string;
+  /** Where the content server serves the account page, as https://app.cmokit.ai (ADR-0041). A variable. */
+  APP_URL?: string;
 }
 
 export interface DurableObjectNamespace {
@@ -118,7 +120,7 @@ export function authorizationServer(env: IssuerEnv): OAuthAuthorizationServer<Is
       clientRegistrationEndpoint: '/register',
       clientRegistrationCallback: ({ clientMetadata }) => {
         const uris = clientMetadata.redirect_uris;
-        if (!Array.isArray(uris) || uris.length === 0 || !uris.every((uri) => typeof uri === 'string' && allowedRedirect(uri))) {
+        if (!Array.isArray(uris) || uris.length === 0 || !uris.every((uri) => typeof uri === 'string' && allowedRedirect(uri, appRedirects(env)))) {
           return { code: 'invalid_redirect_uri', description: "Redirects are allowed only to Claude's callback or a loopback address", status: 400 };
         }
       },
@@ -126,6 +128,11 @@ export function authorizationServer(env: IssuerEnv): OAuthAuthorizationServer<Is
     servers.set(key, server);
   }
   return server;
+}
+
+/** The account page's callback, the one redirect beside Claude's and loopback this deployment allows. */
+export function appRedirects(env: IssuerEnv): string[] {
+  return env.APP_URL ? [`${new URL(env.APP_URL).origin}/callback`] : [];
 }
 
 function signInFor(env: IssuerEnv) {
@@ -153,6 +160,7 @@ function signInFor(env: IssuerEnv) {
     mail: env.SENDGRID_API_KEY && env.MAIL_FROM ? sendgridCodes({ key: env.SENDGRID_API_KEY, from: env.MAIL_FROM }) : undefined,
     providers: providersFor(env),
     network: (request) => request.headers.get('cf-connecting-ip') ?? 'unknown',
+    redirects: appRedirects(env),
   });
 }
 
