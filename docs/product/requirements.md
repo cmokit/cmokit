@@ -76,7 +76,7 @@ requirements cite no decision record.
 |---|---|---|---|
 | **CUS-01** | A customer is who pays: one customer at the payment processor, with one or more users. A person may be a user of several customers. A product without organizations has customers of one user. | Must | Proposed |
 | **CUS-02** | Every subscription, credit grant, credit balance and change of access belongs to a customer. | Must | Proposed |
-| **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. | Must | Proposed |
+| **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. A person activated without paying, as in a closed beta, gets a customer of their own at their first use, with them as its first user. | Must | Proposed |
 | **CUS-04** | Revenue from a customer is attributed to the channel and variant of the person who converted it. A user who joins later is attributed to the invitation that brought them. | Must | Proposed |
 | **CUS-05** | Billing and credit balance messages go to a customer's billing contacts. Product messages go to its users. | Must | Proposed |
 

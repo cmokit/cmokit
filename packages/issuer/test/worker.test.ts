@@ -189,6 +189,8 @@ test('an email code signs a person in, and the token names them and their custom
     const person = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string }).result;
     assert.deepEqual((await worker.validateToken(AUDIENCE, none))!.props, { person, customer: null });
     assert.deepEqual(await worker.customers(person), []);
+    // The address the code proved is what activation without a checkout is decided by (CUS-03).
+    assert.equal(await worker.email(person), 'ada@example.com');
 
     // The lifecycle makes acme for them at checkout, through the content server.
     await worker.addCustomer(person, 'acme');

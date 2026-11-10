@@ -95,7 +95,11 @@ jobs:
             ' "$config"
             echo "::notice::The billing lifecycle (cmokit-site-lifecycle) is not deployed yet, so subscriptions are off. Run this workflow again once it is."
           fi
-          npx wrangler deploy --config "$config" --secrets-file "$secrets"
+          vars=()
+          [ -n "$ACTIVATED_EMAILS" ] && vars+=(--var "ACTIVATED_EMAILS:$ACTIVATED_EMAILS")
+          npx wrangler deploy --config "$config" --secrets-file "$secrets" "${vars[@]}"
           rm "$secrets"
+          [ -n "$ACTIVATED_EMAILS" ] || echo "::notice::Nobody is activated without a checkout; set the variable ACTIVATED_EMAILS."
         env:
           CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
+          ACTIVATED_EMAILS: ${{ vars.ACTIVATED_EMAILS }}

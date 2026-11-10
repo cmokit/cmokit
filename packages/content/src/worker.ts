@@ -10,7 +10,9 @@
 // (ADR-0017); the server asks the lifecycle for checkout and portal links over the LIFECYCLE binding. Every variable and secret it reads is in the deployment
 // reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
 // issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
-// binding. The only host-specific code in the content server lives here.
+// binding. A person whose proven email address is in ACTIVATED_EMAILS is made a customer of their own
+// at their first call, with no checkout (CUS-03). The only host-specific code in the content server
+// lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
@@ -32,6 +34,12 @@ export interface ContentEnv {
   ISSUER?: IssuerBinding;
   /** CMOkit's lifecycle, as a service binding, when the server sells a subscription (ADR-0017). */
   LIFECYCLE?: { fetch(input: string, init?: RequestInit): Promise<Response> };
+  /**
+   * The email addresses activated without a checkout, as in a closed beta, separated by commas or
+   * spaces. A person whose proven address is one of them gets a customer of their own at their first
+   * call. A variable.
+   */
+  ACTIVATED_EMAILS?: string;
 }
 
 /** What CMOkit's issuer offers the content server over its service binding. */
@@ -40,6 +48,8 @@ export interface IssuerBinding {
   /** The customers a person is a user of. */
   customers(person: string): Promise<string[]>;
   addCustomer(person: string, customer: string): Promise<void>;
+  /** The email address a person proved when signing in, if any. */
+  email(person: string): Promise<string | null>;
 }
 
 // The lifecycle's own routes, as @cmokit/cli names them; the content server does not depend on it.
@@ -60,6 +70,17 @@ export function lifecycleBilling(env: ContentEnv): Billing | undefined {
     checkout: (person, { successUrl, cancelUrl }) => ask(LIFECYCLE_CHECKOUT, { person, successUrl, cancelUrl }),
     portal: (billing, returnUrl) => ask(LIFECYCLE_PORTAL, { billing, returnUrl }),
   };
+}
+
+/** The addresses in ACTIVATED_EMAILS, in lower case. */
+export function activatedEmails(env: ContentEnv): Set<string> {
+  return new Set((env.ACTIVATED_EMAILS ?? '').split(/[\s,]+/).map((a) => a.trim().toLowerCase()).filter(Boolean));
+}
+
+/** A person's own customer's slug, the same every time, so activating them twice makes one customer. */
+export async function activatedSlug(person: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`activated ${person}`)));
+  return `c${[...digest].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 15)}`;
 }
 
 /** Checks tokens with CMOkit's own issuer, for the content server's audience alone. */
@@ -97,7 +118,7 @@ export interface CustomerClass {
 
 /** The calls the Worker may make on a customer's object. */
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
-  'access', 'billing', 'linkFor', 'connect', 'provision', 'setAccess'] as const;
+  'access', 'billing', 'linkFor', 'connect', 'provision', 'setAccess', 'addUser'] as const;
 type Call = (typeof CALLS)[number];
 
 export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }) {
@@ -123,7 +144,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
     }
   }
 
-  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess'>;
+  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser'>;
   const customerFor = (env: ContentEnv, slug: string): CustomerCalls & CustomerPages & CustomerAdmin => {
     const stub = env.CUSTOMERS.get(env.CUSTOMERS.idFromName(slug));
     const call = async (name: Call, ...args: unknown[]) => {
@@ -152,6 +173,21 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
     }
   }
 
+  /** Makes a customer for a person whose proven address is activated, with them as its first user. */
+  const activation = (env: ContentEnv) => {
+    const issuer = env.ISSUER;
+    const activated = activatedEmails(env);
+    if (!issuer || activated.size === 0) return undefined;
+    return async (person: string): Promise<string | undefined> => {
+      const email = await issuer.email(person);
+      if (!email || !activated.has(email.toLowerCase())) return undefined;
+      const slug = await activatedSlug(person);
+      await customerFor(env, slug).addUser(person);
+      await issuer.addCustomer(person, slug);
+      return slug;
+    };
+  };
+
   const worker = {
     async fetch(request: Request, env: ContentEnv): Promise<Response> {
       const handle = createContentServer({
@@ -161,6 +197,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         customer: (slug) => customerFor(env, slug),
         customersOf: env.ISSUER ? (person) => env.ISSUER!.customers(person) : undefined,
         billing: lifecycleBilling(env),
+        activate: activation(env),
       });
       return handle(request);
     },

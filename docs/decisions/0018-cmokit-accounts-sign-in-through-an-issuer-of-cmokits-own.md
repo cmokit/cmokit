@@ -92,7 +92,9 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > provider and its stable subject id, or an email address proven by code. Accounts are never merged
 > by matching email; a signed-in person adds another way in themselves, and a proven email address
 > lets them back in when a provider fails them. The first sign-in creates the account, which becomes
-> a user of a customer at that customer's first checkout (ADR-0017) or by invitation.
+> a user of a customer at that customer's first checkout (ADR-0017), by invitation, or, for a person
+> activated without a checkout, at their first call (ADR-0017). Activation is decided by the email
+> address the person proved; a provider's address counts only when the provider says it is verified.
 >
 > The issuer registers Claude by its Client ID Metadata Document. A client that cannot register that
 > way, such as a coding agent reading the brand context, registers dynamically. Either way, it accepts

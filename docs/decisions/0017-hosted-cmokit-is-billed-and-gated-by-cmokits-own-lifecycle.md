@@ -57,6 +57,11 @@ CMOkit's own billing through it is the most direct test of it there is.
 > its subscription changes (`SUB-04`). Revoked access stops the hosted tools that read and write the
 > customer's records; the person can still sign in, pay and export (`HST-13`). Plans grant no
 > credits, and nothing is metered.
+>
+> A person can also be activated without a checkout, as in a closed beta. Hosted CMOkit's operator
+> lists the email addresses activated, and a signed-in person whose proven address is listed gets a
+> customer of their own at their first call, with them as its first user and no billing (`CUS-03`).
+> Its access is active, and the lifecycle never changes it, since no subscription names it.
 
 ### Consequences
 
@@ -66,11 +71,15 @@ CMOkit's own billing through it is the most direct test of it there is.
 * Bad, because the hosted offering cannot charge before the lifecycle's subscription handling exists.
 * Neutral, because adding credits later is configuration (`CRD-02`), not a change to the hosted
   services.
+* Neutral, because a customer activated without a checkout has no subscription, so turning it into
+  a paying one later is a checkout of its own, which this record does not yet describe.
 
 ### Confirmation
 
 The lifecycle's own tests cover the subscription events. A test of the hosted services asserts that a
-revoked customer's write tools refuse, and that its sign-in, checkout and export still work.
+revoked customer's write tools refuse, and that its sign-in, checkout and export still work. A test
+of the content server's Worker asserts that an activated address gets one customer at its first
+call, and that any other address is offered only the subscription.
 
 ## Pros and Cons of the Options
 
@@ -113,3 +122,4 @@ and nothing in the hosted services depends on how access was decided.
   usage needs credits.
 * A hosted feature arrives whose cost scales with use, such as sending email on a customer's behalf.
 * Sales tax obligations outgrow what the payment processor collects.
+* The closed beta ends, or activation moves from the operator's list to the waitlist.
