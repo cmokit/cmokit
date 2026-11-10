@@ -1,6 +1,7 @@
 // One customer's records, as its Durable Object holds them (ADR-0030): its users, its access, its
 // connections with their credentials sealed, the brand context's versions (ADR-0023), and its pieces
-// with their signals (ADR-0025) and result counts. Events are never stored; they are read from the
+// with their signals (ADR-0025) and result counts, and its waitlist with the sites allowed to join it
+// (ADR-0043). Events are never stored; they are read from the
 // event platform when a plan is made or results are read (ADR-0032). Written against the SQL
 // interface, so it runs on the Durable Object's storage and on Node's SQLite alike.
 
@@ -113,8 +114,20 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS signals (piece TEXT NOT NULL, at INTEGER NOT NULL, kind TEXT NOT NULL,
     person TEXT NOT NULL, data TEXT NOT NULL)`,
   'CREATE TABLE IF NOT EXISTS terms (person TEXT NOT NULL, version TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (person, version))',
+  `CREATE TABLE IF NOT EXISTS waitlist (email TEXT PRIMARY KEY, shown TEXT NOT NULL, joined_at INTEGER NOT NULL,
+    code TEXT NOT NULL UNIQUE, referred_by TEXT, activated_at INTEGER)`,
 ];
-const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms'];
+const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist'];
+/** The most site addresses a brand's waitlist accepts joins from. */
+const MAX_SITES = 10;
+
+/** A person on a brand's waitlist, as its users see it. */
+export interface WaitlistEntry {
+  email: string;
+  joined: string;
+  referrals: number;
+  activated: string | null;
+}
 /** The one-time link to accept the server's terms is kept with the links to connect a vendor. */
 const TERMS = 'terms';
 
@@ -513,6 +526,61 @@ export class Customer {
     };
   }
 
+  // The waitlist (LEAD-04, ADR-0043). Joining gives no access; a user of the brand activates each person.
+
+  /** The site addresses, as https origins, whose pages may add people to the waitlist. */
+  async waitlistSites(): Promise<string[]> {
+    return JSON.parse(this.#setting('waitlist_sites') ?? '[]') as string[];
+  }
+
+  /** Sets the site addresses whose pages may add people; each is kept as its https origin. */
+  async waitlistSetSites(sites: string[]): Promise<string[]> {
+    const origins = [...new Set(sites.map((site) => site.trim()).filter(Boolean).map(siteOrigin))];
+    if (origins.length > MAX_SITES) throw new Refusal(`A waitlist takes joins from at most ${MAX_SITES} site addresses.`);
+    this.#set('waitlist_sites', JSON.stringify(origins));
+    return origins;
+  }
+
+  /**
+   * Puts a person on the waitlist, or finds them there, and returns their referral code. A code they
+   * arrived with counts toward its owner only when it is another person's on this list.
+   */
+  async waitlistJoin(email: string, ref?: string): Promise<{ code: string; joined: boolean }> {
+    const key = email.trim().toLowerCase();
+    const found = this.#sql.all('SELECT code FROM waitlist WHERE email = ?', key)[0];
+    if (found) return { code: found.code as string, joined: false };
+    const referrer = ref ? this.#sql.all('SELECT code FROM waitlist WHERE code = ?', ref)[0] : undefined;
+    const code = randomToken().replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
+    this.#sql.all('INSERT INTO waitlist (email, shown, joined_at, code, referred_by, activated_at) VALUES (?, ?, ?, ?, ?, NULL)',
+      key, email.trim(), this.#now(), code, (referrer?.code as string | undefined) ?? null);
+    return { code, joined: true };
+  }
+
+  /** Everyone on the waitlist, most referrals first, then who joined first. */
+  async waitlistList(): Promise<WaitlistEntry[]> {
+    return this.#sql.all(`SELECT w.shown, w.joined_at, w.activated_at,
+        (SELECT COUNT(*) FROM waitlist r WHERE r.referred_by = w.code) AS referrals
+      FROM waitlist w ORDER BY referrals DESC, w.joined_at ASC, w.rowid ASC`).map((row) => ({
+      email: row.shown as string,
+      joined: iso(row.joined_at as number),
+      referrals: Number(row.referrals),
+      activated: row.activated_at === null ? null : iso(row.activated_at as number),
+    }));
+  }
+
+  /** Activates a person on the waitlist; found is false for an address not on it. Safe to repeat. */
+  async waitlistActivate(email: string): Promise<{ found: boolean }> {
+    const key = email.trim().toLowerCase();
+    if (this.#sql.all('SELECT 1 FROM waitlist WHERE email = ?', key).length === 0) return { found: false };
+    this.#sql.all('UPDATE waitlist SET activated_at = ? WHERE email = ? AND activated_at IS NULL', this.#now(), key);
+    return { found: true };
+  }
+
+  /** Whether a user of the brand activated this address on its waitlist. */
+  async waitlistActivated(email: string): Promise<boolean> {
+    return this.#sql.all('SELECT 1 FROM waitlist WHERE email = ? AND activated_at IS NOT NULL', email.trim().toLowerCase()).length > 0;
+  }
+
   // Export and closing (ADR-0030).
 
   async exportAll(): Promise<{ json: string; markdown: string }> {
@@ -524,6 +592,7 @@ export class Customer {
         .map((r) => ({ vendor: r.vendor, calendar: r.identifier, name: r.name, connected: iso(r.connected_at as number) })),
       brand: await this.brandHistory(),
       terms: this.#sql.all('SELECT person, version, at FROM terms').map((r) => ({ person: r.person, version: r.version, accepted: iso(r.at as number) })),
+      waitlist: { sites: await this.waitlistSites(), people: await this.waitlistList() },
       pieces: await Promise.all(pieces.map(async (p) => ({ ...p, signals: await this.signals(p.id) }))),
     };
     const lines = [`# Brand context, version ${version}`, ''];
@@ -540,6 +609,15 @@ export class Customer {
   async erase(): Promise<void> {
     for (const table of TABLES) this.#sql.all(`DELETE FROM ${table}`);
   }
+}
+
+/** A site address as its https origin, as https://example.com, from what a person typed. */
+function siteOrigin(site: string): string {
+  const typed = /^[a-z][a-z0-9+.-]*:\/\//i.test(site) ? site : `https://${site}`;
+  if (!URL.canParse(typed)) throw new Refusal(`${site} is not a site address.`);
+  const url = new URL(typed);
+  if (url.protocol !== 'https:' || url.username || url.password) throw new Refusal(`${site} must be an https address.`);
+  return url.origin;
 }
 
 function offers(list: Offer[]): Offer[] {

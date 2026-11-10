@@ -18,7 +18,7 @@ registerHooks({
   },
 });
 
-const { activatedEmails, activatedSlug, brandSlug, createContentWorker, issuerTokens, lifecycleBilling, lifecycleWaitlist, waitlistActivated } = await import('../src/worker.ts');
+const { activatedEmails, activatedSlug, brandSlug, createContentWorker, issuerTokens, lifecycleBilling } = await import('../src/worker.ts');
 
 test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
   const { worker, Customer } = createContentWorker({
@@ -159,14 +159,8 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
   const env = {
     ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY,
     ACTIVATED_EMAILS: ' ada@example.com,  someone@example.com ',
-    // The site's waitlist, where a maintainer activated Dee.
-    LIFECYCLE: {
-      fetch: async (input: string, init?: RequestInit) => {
-        assert.equal(input, 'https://lifecycle.internal/internal/activated');
-        const { email } = JSON.parse(String(init?.body)) as { email: string };
-        return Response.json({ activated: email.toLowerCase() === 'dee@example.com' });
-      },
-    },
+    // CMOkit's own brand, on whose waitlist a user activated Dee.
+    WAITLIST_CUSTOMER: 'cmokit-own',
     ISSUER: {
       validateToken: async () => null,
       customers: async (person: string) => theirs[person] ?? [],
@@ -199,6 +193,11 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
     return ((await response.json()) as { result: { tools: { name: string }[] } }).result.tools.map((t) => t.name);
   };
 
+  const own = (call: string, ...args: unknown[]) => env.CUSTOMERS.get('cmokit-own').fetch(`https://customer/${call}`, { method: 'POST', body: JSON.stringify(args) });
+  await own('waitlistJoin', 'Dee@example.com');
+  await own('waitlistJoin', 'bob@example.com');
+  await own('waitlistActivate', 'dee@example.com');
+
   assert.deepEqual(activatedEmails(env), new Set(['ada@example.com', 'someone@example.com']));
   const slug = await activatedSlug('ada');
   assert.match(slug, /^c[0-9a-f]{15}$/);
@@ -208,57 +207,17 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
   assert.ok((await tools('ta')).length > 1);
   assert.deepEqual(theirs.ada, [slug]);
   assert.ok((await tools('ta')).length > 1);
-  assert.deepEqual([...objects.keys()], [slug]);
+  assert.deepEqual([...objects.keys()], ['cmokit-own', slug]);
 
   // Bob's address is not activated, and Cy proved none: each is offered account_status alone.
   assert.deepEqual(await tools('tb'), ['account_status']);
   assert.deepEqual(await tools('tc'), ['account_status']);
-  assert.equal(theirs.bob, undefined);
-  assert.deepEqual([...objects.keys()], [slug]);
+  assert.equal(theirs.bob, undefined, 'on the waitlist but not activated');
+  assert.deepEqual([...objects.keys()], ['cmokit-own', slug]);
 
-  // Dee was activated on the waitlist, not in ACTIVATED_EMAILS: her first call makes her customer too.
+  // Dee was activated on CMOkit's own waitlist, not in ACTIVATED_EMAILS: her first call makes her customer too.
   assert.ok((await tools('td')).length > 1);
   assert.deepEqual(theirs.dee, [await activatedSlug('dee')]);
-});
-
-test('waitlistActivated reads the lifecycle\'s answer, and says no when it cannot', async () => {
-  const answering = (response: Response) => ({ fetch: async () => response });
-  assert.equal(await waitlistActivated(answering(Response.json({ activated: true })), 'a@example.com'), true);
-  assert.equal(await waitlistActivated(answering(Response.json({ activated: false })), 'a@example.com'), false);
-  assert.equal(await waitlistActivated(answering(new Response(null, { status: 404 })), 'a@example.com'), false);
-});
-
-test('lifecycleWaitlist lists the site\'s waitlist and activates people over the binding, for the brand that owns it', async () => {
-  assert.equal(lifecycleWaitlist({} as ContentEnv), undefined);
-  const asked: { url: string; body: unknown }[] = [];
-  const LIFECYCLE = {
-    fetch: async (url: string, init?: RequestInit) => {
-      const body = JSON.parse(String(init!.body)) as { email?: string };
-      asked.push({ url, body });
-      if (url.endsWith('/internal/waitlist')) {
-        return Response.json({ waitlist: [{ email: 'cy@example.com', joined: '2026-11-09T10:00:00.000Z', code: 'abc', referredBy: null, referrals: 2, activated: null }] });
-      }
-      if (body.email === 'zed@example.com') return Response.json({ activated: false }, { status: 404 });
-      return Response.json({ email: body.email, activated: true, sent: true });
-    },
-  };
-  assert.equal(lifecycleWaitlist({ LIFECYCLE } as unknown as ContentEnv), undefined, 'no owner, no waitlist on the page');
-  const waitlist = lifecycleWaitlist({ LIFECYCLE, WAITLIST_CUSTOMER: ' cmokit-1a2b3c ' } as unknown as ContentEnv)!;
-  assert.equal(waitlist.owner, 'cmokit-1a2b3c');
-  assert.deepEqual(await waitlist.list(), [{ email: 'cy@example.com', joined: '2026-11-09T10:00:00.000Z', referrals: 2, activated: null }]);
-  assert.deepEqual(await waitlist.activate('cy@example.com'), { found: true, sent: true });
-  assert.deepEqual(await waitlist.activate('zed@example.com'), { found: false, sent: false });
-  assert.deepEqual(asked.map((a) => a.url), [
-    'https://lifecycle.internal/internal/waitlist', 'https://lifecycle.internal/internal/activate', 'https://lifecycle.internal/internal/activate',
-  ]);
-});
-
-test('a lifecycle with no waitlist, or too old to know the route, is not read as a missing address', async () => {
-  for (const answer of [new Response('Not found', { status: 404 }), Response.json({ waitlist: null }, { status: 404 })]) {
-    const LIFECYCLE = { fetch: async () => answer.clone() };
-    const waitlist = lifecycleWaitlist({ LIFECYCLE, WAITLIST_CUSTOMER: 'cmokit-1a2b3c' } as unknown as ContentEnv)!;
-    await assert.rejects(waitlist.activate('cy@example.com'), /answered 404/);
-  }
 });
 
 test('a new brand\'s slug comes from its name, with a random end, and is always a valid slug', () => {

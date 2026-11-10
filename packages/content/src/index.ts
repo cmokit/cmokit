@@ -10,16 +10,19 @@
 // their customer, with them as its first user (CUS-03). A customer whose access has lapsed keeps
 // account_status and nothing else. When the server has terms, as a closed beta's, a user who has not
 // accepted their current version is offered account_status alone too, whose link opens the page to
-// accept them (ADR-0039). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
+// accept them (ADR-0039). Any page on a site a brand's users listed adds people to that brand's
+// waitlist at /join/<slug>, with no Worker of the site's own (ADR-0043). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { handleAccount, isAccountPath, type AccountOptions } from './account.ts';
-import { Refusal } from './customer.ts';
+import { Refusal, type WaitlistEntry } from './customer.ts';
+import { handleJoin, type JoinOptions } from './join.ts';
 import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export type { AccountOptions } from './account.ts';
-export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece } from './customer.ts';
+export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type WaitlistEntry } from './customer.ts';
+export { joinSnippet, type JoinOptions } from './join.ts';
 export { tally, type EventSummary, type Events, type GuestFacts, type Tally } from './events.ts';
 export { PLATFORMS, trackedLink, type Platform } from './links.ts';
 export type { Row, Sql } from './sql.ts';
@@ -45,6 +48,12 @@ export interface CustomerPages {
   acceptTerms(token: string, version: string): Promise<boolean>;
   /** Everything held for the customer, for the person to download (HST-13). */
   exportAll(): Promise<{ json: string; markdown: string }>;
+  /** The brand's waitlist and the site addresses allowed to join it (ADR-0043). */
+  waitlistSites(): Promise<string[]>;
+  waitlistSetSites(sites: string[]): Promise<string[]>;
+  waitlistJoin(email: string, ref?: string): Promise<{ code: string; joined: boolean }>;
+  waitlistList(): Promise<WaitlistEntry[]>;
+  waitlistActivate(email: string): Promise<{ found: boolean }>;
 }
 
 /** Terms every user accepts before using the server, as a closed beta's (ADR-0039). */
@@ -84,6 +93,8 @@ export interface ContentServerOptions {
   terms?: Terms;
   /** The account page, at an origin of its own; absent when this server serves none (ADR-0041). */
   account?: AccountOptions;
+  /** How joins to a brand's waitlist are slowed; absent, none are (ADR-0043). */
+  join?: JoinOptions;
 }
 
 const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
@@ -100,6 +111,7 @@ const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
 const TERMS_PAGE = new RegExp(`^/customers/${SLUG}/terms$`);
 const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for the link to read and accept them.';
 const SUBSCRIPTION = '/subscription';
+const JOIN = new RegExp(`^/join/${SLUG}$`);
 const AMBIGUOUS = 'This account has more than one brand. Sign in again to choose one.';
 
 /** A sign-in that names no one customer. */
@@ -147,6 +159,7 @@ export function createContentServer(options: ContentServerOptions) {
       return options.terms ? acceptPage(request, url, options.customer(match[1]), options.terms) : new Response('Not found', { status: 404 });
     }
     if (url.pathname === SUBSCRIPTION && request.method === 'GET') return subscriptionPage(url.searchParams.get('s') ?? '');
+    if ((match = url.pathname.match(JOIN))) return handleJoin(request, options.customer(match[1]), options.join);
 
     const slug = url.pathname.match(MCP)?.[1];
     if (slug !== undefined || url.pathname === HOSTED) {

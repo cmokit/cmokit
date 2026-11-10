@@ -24,5 +24,7 @@
     { "binding": "ISSUER", "service": "cmokit-issuer" },
     { "binding": "LIFECYCLE", "service": "cmokit-site-lifecycle" }
   ],
+  // Slows joins to every brand's waitlist from one address: 10 a minute (ADR-0043).
+  "ratelimits": [{ "name": "JOINS", "namespace_id": "1043", "simple": { "limit": 10, "period": 60 } }],
   "observability": { "enabled": true }
 }

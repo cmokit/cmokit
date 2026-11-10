@@ -34,10 +34,12 @@ export default worker;
 `issuerTokens` checks each token with `@cmokit/issuer`'s Worker over the `ISSUER` service binding.
 `Access` is the entrypoint the lifecycle's `PRODUCT` binding names, which makes a customer at its
 first checkout and gives or revokes its access (ADR-0017). A person whose proven email address is
-in `ACTIVATED_EMAILS`, or whom the lifecycle's waitlist has activated, becomes CMOkit's
-customer at their first call, with no checkout: the server makes their first brand, with them as
-its first user. On the account page they add more brands, and the brand `WAITLIST_CUSTOMER` names
-lists the site's waitlist and activates people from it (ADR-0042). With `TERMS_URL` and `TERMS_VERSION` set, each user
+in `ACTIVATED_EMAILS`, or who was activated on the waitlist of the brand `WAITLIST_CUSTOMER` names,
+becomes CMOkit's customer at their first call, with no checkout: the server makes their first
+brand, with them as its first user. On the account page they add more brands (ADR-0042), and each
+brand runs a waitlist of its own: its users list the brand's site addresses, paste the form the
+page gives them into any page on those sites, which posts to `/join/<brand>`, and activate people
+from the ranked list (ADR-0043). With `TERMS_URL` and `TERMS_VERSION` set, each user
 accepts the beta terms on a one-time page before using anything but `account_status`. The
 Worker's bindings, variables and secrets are in the
 [deployment reference](../../docs/reference/deployment.md).

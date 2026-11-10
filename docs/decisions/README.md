@@ -47,3 +47,4 @@ from [adr-template.md](adr-template.md).
 | [0040](0040-a-hosted-customers-landing-page-and-waitlist-are-served-by-cmokit-at-a-domain-the-customer-points-at-it.md) | A hosted customer's landing page and waitlist are served by CMOkit, at a custom domain the customer points at it | Proposed |
 | [0041](0041-the-account-page-is-served-by-the-content-server-and-signs-in-through-the-issuer-as-an-oauth-client.md) | The account page is served by the content server, and signs in through the issuer as an OAuth client | Proposed |
 | [0042](0042-hosted-cmokit-is-priced-per-brand-and-cmokits-own-account-page-activates-its-waitlist.md) | Hosted CMOkit is priced per brand, and CMOkit's own account page activates its waitlist | Proposed |
+| [0043](0043-each-brands-waitlist-is-kept-by-the-content-server-and-any-page-on-its-sites-joins-it.md) | Each brand's waitlist is kept by the content server, and any page on the brand's sites joins it | Proposed |

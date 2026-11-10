@@ -47,11 +47,8 @@ its own billing, so pricing by brand needs no new billing model, and a one-brand
 > of brands and none is billed. Marketing's starting guess for the price is $29 a month per brand,
 > to be set as configuration when paid plans start (`SUB-05`).
 >
-> The brand that the content server's `WAITLIST_CUSTOMER` names, CMOkit's own, sees the waitlist of
-> the site its `LIFECYCLE` binding names on its account page, ranked by referrals, and activates
-> people from it one by one. The content server asks the lifecycle over that binding, on internal
-> routes the edge never passes on, so no waitlist key is needed. No other brand sees that waitlist.
-> The waitlist key stays for self-hosters, who activate with `cmokit waitlist activate`.
+> The brand that the content server's `WAITLIST_CUSTOMER` names, CMOkit's own, activates people
+> into CMOkit from its waitlist on its account page. Where that waitlist is kept is ADR-0043.
 
 ### Consequences
 
@@ -59,16 +56,12 @@ its own billing, so pricing by brand needs no new billing model, and a one-brand
 * Good, because CMOkit's operator activates people in the browser, with no key or terminal.
 * Bad, because one Claude connection serves one brand at a time; switching brands means signing in
   again and choosing one, until a connection per brand is worth building.
-* Neutral, because a tenant's own waitlist, on its CMOkit-hosted landing page, is not activated
-  here (ADR-0040); that comes with the second tenant.
-* Neutral, because the internal routes need a `@cmokit/lifecycle` release after 0.2.0 and the site
-  that deploys the lifecycle Worker upgraded to it before the waitlist shows on the account page.
+* Neutral, because each brand's own waitlist, and where it is kept, is ADR-0043.
 
 ### Confirmation
 
-The account page tests show that any user of a brand adds another from the page's own form, that
-only the owning brand sees and activates the waitlist, and that the lifecycle's internal routes list
-and activate without a key.
+The account page tests show that any user of a brand adds another from the page's own form. The
+waitlist's tests are ADR-0043's.
 
 ## Pros and Cons of the Options
 

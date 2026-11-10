@@ -4,11 +4,13 @@
 // with PKCE and no secret, and keeps the token it gets in a cookie the page's scripts cannot read. It
 // shows the account, the beta terms, the connections and the current brand context, and downloads
 // everything held for the customer (HST-13). Changes are made in Claude. A user adds another brand
-// here, each a customer of its own (ADR-0042), and the customer that owns the bound site's waitlist,
-// as CMOkit's own, sees it here and activates people from it one by one. It uses the web-standard
-// Request and Response only (ADR-0003).
+// here, each a customer of its own (ADR-0042), and runs the brand's own waitlist: the site addresses
+// allowed to join it, the form to paste into them, and activating people one by one (ADR-0043). It
+// uses the web-standard Request and Response only (ADR-0003).
 
-import { accountPage, signedOutPage, type AccountView, type WaitlistEntry } from './pages.ts';
+import { Refusal } from './customer.ts';
+import { joinSnippet } from './join.ts';
+import { accountPage, signedOutPage, type AccountView } from './pages.ts';
 import type { Billing, CustomerPages, Terms, Tokens } from './index.ts';
 import type { CustomerCalls } from './tools.ts';
 
@@ -24,14 +26,8 @@ export interface AccountOptions {
    * slug (ADR-0042). Absent when users cannot add brands here.
    */
   addBrand?(person: string, name: string): Promise<string>;
-  /** The bound site's waitlist, shown only to the users of the customer that owns it (ADR-0042). */
-  waitlist?: {
-    /** The slug of the customer that owns the waitlist, as CMOkit's own. */
-    owner: string;
-    list(): Promise<WaitlistEntry[]>;
-    /** Activates a person on it and sends the activation message; found is false for someone not on it. */
-    activate(email: string): Promise<{ found: boolean; sent: boolean }>;
-  };
+  /** The slug of the brand whose waitlist lets people use CMOkit itself, as CMOkit's own (ADR-0043). */
+  cmokitWaitlist?: string;
 }
 
 /** What the account page needs from the content server around it. */
@@ -49,7 +45,7 @@ export interface AccountContext {
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/waitlist/activate']);
+const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/waitlist/activate', '/waitlist/sites']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -105,7 +101,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return response;
   }
 
-  const changes = route === 'POST /brands' || route === 'POST /waitlist/activate';
+  const changes = route === 'POST /brands' || route === 'POST /waitlist/activate' || route === 'POST /waitlist/sites';
   if (route !== 'GET /' && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too.
   if (changes && request.headers.get('origin') !== account.origin) return new Response(null, { status: 403 });
@@ -125,14 +121,21 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return seeOther('/?brand=added');
   }
 
-  const owner = account.waitlist && customer && slug === account.waitlist.owner ? account.waitlist : undefined;
   if (route === 'POST /waitlist/activate') {
-    if (!owner) return new Response('Not found', { status: 404 });
+    if (!customer) return new Response('Not found', { status: 404 });
     const email = String((await request.formData()).get('email') ?? '').trim();
-    const result = await owner.activate(email).catch(() => undefined);
-    if (!result) return seeOther('/?activated=failed');
-    const outcome = !result.found ? 'missing' : result.sent ? 'sent' : 'unsent';
-    return seeOther(`/?activated=${outcome}`);
+    const { found } = await customer.waitlistActivate(email);
+    return seeOther(`/?activated=${found ? 'done' : 'missing'}`);
+  }
+
+  if (route === 'POST /waitlist/sites') {
+    if (!customer) return new Response('Not found', { status: 404 });
+    const sites = String((await request.formData()).get('sites') ?? '').split(/[\s,]+/);
+    const saved = await customer.waitlistSetSites(sites).then(() => true, (error) => {
+      if (error instanceof Refusal) return false;
+      throw error;
+    });
+    return seeOther(`/?sites=${saved ? 'saved' : 'invalid'}`);
   }
 
   if (route === 'GET /export') {
@@ -159,8 +162,12 @@ export async function handleAccount(request: Request, url: URL, account: Account
       slug,
       addBrand: account.addBrand !== undefined,
     };
-    // Until the site's lifecycle has these routes, the page still shows, and says the list can't be read.
-    if (owner) view.customer.waitlist = await owner.list().catch(() => 'unavailable' as const);
+    view.customer.waitlist = {
+      people: await customer.waitlistList(),
+      sites: await customer.waitlistSites(),
+      snippet: joinSnippet(`${account.origin}/join/${slug}`),
+      grantsCmokit: slug === account.cmokitWaitlist,
+    };
     const { terms, billing } = context;
     if (terms) {
       const accepted = await customer.termsAccepted(checked.person, terms.version);
@@ -180,10 +187,11 @@ function notice(url: URL): string | undefined {
   if (brand === 'added') return 'Your new brand is ready. To use it, sign in again here or reconnect CMOkit in Claude, and choose it.';
   if (brand === 'invalid') return 'A brand name is 1 to 60 letters, numbers, spaces and . & \' -.';
   const activated = url.searchParams.get('activated');
-  if (activated === 'sent') return 'Activated. CMOkit emailed them.';
-  if (activated === 'unsent') return 'Activated, but the activation email could not be sent, so tell them yourself.';
+  if (activated === 'done') return 'Activated. CMOkit sends no email yet, so tell them yourself.';
   if (activated === 'missing') return 'That address is not on the waitlist.';
-  if (activated === 'failed') return "The waitlist could not be reached, so nobody was activated. The site's lifecycle may not be set up yet, or may need a newer release.";
+  const sites = url.searchParams.get('sites');
+  if (sites === 'saved') return 'Site addresses saved.';
+  if (sites === 'invalid') return 'Each site address must be an https address, such as https://example.com, and there can be at most 10.';
   return undefined;
 }
 

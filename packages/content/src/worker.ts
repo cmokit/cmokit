@@ -10,12 +10,12 @@
 // (ADR-0017); the server asks the lifecycle for checkout and portal links over the LIFECYCLE binding. Every variable and secret it reads is in the deployment
 // reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
 // issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
-// binding. A person whose proven email address is in ACTIVATED_EMAILS, or whom a maintainer activated
-// on the site's waitlist, which the server asks the lifecycle about, becomes CMOkit's customer at their
-// first call, with no checkout: the server makes their first brand, with them as its first user (CUS-03,
-// ADR-0014). On the account page they add more brands, and the brand WAITLIST_CUSTOMER names, CMOkit's
-// own, lists the site's waitlist and activates people from it (ADR-0042). The only host-specific code
-// in the content server lives here.
+// binding. A person whose proven email address is in ACTIVATED_EMAILS, or whom a user of the brand
+// WAITLIST_CUSTOMER names, CMOkit's own, activated on that brand's waitlist, becomes CMOkit's customer
+// at their first call, with no checkout: the server makes their first brand, with them as its first
+// user (CUS-03, ADR-0043). On the account page they add more brands (ADR-0042), and each brand runs a
+// waitlist of its own that any page on its sites joins (ADR-0043); the JOINS rate limit, when bound,
+// slows joins from one address. The only host-specific code in the content server lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
@@ -50,10 +50,12 @@ export interface ContentEnv {
   /** Where the account page is served, as https://app.cmokit.ai; no account page without it (ADR-0041). A variable. */
   APP_URL?: string;
   /**
-   * The slug of the brand that owns the LIFECYCLE site's waitlist, as CMOkit's own; its users see the
-   * waitlist on the account page and activate people from it (ADR-0042). A variable.
+   * The slug of the brand, CMOkit's own, whose waitlist lets people use CMOkit: a person activated on
+   * it becomes CMOkit's customer at their first call (ADR-0043). A variable.
    */
   WAITLIST_CUSTOMER?: string;
+  /** A Workers rate limit, keyed by the joining visitor's address, that slows joins to waitlists. */
+  JOINS?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 
 /** What CMOkit's issuer offers the content server over its service binding. */
@@ -72,9 +74,6 @@ export interface IssuerBinding {
 const LIFECYCLE_ORIGIN = 'https://lifecycle.internal';
 const LIFECYCLE_CHECKOUT = '/internal/checkout';
 const LIFECYCLE_PORTAL = '/internal/portal';
-const LIFECYCLE_ACTIVATED = '/internal/activated';
-const LIFECYCLE_WAITLIST = '/internal/waitlist';
-const LIFECYCLE_ACTIVATE = '/internal/activate';
 
 /** The lifecycle's checkout and portal links, over its service binding. */
 export function lifecycleBilling(env: ContentEnv): Billing | undefined {
@@ -88,45 +87,6 @@ export function lifecycleBilling(env: ContentEnv): Billing | undefined {
   return {
     checkout: (person, { successUrl, cancelUrl }) => ask(LIFECYCLE_CHECKOUT, { person, successUrl, cancelUrl }),
     portal: (billing, returnUrl) => ask(LIFECYCLE_PORTAL, { billing, returnUrl }),
-  };
-}
-
-/** Whether a maintainer activated this address on the site's waitlist; false when the lifecycle cannot say. */
-export async function waitlistActivated(lifecycle: NonNullable<ContentEnv['LIFECYCLE']>, email: string): Promise<boolean> {
-  const response = await lifecycle.fetch(`${LIFECYCLE_ORIGIN}${LIFECYCLE_ACTIVATED}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }),
-  });
-  if (!response.ok) return false;
-  return ((await response.json()) as { activated?: boolean }).activated === true;
-}
-
-/** The LIFECYCLE site's waitlist, for the account page of the brand WAITLIST_CUSTOMER names (ADR-0042). */
-export function lifecycleWaitlist(env: ContentEnv): AccountOptions['waitlist'] {
-  const lifecycle = env.LIFECYCLE;
-  const owner = env.WAITLIST_CUSTOMER?.trim();
-  if (!lifecycle || !owner) return undefined;
-  const post = (path: string, body: object) => lifecycle.fetch(`${LIFECYCLE_ORIGIN}${path}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
-  });
-  return {
-    owner,
-    async list() {
-      const response = await post(LIFECYCLE_WAITLIST, {});
-      if (!response.ok) throw new Error(`The lifecycle answered ${response.status}`);
-      const { waitlist } = await response.json() as { waitlist: { email: string; joined: string; referrals: number; activated: string | null }[] };
-      return waitlist.map(({ email, joined, referrals, activated }) => ({ email, joined, referrals, activated }));
-    },
-    async activate(email) {
-      const response = await post(LIFECYCLE_ACTIVATE, { email });
-      // Only the lifecycle's own answer says an address is not on the list. A bare 404 comes from a
-      // lifecycle with no waitlist or one too old to know the route, so the list was not reached.
-      if (response.status === 404) {
-        const answer = await response.json().catch(() => undefined) as { activated?: unknown } | undefined;
-        if (answer?.activated === false) return { found: false, sent: false };
-      }
-      if (!response.ok) throw new Error(`The lifecycle answered ${response.status}`);
-      return { found: true, sent: ((await response.json()) as { sent?: boolean }).sent === true };
-    },
   };
 }
 
@@ -183,7 +143,8 @@ export interface CustomerClass {
 
 /** The calls the Worker may make on a customer's object. */
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
-  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll'] as const;
+  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
+  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated'] as const;
 type Call = (typeof CALLS)[number];
 
 /** The account page, at APP_URL, signing in through the issuer over its service binding (ADR-0041). */
@@ -231,7 +192,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
     }
   }
 
-  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser'>;
+  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser' | 'waitlistActivated'>;
   const customerFor = (env: ContentEnv, slug: string): CustomerCalls & CustomerPages & CustomerAdmin => {
     const stub = env.CUSTOMERS.get(env.CUSTOMERS.idFromName(slug));
     const call = async (name: Call, ...args: unknown[]) => {
@@ -262,17 +223,17 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
 
   /**
    * Makes a customer for a person whose proven address is activated, in ACTIVATED_EMAILS or on the
-   * site's waitlist, with them as its first user.
+   * waitlist of the brand WAITLIST_CUSTOMER names, with them as its first user.
    */
   const activation = (env: ContentEnv) => {
     const issuer = env.ISSUER;
     const activated = activatedEmails(env);
-    const lifecycle = env.LIFECYCLE;
-    if (!issuer || (activated.size === 0 && !lifecycle)) return undefined;
+    const owner = env.WAITLIST_CUSTOMER?.trim();
+    if (!issuer || (activated.size === 0 && !owner)) return undefined;
     return async (person: string): Promise<string | undefined> => {
       const email = await issuer.email(person);
       if (!email) return undefined;
-      if (!activated.has(email.toLowerCase()) && !(lifecycle && await waitlistActivated(lifecycle, email))) return undefined;
+      if (!activated.has(email.toLowerCase()) && !(owner && await customerFor(env, owner).waitlistActivated(email))) return undefined;
       const slug = await activatedSlug(person);
       await customerFor(env, slug).addUser(person);
       await issuer.addCustomer(person, slug);
@@ -293,7 +254,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         await issuer.addCustomer(person, slug);
         return slug;
       },
-      waitlist: lifecycleWaitlist(env),
+      ...(env.WAITLIST_CUSTOMER?.trim() ? { cmokitWaitlist: env.WAITLIST_CUSTOMER.trim() } : {}),
     };
   };
 
@@ -309,6 +270,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         activate: activation(env),
         ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
         account: accountWith(env),
+        join: { allow: env.JOINS ? async (key) => (await env.JOINS!.limit({ key })).success : undefined },
       });
       return handle(request);
     },
