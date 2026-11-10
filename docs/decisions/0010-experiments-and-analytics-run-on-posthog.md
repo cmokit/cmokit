@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0010: Experiments and analytics run on PostHog, behind interfaces named for each job
 
-**Requirements served:** `EXP-02`, `MSR-01`, `MSR-03`, `MSR-04`, `MSR-05`, `NFR-03`, `NFR-04`.
+**Requirements served:** `EXP-02`, `MSR-01`, `MSR-03`, `MSR-04`, `MSR-05`, `MSR-08`, `NFR-03`, `NFR-04`.
 
 ## Context and Problem Statement
 
@@ -45,6 +45,15 @@ judges them and holds the funnel they are judged by, over an API the edge calls 
 > evaluates no flags itself and records no exposures. The browser's events reach PostHog through the
 > edge, under the site's own address. Tests run against stand-ins for the interfaces, with no PostHog
 > account.
+>
+> A visit records the campaign parameters, the parameters the site names in its configuration and
+> its waitlist's referral parameter, each as a property of its own; no other query parameter is
+> recorded, so an address or a token that a link happens to carry never reaches analytics (`MSR-08`).
+> The first arrival's recorded parameters are kept in a first-party cookie, and a conversion carries
+> them wherever on the site it happens. Every URL the edge or the browser sends to analytics loses
+> its query and fragment, the browser's through PostHog's hook before an event is sent. The browser
+> client captures no clicks of its own and records no sessions.
+
 
 ### Consequences
 
@@ -91,6 +100,8 @@ that wires them do. Tests of the edge and the integration use stand-ins for the 
 **Reversal cost.** Moderate: a new adapter per interface, and history left behind in PostHog.
 
 ## Revisit when
+
+* A site needs a parameter recorded that its configuration cannot name in advance.
 
 * The flag call from the edge costs first visits noticeable time.
 * PostHog's free tier no longer covers a typical site's experiment traffic.

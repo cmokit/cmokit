@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { leadKey, resolve } from '@cmokit/cli';
+import { leadKey, referralCode, resolve, type Resolved } from '@cmokit/cli';
 import { createEdge, type AnalyticsEvent, type CapturedLead, type Lifecycle } from '../src/index.ts';
 
 const BROWSER = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 Safari/605.1.15';
@@ -12,7 +12,7 @@ const config = resolve({
   sequences: [{ name: 'welcome', start: 'signup', stop: ['trial_started'], messages: [{ template: 'welcome', after: '0m' }] }],
 });
 
-function setup(withLifecycle = true) {
+function setup(withLifecycle = true, site: Resolved = config) {
   const events: AnalyticsEvent[] = [];
   const captured: CapturedLead[] = [];
   const later: string[] = [];
@@ -27,7 +27,7 @@ function setup(withLifecycle = true) {
     },
   };
   const handle = createEdge({
-    config,
+    config: site,
     origin: async () => new Response('page', { headers: { 'content-type': 'text/html' } }),
     tools: {
       experiments: { variantFor: async () => 'b' },
@@ -58,11 +58,34 @@ test('a conversion with an address captures a lead with its variant and channel,
   const key = await leadKey('ada@example.com');
   assert.deepEqual(edge.captured, [{
     key, email: 'Ada@Example.com', visitor: 'v1', event: 'signup', origin: 'https://site.example',
-    properties: { '$feature/landing': 'b', $current_url: 'https://site.example/?utm_source=news&plan=pro', utm_source: 'news' },
+    properties: { '$feature/landing': 'b', $current_url: 'https://site.example/', utm_source: 'news' },
   }]);
   assert.match(response.headers.get('set-cookie') ?? '', new RegExp(`^cmokit_lead=${key};`));
   assert.deepEqual(edge.events[0].properties.$set, { email: 'Ada@Example.com' });
   assert.equal(edge.events[0].properties.utm_source, 'news');
+});
+
+test('a conversion carries the first arrival\'s parameters, wherever on the site it happens', async () => {
+  const edge = setup();
+  await edge.convert({ name: 'pricing_viewed' }, 'cmokit_id=v1; cmokit_from=utm_source%3Dreel%26utm_content%3Dp1');
+  assert.equal(edge.events[0].properties.utm_source, 'reel');
+  assert.equal(edge.events[0].properties.utm_content, 'p1');
+});
+
+test('joining the waitlist captures a lead with no sequence and answers with the person\'s referral link', async () => {
+  const waitlisted = resolve({
+    analytics: { posthog: { key: 'phc_test' } },
+    messaging: { from: 'hello@site.example', address: '1 Main St', sendgrid: { unsubscribeGroup: 42 } },
+    waitlist: { event: 'waitlist_joined', template: 'in', link: 'https://app.site.example/start' },
+  });
+  const edge = setup(true, waitlisted);
+  const response = await edge.convert({ name: 'waitlist_joined', email: 'ada@example.com' }, 'cmokit_id=v1; cmokit_from=ref%3Dfriend1');
+  assert.equal(response.status, 200);
+  const key = await leadKey('ada@example.com');
+  const { referral } = await response.json() as { referral: string };
+  assert.equal(referral, `https://site.example/?ref=${await referralCode(key)}`);
+  assert.equal(edge.captured.length, 1);
+  assert.equal(edge.captured[0].properties.ref, 'friend1', 'the code the person arrived with goes to the lifecycle');
 });
 
 test('a later conversion by the lead may end its sequence; others are only recorded', async () => {
@@ -85,13 +108,17 @@ test('no lead is captured without an address, for an event that starts no sequen
   assert.equal(response.headers.get('set-cookie'), null);
 });
 
-test('only the lifecycle\'s public routes, its unsubscribes and the sender\'s and payment processor\'s events, are passed on', async () => {
+test('only the lifecycle\'s public routes, its unsubscribes, the sender\'s and payment processor\'s events and the waitlist, are passed on', async () => {
   const edge = setup();
   assert.equal(await (await edge.get('/_cmokit/leads/unsubscribe?s=welcome&l=k&t=t')).text(), 'from the lifecycle');
   assert.equal((await edge.get('/_cmokit/leads/events')).status, 200);
   assert.equal((await edge.get('/_cmokit/leads/anything')).status, 404);
   assert.equal((await edge.get('/_cmokit/subscriptions/events')).status, 200);
   assert.equal((await edge.get('/_cmokit/subscriptions/anything')).status, 404);
-  assert.deepEqual(edge.forwarded, ['/_cmokit/leads/unsubscribe', '/_cmokit/leads/events', '/_cmokit/subscriptions/events']);
+  assert.equal((await edge.get('/_cmokit/waitlist')).status, 200);
+  assert.equal((await edge.get('/_cmokit/waitlist/activate')).status, 200);
+  assert.equal((await edge.get('/_cmokit/waitlist/anything')).status, 404);
+  assert.deepEqual(edge.forwarded, ['/_cmokit/leads/unsubscribe', '/_cmokit/leads/events', '/_cmokit/subscriptions/events',
+    '/_cmokit/waitlist', '/_cmokit/waitlist/activate']);
   assert.equal((await setup(false).get('/_cmokit/leads/unsubscribe')).status, 404);
 });

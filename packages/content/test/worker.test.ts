@@ -18,7 +18,7 @@ registerHooks({
   },
 });
 
-const { activatedEmails, activatedSlug, createContentWorker, issuerTokens, lifecycleBilling } = await import('../src/worker.ts');
+const { activatedEmails, activatedSlug, createContentWorker, issuerTokens, lifecycleBilling, waitlistActivated } = await import('../src/worker.ts');
 
 test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
   const { worker, Customer } = createContentWorker({
@@ -144,6 +144,7 @@ test('a person whose proven address is activated gets one customer of their own 
     ada: { token: 'ta', email: 'Ada@Example.com' },
     bob: { token: 'tb', email: 'bob@example.com' },
     cy: { token: 'tc', email: null },
+    dee: { token: 'td', email: 'Dee@example.com' },
   };
   const { worker, Customer } = createContentWorker({
     tokens: () => ({
@@ -158,6 +159,14 @@ test('a person whose proven address is activated gets one customer of their own 
   const env = {
     ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY,
     ACTIVATED_EMAILS: ' ada@example.com,  someone@example.com ',
+    // The site's waitlist, where a maintainer activated Dee.
+    LIFECYCLE: {
+      fetch: async (input: string, init?: RequestInit) => {
+        assert.equal(input, 'https://lifecycle.internal/internal/activated');
+        const { email } = JSON.parse(String(init?.body)) as { email: string };
+        return Response.json({ activated: email.toLowerCase() === 'dee@example.com' });
+      },
+    },
     ISSUER: {
       validateToken: async () => null,
       customers: async (person: string) => theirs[person] ?? [],
@@ -206,4 +215,15 @@ test('a person whose proven address is activated gets one customer of their own 
   assert.deepEqual(await tools('tc'), ['account_status']);
   assert.equal(theirs.bob, undefined);
   assert.deepEqual([...objects.keys()], [slug]);
+
+  // Dee was activated on the waitlist, not in ACTIVATED_EMAILS: her first call makes her customer too.
+  assert.ok((await tools('td')).length > 1);
+  assert.deepEqual(theirs.dee, [await activatedSlug('dee')]);
+});
+
+test('waitlistActivated reads the lifecycle\'s answer, and says no when it cannot', async () => {
+  const answering = (response: Response) => ({ fetch: async () => response });
+  assert.equal(await waitlistActivated(answering(Response.json({ activated: true })), 'a@example.com'), true);
+  assert.equal(await waitlistActivated(answering(Response.json({ activated: false })), 'a@example.com'), false);
+  assert.equal(await waitlistActivated(answering(new Response(null, { status: 404 })), 'a@example.com'), false);
 });

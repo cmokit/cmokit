@@ -26,6 +26,7 @@ requirements cite no decision record.
 | **SRV-02** | A variant is a page of the site, so a new variant is a content change rather than a change to CMOkit. | Must | Proposed |
 | **SRV-03** | A visitor sees their assigned variant on first paint, with no flash of another. | Must | Proposed |
 | **SRV-04** | A site works, showing its default variant, when every bought tool is unreachable. | Must | Proposed |
+| **SRV-05** | Every query parameter a page is requested with reaches the page unchanged, through every variant and redirect; CMOkit removes only its own preview parameter. | Must | Proposed |
 
 ## Experiments — `EXP-`
 
@@ -49,6 +50,7 @@ requirements cite no decision record.
 | **MSR-05** | Cost of acquisition and lifetime value by channel and variant are readable in one place without a warehouse. | Must | Proposed |
 | **MSR-06** | A person whose first contact is outside the site — a registry or marketplace listing, an install inside an agent — is attributed to that channel at their first step through a page CMOkit serves, such as authorization consent or checkout. | Must | Proposed |
 | **MSR-07** | Margin by channel and variant — revenue less usage at a configured cost per unit — is readable in one place without a warehouse. | Must | Proposed |
+| **MSR-08** | A visit records its campaign parameters and the functional parameters the site names in configuration, such as a referral code, and a conversion carries those of the visitor's first arrival, wherever on the site it happens. No URL sent to analytics carries a query string or fragment; the parameters a visit records travel as properties of their own. | Must | Proposed |
 
 ## Leads — `LEAD-`
 
@@ -57,6 +59,7 @@ requirements cite no decision record.
 | **LEAD-01** | A captured lead reaches the messaging tool with its channel and variant without a person acting. | Must | Proposed |
 | **LEAD-02** | No secret that can write to a bought tool is ever sent to a browser. | Must | Proposed |
 | **LEAD-03** | A lead is told what will be sent to them and can stop it in one step. | Must | Proposed |
+| **LEAD-04** | A site can keep a waitlist. Joining gives no access: a maintainer activates each person, who is then sent the site's activation message, and a product the site sells lets an activated person in. Each person on the list has a referral link of their own, and the list is ranked by how many people joined through it. | Must | Proposed |
 
 ## Subscriptions — `SUB-`
 
@@ -140,6 +143,7 @@ What CMOkit's hosted content service must do, and how a customer is set up for i
 | **HST-12** | A customer subscribes to hosted CMOkit, and manages and cancels its subscription, without contacting anyone. | Must | Proposed |
 | **HST-13** | A customer can export everything CMOkit holds for it, in a readable form, and close its account, which deletes what CMOkit holds. | Must | Proposed |
 | **HST-14** | CMOkit is its own first customer: its own site, on GitHub Pages, is built with CMOkit, and the short-form content that markets CMOkit to creators is made with the content plugin. | Must | Proposed |
+| **HST-15** | While hosted CMOkit is in a closed beta, a user accepts its beta terms, on a page of CMOkit's that the conversation links to, before using anything but their account's status, and accepts each new version of them again. | Must | Proposed |
 
 ## Content (`CNT-`)
 

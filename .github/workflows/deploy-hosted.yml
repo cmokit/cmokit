@@ -97,9 +97,13 @@ jobs:
           fi
           vars=()
           [ -n "$ACTIVATED_EMAILS" ] && vars+=(--var "ACTIVATED_EMAILS:$ACTIVATED_EMAILS")
+          [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] && vars+=(--var "TERMS_URL:$TERMS_URL" --var "TERMS_VERSION:$TERMS_VERSION")
           npx wrangler deploy --config "$config" --secrets-file "$secrets" "${vars[@]}"
           rm "$secrets"
           [ -n "$ACTIVATED_EMAILS" ] || echo "::notice::Nobody is activated without a checkout; set the variable ACTIVATED_EMAILS."
+          [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] || echo "::notice::No beta terms are asked for; set the variables TERMS_URL and TERMS_VERSION."
         env:
           CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
           ACTIVATED_EMAILS: ${{ vars.ACTIVATED_EMAILS }}
+          TERMS_URL: ${{ vars.TERMS_URL }}
+          TERMS_VERSION: ${{ vars.TERMS_VERSION }}

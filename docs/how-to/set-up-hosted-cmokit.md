@@ -133,6 +133,14 @@ Use the address your sign-in proves: the primary email address on your GitHub ac
 address. Facebook never counts, because CMOkit doesn't take its address as proven. The first time
 you use CMOkit after signing in, it makes a customer of your own, with you as its only user.
 
+Once CMOkit's own site has its waitlist, you can also let people in from it: `cmokit waitlist
+activate <their address> --site https://cmokit.ai` activates them there, and the content server
+asks the site's lifecycle about them. Until the site's lifecycle is deployed, only this list counts.
+
+To ask every user to accept the beta terms first, publish them, then save the variable `TERMS_URL`
+with their address and `TERMS_VERSION` with their version, such as the date they were published.
+When you change the terms, change the version, and everyone accepts again.
+
 ## 8. Deploy
 
 Every merge to `main` deploys: GitHub runs **deploy-hosted**, which deploys the issuer, then the

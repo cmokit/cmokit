@@ -1,5 +1,6 @@
-// The one-time page on which a person enters a key for a vendor that only issues keys (ADR-0019).
-// The key travels from the person's browser to the content server, never through a conversation.
+// The one-time pages: on one a person enters a key for a vendor that only issues keys (ADR-0019), and
+// the key travels from the person's browser to the content server, never through a conversation; on
+// another a user accepts the server's terms (ADR-0039).
 
 export function keyPage(page: { label: string; help: string; token: string; problem?: string }): Response {
   return html(`<h1>Connect ${escape(page.label)}</h1>
@@ -21,6 +22,22 @@ export function donePage(label: string, calendar: string): Response {
 
 export function gonePage(): Response {
   return html('<h1>This link has expired</h1><p>It was already used, or is more than a few minutes old. Ask Claude for a new one.</p>', 410);
+}
+
+/** The one-time page on which a user accepts the server's terms (ADR-0039). */
+export function termsPage(page: { url: string; version: string; token: string; problem?: string }): Response {
+  return html(`<h1>CMOkit beta terms</h1>
+<p>Before you use CMOkit, read <a href="${escape(page.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a> (version ${escape(page.version)}).</p>
+${page.problem ? `<p role="alert"><strong>${escape(page.problem)}</strong></p>` : ''}
+<form method="post">
+  <input type="hidden" name="t" value="${escape(page.token)}">
+  <label><input type="checkbox" name="accept" value="yes" required style="display:inline;width:auto"> I have read and accept the beta terms.</label>
+  <button type="submit">Accept</button>
+</form>`, page.problem ? 400 : 200);
+}
+
+export function acceptedPage(): Response {
+  return html('<h1>You accepted the beta terms</h1><p>Close this page and go back to Claude, and ask it to carry on.</p>', 200);
 }
 
 const SUBSCRIPTION = {

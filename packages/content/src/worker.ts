@@ -10,8 +10,9 @@
 // (ADR-0017); the server asks the lifecycle for checkout and portal links over the LIFECYCLE binding. Every variable and secret it reads is in the deployment
 // reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
 // issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
-// binding. A person whose proven email address is in ACTIVATED_EMAILS is made a customer of their own
-// at their first call, with no checkout (CUS-03). The only host-specific code in the content server
+// binding. A person whose proven email address is in ACTIVATED_EMAILS, or whom a maintainer activated
+// on the site's waitlist, which the server asks the lifecycle about, is made a customer of their own
+// at their first call, with no checkout (CUS-03, ADR-0014). The only host-specific code in the content server
 // lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
@@ -40,6 +41,10 @@ export interface ContentEnv {
    * call. A variable.
    */
   ACTIVATED_EMAILS?: string;
+  /** Where the terms every user accepts are published, as a closed beta's (ADR-0039). A variable. */
+  TERMS_URL?: string;
+  /** The terms' current version; a user accepts each new version. A variable. */
+  TERMS_VERSION?: string;
 }
 
 /** What CMOkit's issuer offers the content server over its service binding. */
@@ -56,6 +61,7 @@ export interface IssuerBinding {
 const LIFECYCLE_ORIGIN = 'https://lifecycle.internal';
 const LIFECYCLE_CHECKOUT = '/internal/checkout';
 const LIFECYCLE_PORTAL = '/internal/portal';
+const LIFECYCLE_ACTIVATED = '/internal/activated';
 
 /** The lifecycle's checkout and portal links, over its service binding. */
 export function lifecycleBilling(env: ContentEnv): Billing | undefined {
@@ -70,6 +76,15 @@ export function lifecycleBilling(env: ContentEnv): Billing | undefined {
     checkout: (person, { successUrl, cancelUrl }) => ask(LIFECYCLE_CHECKOUT, { person, successUrl, cancelUrl }),
     portal: (billing, returnUrl) => ask(LIFECYCLE_PORTAL, { billing, returnUrl }),
   };
+}
+
+/** Whether a maintainer activated this address on the site's waitlist; false when the lifecycle cannot say. */
+export async function waitlistActivated(lifecycle: NonNullable<ContentEnv['LIFECYCLE']>, email: string): Promise<boolean> {
+  const response = await lifecycle.fetch(`${LIFECYCLE_ORIGIN}${LIFECYCLE_ACTIVATED}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }),
+  });
+  if (!response.ok) return false;
+  return ((await response.json()) as { activated?: boolean }).activated === true;
 }
 
 /** The addresses in ACTIVATED_EMAILS, in lower case. */
@@ -118,7 +133,7 @@ export interface CustomerClass {
 
 /** The calls the Worker may make on a customer's object. */
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
-  'access', 'billing', 'linkFor', 'connect', 'provision', 'setAccess', 'addUser'] as const;
+  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser'] as const;
 type Call = (typeof CALLS)[number];
 
 export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }) {
@@ -173,14 +188,19 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
     }
   }
 
-  /** Makes a customer for a person whose proven address is activated, with them as its first user. */
+  /**
+   * Makes a customer for a person whose proven address is activated, in ACTIVATED_EMAILS or on the
+   * site's waitlist, with them as its first user.
+   */
   const activation = (env: ContentEnv) => {
     const issuer = env.ISSUER;
     const activated = activatedEmails(env);
-    if (!issuer || activated.size === 0) return undefined;
+    const lifecycle = env.LIFECYCLE;
+    if (!issuer || (activated.size === 0 && !lifecycle)) return undefined;
     return async (person: string): Promise<string | undefined> => {
       const email = await issuer.email(person);
-      if (!email || !activated.has(email.toLowerCase())) return undefined;
+      if (!email) return undefined;
+      if (!activated.has(email.toLowerCase()) && !(lifecycle && await waitlistActivated(lifecycle, email))) return undefined;
       const slug = await activatedSlug(person);
       await customerFor(env, slug).addUser(person);
       await issuer.addCustomer(person, slug);
@@ -198,6 +218,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         customersOf: env.ISSUER ? (person) => env.ISSUER!.customers(person) : undefined,
         billing: lifecycleBilling(env),
         activate: activation(env),
+        ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
       });
       return handle(request);
     },

@@ -15,8 +15,9 @@ secrets, and are never committed.
 
 | Name | Kind | Required | What it is |
 |---|---|---|---|
-| `LEADS` | Durable Object binding | Yes | Each lead's place in its sequence, in an object of its own. |
-| `SENDGRID_API_KEY` | Worker secret | To send messages | A SendGrid API key with Mail Send and Suppressions access. Until it is set, no lead is captured. |
+| `LEADS` | Durable Object binding | Yes | Each lead's place in its sequence, in an object of its own, and the site's waitlist, in one more. |
+| `SENDGRID_API_KEY` | Worker secret | To send messages | A SendGrid API key with Mail Send and Suppressions access. Until it is set, no lead enters a sequence and no activation message is sent; people still join a waitlist and can be activated. |
+| `WAITLIST_KEY` | Worker secret | To read or activate a waitlist | A long random string a maintainer gives the `cmokit waitlist` command as `CMOKIT_WAITLIST_KEY`. Until it is set, the waitlist can be joined but not read or activated. |
 | `SENDGRID_WEBHOOK_KEY` | Worker variable | To read SendGrid's events | The verification key of SendGrid's signed event webhook, which is public. Until it is set, the events are refused. |
 | `STRIPE_SECRET_KEY` | Worker secret | To sell a subscription | A Stripe restricted key that can write Checkout Sessions and customer portal sessions and read subscriptions. Until it and `PRODUCT` are set, there is no checkout. |
 | `STRIPE_WEBHOOK_SECRET` | Worker secret | To sell a subscription | The signing secret of the Stripe webhook endpoint. Until it is set, Stripe's events are refused. |
@@ -32,6 +33,12 @@ to `https://<the site's domain>/_cmokit/subscriptions/events`, with the
 `customer.subscription.created`, `.updated`, `.deleted`, `.paused` and `.resumed` events selected.
 The customer portal is turned on in Stripe's settings.
 
+A site with a waitlist names it in `cmokit.config.ts`, as
+`waitlist: { event, template, link, referral }`: the conversion event that joins it, the activation
+message's template, the link that message gives, and the referral parameter, `ref` unless set. The
+edge answers a join with the person's referral link. A product the site sells asks the lifecycle,
+over its service binding, whether an address is activated.
+
 ## The content server Worker
 
 The hosted content service runs it on CMOkit's own account; a self-hoster deploys the same Worker
@@ -43,9 +50,10 @@ from `@cmokit/content`.
 | `ISSUER_URL` | Worker variable | Yes | The issuer's address, named in the server's Protected Resource Metadata. |
 | `AUDIENCE` | Worker variable | Yes | The audience the issuer issues the content server's tokens for, the server's own `https://<host>/mcp`. A token for any other audience is refused. |
 | `ISSUER` | Service binding | Yes | The issuer's Worker, which checks each token and knows each person's customers. |
-| `LIFECYCLE` | Service binding | To sell a subscription | The lifecycle Worker that makes checkout and portal links. Without it, a person with no customer is told to ask whoever runs it to add them. |
+| `LIFECYCLE` | Service binding | To sell a subscription or activate from a waitlist | The lifecycle Worker that makes checkout and portal links and knows who its site's waitlist has activated. Without it, a person with no customer is told to ask whoever runs it to add them. |
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
-| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them gets a customer of their own at their first call. |
+| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or whom the lifecycle's waitlist has activated, gets a customer of their own at their first call. |
+| `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version. When both are set, a user who has not accepted that version is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
 
 A customer's credentials are not among these: each is entered by the customer on a one-time page of
 the content server and kept sealed in that customer's object.
@@ -78,10 +86,12 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 | `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template. |
 | `SENDGRID_API_KEY` | Secret | To send messages | Deployed as the lifecycle Worker's secret of the same name. |
 | `SENDGRID_WEBHOOK_KEY` | Variable | To read SendGrid's events | Deployed as the lifecycle Worker's variable of the same name. |
+| `WAITLIST_KEY` | Secret | For a waitlist | Deployed as the lifecycle Worker's secret of the same name. |
 | `POSTHOG_PERSONAL_API_KEY` | Secret | To sync experiments | A PostHog personal API key scoped to the project, with `experiment:write`, `feature_flag:write`, `query:read` and `experiment_saved_metric:read`. Read only by the `cmokit` command and its MCP server, never by the edge. |
 
 The `cmokit experiments` commands also need `analytics.posthog.project` in `cmokit.config.ts`: the project's
-id, which is not a secret.
+id, which is not a secret. The `cmokit waitlist` command reads the lifecycle's `WAITLIST_KEY` from
+`CMOKIT_WAITLIST_KEY` on the maintainer's own machine; the deploy does not need it.
 
 ## The hosted deploy
 
@@ -97,6 +107,7 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone. |
 | `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
+| `TERMS_URL`, `TERMS_VERSION` | Variables | For the closed beta | Deployed as the content server's variables of the same names. |
 | `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |

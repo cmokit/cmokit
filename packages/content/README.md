@@ -34,6 +34,8 @@ export default worker;
 `issuerTokens` checks each token with `@cmokit/issuer`'s Worker over the `ISSUER` service binding.
 `Access` is the entrypoint the lifecycle's `PRODUCT` binding names, which makes a customer at its
 first checkout and gives or revokes its access (ADR-0017). A person whose proven email address is
-in `ACTIVATED_EMAILS` is made a customer of their own at their first call, with no checkout. The
+in `ACTIVATED_EMAILS`, or whom the lifecycle's waitlist has activated, is made a customer of their
+own at their first call, with no checkout. With `TERMS_URL` and `TERMS_VERSION` set, each user
+accepts the beta terms on a one-time page before using anything but `account_status`. The
 Worker's bindings, variables and secrets are in the
 [deployment reference](../../docs/reference/deployment.md).

@@ -1,21 +1,28 @@
 // The edge's handler, on web-standard Request and Response only (ADR-0003). It serves each visitor
 // their variant of a page under experiment (ADR-0009), records exposures and conversions, and relays
 // the browser's analytics. Its experiments are the configuration deployed with it, and only a running
-// one is served. It keeps no state: a visitor's identity and variants live in their cookies.
+// one is served. It keeps no state: a visitor's identity, variants and first arrival live in their
+// cookies. Every query parameter reaches the page (SRV-05); analytics gets only those the site records,
+// as properties, and never a URL's query string or fragment (MSR-08).
 
 import {
+  CAMPAIGN_PARAMS as CAMPAIGN,
   CONTROL,
   CONVERT_PATH,
   EMAIL,
   EVENT_NAME,
+  FIRST_COOKIE,
   LEADS_PATH,
   SUBSCRIPTIONS_PATH,
   LEAD_COOKIE,
   PREVIEW_PARAM,
   RELAY_PATH,
   VISITOR_COOKIE,
+  WAITLIST_PATH,
+  bareUrl,
   leadKey,
   normalizePath,
+  referralCode,
   variantCookie,
   type Experiment,
   type Resolved,
@@ -61,8 +68,9 @@ export interface Lifecycle {
   /** A later conversion by a captured lead, which may end its sequence. */
   event(key: string, name: string): Promise<void>;
   /**
-   * Passes on a public request under LEADS_PATH or SUBSCRIPTIONS_PATH: an unsubscribe, the sending
-   * service's events, or the payment processor's.
+   * Passes on a public request under LEADS_PATH, SUBSCRIPTIONS_PATH or WAITLIST_PATH: an unsubscribe,
+   * the sending service's events, the payment processor's, or a maintainer's request to read or
+   * activate the waitlist, whose key the lifecycle checks.
    */
   forward(request: Request): Promise<Response>;
 }
@@ -88,19 +96,16 @@ export interface EdgeOptions {
 const YEAR = 60 * 60 * 24 * 365;
 
 /** The lifecycle's routes the public may reach through the edge. */
-const PUBLIC_LEADS = new Set([`${LEADS_PATH}/unsubscribe`, `${LEADS_PATH}/events`, `${SUBSCRIPTIONS_PATH}/events`]);
-
-/**
- * The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. Each
- * exposure records those its page was requested with, so the channel reaches analytics even when the
- * browser's script is blocked.
- */
-export const CAMPAIGN_PARAMS: ReadonlySet<string> = new Set([
-  'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_name', 'utm_term',
-  'gclid', 'gad_source', 'gclsrc', 'dclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'twclid',
-  'li_fat_id', 'mc_cid', 'igshid', 'ttclid', 'rdt_cid', 'irclid', '_kx', 'epik', 'qclid', 'sccid',
-  'oppref', 'bfcid',
+const PUBLIC_LEADS = new Set([
+  `${LEADS_PATH}/unsubscribe`, `${LEADS_PATH}/events`, `${SUBSCRIPTIONS_PATH}/events`,
+  WAITLIST_PATH, `${WAITLIST_PATH}/activate`,
 ]);
+
+/** The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. */
+export const CAMPAIGN_PARAMS: ReadonlySet<string> = new Set(CAMPAIGN);
+
+/** The longest first-arrival cookie kept; a longer one is not set. */
+const FIRST_MAX = 1024;
 
 export function createEdge(options: EdgeOptions): (request: Request) => Promise<Response> {
   const newVisitor = options.newVisitor ?? (() => crypto.randomUUID());
@@ -111,7 +116,8 @@ export function createEdge(options: EdgeOptions): (request: Request) => Promise<
     const url = new URL(request.url);
     try {
       if (url.pathname === CONVERT_PATH) return await convert(request, running, options, later);
-      if (url.pathname.startsWith(`${LEADS_PATH}/`) || url.pathname.startsWith(`${SUBSCRIPTIONS_PATH}/`)) {
+      if (url.pathname.startsWith(`${LEADS_PATH}/`) || url.pathname.startsWith(`${SUBSCRIPTIONS_PATH}/`)
+        || url.pathname === WAITLIST_PATH || url.pathname.startsWith(`${WAITLIST_PATH}/`)) {
         const lifecycle = options.tools.lifecycle;
         if (!lifecycle || !PUBLIC_LEADS.has(url.pathname)) return new Response('Not found', { status: 404 });
         return await lifecycle.forward(request);
@@ -148,12 +154,14 @@ async function page(
 
   const owner = experiments.find((e) => Object.values(e.variants).some((v) => normalizePath(v) === path));
   if (owner && !previewing) return redirect(new URL(owner.path + url.search, url));
+  const recorded = options.config.analytics.params;
+  const first = agent || cookies[FIRST_COOKIE] ? [] : firstCookie(url, recorded);
 
   // A draft or ended experiment's page is served as the site has it, except to a preview.
   if (!experiment || (experiment.status !== 'running' && !previewing)) {
     const response = await options.origin(request);
-    if (agent || cookies[VISITOR_COOKIE]) return response;
-    return withCookies(response, [visitorCookie(newVisitor())]);
+    if (agent) return response;
+    return withCookies(response, [...(cookies[VISITOR_COOKIE] ? [] : [visitorCookie(newVisitor())]), ...first]);
   }
 
   const { tools } = options;
@@ -167,12 +175,12 @@ async function page(
 
   if (agent) {
     later(tools.analytics.capture({ name: 'agent_visit', visitor: undefined, properties: {
-      ...visitProperties(request, url), $process_person_profile: false, user_agent: request.headers.get('user-agent') ?? '',
+      ...visitProperties(request, url, recorded), $process_person_profile: false, user_agent: request.headers.get('user-agent') ?? '',
     } }));
     return uncached(await options.origin(request), { 'x-cmokit-agent': '1' });
   }
 
-  const set: string[] = [];
+  const set: string[] = [...first];
   let visitor = cookies[VISITOR_COOKIE];
   if (!visitor) {
     visitor = newVisitor();
@@ -198,7 +206,7 @@ async function page(
 
   if (variant !== undefined && response.ok) {
     later(tools.analytics.capture({ name: '$feature_flag_called', visitor, properties: {
-      ...visitProperties(request, url), $feature_flag: experiment.flag, $feature_flag_response: variant,
+      ...visitProperties(request, url, recorded), $feature_flag: experiment.flag, $feature_flag_response: variant,
       [`$feature/${experiment.flag}`]: variant,
     } }));
   }
@@ -244,38 +252,62 @@ async function convert(
     const variant = cookies[variantCookie(experiment.flag)];
     if (variant) properties[`$feature/${experiment.flag}`] = variant;
   }
-  const page = request.headers.get('referer');
-  if (page) {
-    properties.$current_url = page;
-    const query = URL.canParse(page) ? new URL(page).searchParams : new URLSearchParams();
-    for (const [key, value] of query) if (CAMPAIGN_PARAMS.has(key)) properties[key] = value;
-  }
+  // A conversion carries the parameters of the visitor's first arrival, wherever on the site it
+  // happens, or else those of the page it happened on (MSR-08).
   const { tools, config } = options;
+  const recorded = config.analytics.params;
+  const page = request.headers.get('referer');
+  if (page) properties.$current_url = bareUrl(page);
+  const arrival = cookies[FIRST_COOKIE] !== undefined ? new URLSearchParams(cookies[FIRST_COOKIE])
+    : page && URL.canParse(page) ? new URL(page).searchParams : new URLSearchParams();
+  Object.assign(properties, pick(arrival, recorded));
   later(tools.analytics.capture({ name, visitor, properties: {
     ...properties, source: 'edge', ...(email ? { $set: { email } } : {}),
   } }));
 
-  // A form with an address captures a lead into the sequence its event starts; a later conversion by
-  // the same visitor may end it.
+  // A form with an address captures a lead into the sequence its event starts, or onto the waitlist;
+  // a later conversion by the same visitor may end its sequence.
   const set: string[] = [];
+  const waitlist = config.waitlist?.event === name ? config.waitlist : undefined;
+  let answer: string | null = null;
   if (tools.lifecycle) {
-    if (email && config.sequences.some((s) => s.start === name)) {
+    if (email && (waitlist || config.sequences.some((s) => s.start === name))) {
       const key = await leadKey(email);
       later(tools.lifecycle.capture({ key, email, visitor, event: name, origin: site, properties }));
       set.push(cookie(LEAD_COOKIE, key));
+      // The person's own referral link is the page they joined on, carrying their code (ADR-0014).
+      if (waitlist) {
+        const link = new URL(page && URL.canParse(page) && new URL(page).origin === site ? bareUrl(page) : `${site}/`);
+        link.searchParams.set(waitlist.referral, await referralCode(key));
+        answer = JSON.stringify({ referral: link.href });
+      }
     } else if (cookies[LEAD_COOKIE] && config.sequences.some((s) => s.stop.includes(name))) {
       later(tools.lifecycle.event(cookies[LEAD_COOKIE], name));
     }
   }
-  return withCookies(new Response(null, { status: 204 }), set);
+  const response = answer === null ? new Response(null, { status: 204 })
+    : new Response(answer, { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+  return withCookies(response, set);
 }
 
-function visitProperties(request: Request, url: URL): Record<string, unknown> {
-  const properties: Record<string, unknown> = { $current_url: url.href, $pathname: url.pathname };
+/** What a visit records: its page without query or fragment, and the parameters the site records. */
+function visitProperties(request: Request, url: URL, recorded: string[]): Record<string, unknown> {
+  const properties: Record<string, unknown> = { $current_url: bareUrl(url.href), $pathname: url.pathname };
   const referrer = request.headers.get('referer');
-  if (referrer) properties.$referrer = referrer;
-  for (const [key, value] of url.searchParams) if (CAMPAIGN_PARAMS.has(key)) properties[key] = value;
-  return properties;
+  if (referrer) properties.$referrer = bareUrl(referrer);
+  return { ...properties, ...pick(url.searchParams, recorded) };
+}
+
+function pick(query: URLSearchParams, recorded: string[]): Record<string, string> {
+  const found: Record<string, string> = {};
+  for (const [key, value] of query) if (recorded.includes(key)) found[key] = value;
+  return found;
+}
+
+/** The first-arrival cookie for a page requested with parameters the site records, if it has any. */
+function firstCookie(url: URL, recorded: string[]): string[] {
+  const found = new URLSearchParams(pick(url.searchParams, recorded)).toString();
+  return found && found.length <= FIRST_MAX ? [cookie(FIRST_COOKIE, found)] : [];
 }
 
 export function parseCookies(header: string | null): Record<string, string> {

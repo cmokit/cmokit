@@ -112,8 +112,11 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS pieces (id TEXT PRIMARY KEY, record TEXT NOT NULL)',
   `CREATE TABLE IF NOT EXISTS signals (piece TEXT NOT NULL, at INTEGER NOT NULL, kind TEXT NOT NULL,
     person TEXT NOT NULL, data TEXT NOT NULL)`,
+  'CREATE TABLE IF NOT EXISTS terms (person TEXT NOT NULL, version TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (person, version))',
 ];
-const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals'];
+const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms'];
+/** The one-time link to accept the server's terms is kept with the links to connect a vendor. */
+const TERMS = 'terms';
 
 export class Customer {
   readonly #sql: Sql;
@@ -196,7 +199,7 @@ export class Customer {
 
   /** The vendor a one-time link is for, while it is unused and unexpired. */
   async linkFor(token: string): Promise<{ vendor: string; label: string; help: string } | undefined> {
-    const row = this.#sql.all('SELECT vendor FROM links WHERE hash = ? AND expires_at > ?', await hash(token), this.#now())[0];
+    const row = this.#sql.all('SELECT vendor FROM links WHERE hash = ? AND vendor <> ? AND expires_at > ?', await hash(token), TERMS, this.#now())[0];
     if (!row) return undefined;
     return { vendor: row.vendor as string, label: this.#deps.events.label, help: this.#deps.events.keyHelp };
   }
@@ -207,7 +210,7 @@ export class Customer {
    */
   async connect(token: string, key: string): Promise<{ ok: true; calendar: string } | { ok: false; problem: string }> {
     const tokenHash = await hash(token);
-    const row = this.#sql.all('SELECT person, vendor FROM links WHERE hash = ? AND expires_at > ?', tokenHash, this.#now())[0];
+    const row = this.#sql.all('SELECT person, vendor FROM links WHERE hash = ? AND vendor <> ? AND expires_at > ?', tokenHash, TERMS, this.#now())[0];
     if (!row) return { ok: false, problem: 'This link has expired or was already used. Ask Claude for a new one.' };
     const { events, vault } = this.#deps;
     const calendar = await events.verify(key.trim());
@@ -220,6 +223,33 @@ export class Customer {
     );
     this.#sql.all('DELETE FROM links WHERE hash = ?', tokenHash);
     return { ok: true, calendar: calendar.name };
+  }
+
+  // The server's terms, as a closed beta's (ADR-0039).
+
+  /** Whether the person accepted this version of the terms. */
+  async termsAccepted(person: string, version: string): Promise<boolean> {
+    return this.#sql.all('SELECT 1 FROM terms WHERE person = ? AND version = ?', person, version).length > 0;
+  }
+
+  /** A one-time link token for the person to accept the terms, and when it expires. */
+  async termsLink(person: string): Promise<{ token: string; expires: string }> {
+    return { token: await this.#link(person, TERMS), expires: iso(this.#now() + LINK_MS) };
+  }
+
+  /** Whether a one-time link to accept the terms is unused and unexpired. */
+  async termsFor(token: string): Promise<boolean> {
+    return this.#sql.all('SELECT 1 FROM links WHERE hash = ? AND vendor = ? AND expires_at > ?', await hash(token), TERMS, this.#now()).length > 0;
+  }
+
+  /** Records that the link's person accepted this version of the terms, and uses the link up. */
+  async acceptTerms(token: string, version: string): Promise<boolean> {
+    const tokenHash = await hash(token);
+    const row = this.#sql.all('SELECT person FROM links WHERE hash = ? AND vendor = ? AND expires_at > ?', tokenHash, TERMS, this.#now())[0];
+    if (!row) return false;
+    this.#sql.all('INSERT OR IGNORE INTO terms (person, version, at) VALUES (?, ?, ?)', row.person as string, version, this.#now());
+    this.#sql.all('DELETE FROM links WHERE hash = ?', tokenHash);
+    return true;
   }
 
   async #eventKey(): Promise<string | undefined> {
@@ -493,6 +523,7 @@ export class Customer {
       connections: this.#sql.all('SELECT vendor, identifier, name, connected_at FROM connections')
         .map((r) => ({ vendor: r.vendor, calendar: r.identifier, name: r.name, connected: iso(r.connected_at as number) })),
       brand: await this.brandHistory(),
+      terms: this.#sql.all('SELECT person, version, at FROM terms').map((r) => ({ person: r.person, version: r.version, accepted: iso(r.at as number) })),
       pieces: await Promise.all(pieces.map(async (p) => ({ ...p, signals: await this.signals(p.id) }))),
     };
     const lines = [`# Brand context, version ${version}`, ''];

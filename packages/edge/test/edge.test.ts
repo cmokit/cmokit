@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Resolved, Status } from '@cmokit/cli';
+import { CAMPAIGN_PARAMS, type Resolved, type Status } from '@cmokit/cli';
 import { createEdge, parseCookies, type AnalyticsEvent, type EdgeOptions } from '../src/index.ts';
 
 const BROWSER = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 Safari/605.1.15';
 
-const config = (status: Status): Resolved => ({
-  analytics: { posthog: { key: 'phc_test', host: 'https://ph.example', app: 'https://ph.example' } },
+const config = (status: Status, params: string[] = [...CAMPAIGN_PARAMS]): Resolved => ({
+  analytics: { posthog: { key: 'phc_test', host: 'https://ph.example', app: 'https://ph.example' }, params },
   experiments: [{
     flag: 'landing', path: '/', variants: { b: '/variants/landing/b/' }, goal: 'signup', split: { control: 50, b: 50 }, status,
   }],
@@ -23,6 +23,7 @@ interface Setup {
   status?: Status;
   variant?: () => Promise<string | undefined>;
   pages?: Record<string, string>;
+  params?: string[];
 }
 
 function setup(s: Setup = {}) {
@@ -32,7 +33,7 @@ function setup(s: Setup = {}) {
   const fetched: string[] = [];
   const pages = s.pages ?? PAGES;
   const options: EdgeOptions = {
-    config: config(s.status ?? 'running'),
+    config: config(s.status ?? 'running', s.params),
     origin: async (request) => {
       fetched.push(request.url);
       const path = new URL(request.url).pathname;
@@ -84,7 +85,7 @@ test('a new visitor is assigned, served their variant at the page address, and e
   const { response, body, cookies } = await edge.get('/?utm_source=news');
   assert.equal(body, 'variant b page');
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
-  assert.deepEqual(cookies.map((c) => c.split(';')[0]), ['cmokit_id=visitor-1', 'cmokit_x_landing=b']);
+  assert.deepEqual(cookies.map((c) => c.split(';')[0]), ['cmokit_from=utm_source%3Dnews', 'cmokit_id=visitor-1', 'cmokit_x_landing=b']);
   assert.deepEqual(edge.asked, ['visitor-1:landing']);
   assert.equal(edge.events.length, 1);
   assert.equal(edge.events[0].name, '$feature_flag_called');
@@ -104,7 +105,29 @@ test('a variant\'s page gets the query its page was requested with, and the expo
   assert.equal(properties.fbclid, 'def');
   assert.equal('plan' in properties, false, 'a parameter naming no channel is only in the URL');
   assert.equal('utm_x' in properties, false);
-  assert.equal(properties.$current_url, 'https://site.example/?utm_source=ads&gclid=abc&fbclid=def&plan=pro&utm_x=1');
+  assert.equal(properties.$current_url, 'https://site.example/', 'analytics never gets a query string');
+});
+
+test('a visit records the parameters the site names, and its referrer without query or fragment', async () => {
+  const edge = setup({ params: ['utm_source', 'ref'] });
+  const { cookies } = await edge.get('/?ref=abc&email=ada%40example.com', { referer: 'https://elsewhere.example/post?token=secret#x' });
+  assert.deepEqual(cookies.map((c) => c.split(';')[0]), ['cmokit_from=ref%3Dabc', 'cmokit_id=visitor-1', 'cmokit_x_landing=b']);
+  assert.equal(edge.fetched[0], 'https://site.example/variants/landing/b/?ref=abc&email=ada%40example.com', 'every parameter reaches the page');
+  const { properties } = edge.events[0];
+  assert.equal(properties.ref, 'abc');
+  assert.equal('email' in properties, false, 'a parameter the site does not name never reaches analytics');
+  assert.equal(properties.$referrer, 'https://elsewhere.example/post');
+});
+
+test('the first arrival with recorded parameters is kept, and a later one does not replace it', async () => {
+  const edge = setup();
+  const later = await edge.get('/about/?utm_source=second', { cookie: 'cmokit_id=v9; cmokit_from=utm_source%3Dfirst' });
+  assert.deepEqual(later.cookies, []);
+  const plain = await edge.get('/about/', { cookie: 'cmokit_id=v9' });
+  assert.deepEqual(plain.cookies, [], 'an arrival with no recorded parameter sets nothing');
+  assert.equal(plain.response.headers.get('cache-control'), 'max-age=600');
+  const first = await edge.get('/about/?utm_source=first&plan=pro', { cookie: 'cmokit_id=v9' });
+  assert.deepEqual(first.cookies.map((c) => c.split(';')[0]), ['cmokit_from=utm_source%3Dfirst']);
 });
 
 test('a preview\'s variant page gets the query without the preview parameter', async () => {

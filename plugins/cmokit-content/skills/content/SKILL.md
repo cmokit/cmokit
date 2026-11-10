@@ -23,6 +23,8 @@ link routes, story structures, finishing and measuring.
    A connection marked `optional` is the event platform: offer it only to a brand that sells events,
    once, and go on without it otherwise. Without it, the offers are what the person names, and
    results are the numbers they report.
+   If `missing` lists the beta terms, give the person their link to read and accept them first:
+   no other tool works until they have, and only they can accept, so never say they did.
 3. Call `brand_read`. If its version is 0, run onboarding (step 0) before anything else. Write
    everything from the version you read, and keep its number for `brand_change`.
 4. If the person has no Claude Design system published as their default, write without visuals, say

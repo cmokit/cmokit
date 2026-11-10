@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0009: A variant is a page of the site, and the edge chooses which one a visitor is served
 
-**Requirements served:** `SRV-01`, `SRV-02`, `SRV-03`, `SRV-04`, `EXP-01`, `EXP-03`, `EXP-04`,
+**Requirements served:** `SRV-01`, `SRV-02`, `SRV-03`, `SRV-04`, `SRV-05`, `EXP-01`, `EXP-03`, `EXP-04`,
 `MSR-01`, `MSR-03`.
 
 ## Context and Problem Statement
@@ -52,7 +52,8 @@ is flash-free, a content change, and asks nothing of how the site is built.
 > fetches that variant's page from the site and serves it at the page's own address, uncached. It
 > records an exposure each time it serves an experiment's page. A variant's own address redirects to
 > the page under experiment, so it is reached only through assignment; a preview parameter shows any
-> variant without assigning or recording anything. Visitors the edge takes for agents get the
+> variant without assigning or recording anything. Every page and redirect the edge serves keeps the
+> query it was requested with, less the preview parameter (`SRV-05`). Visitors the edge takes for agents get the
 > control, with no cookie and no exposure. Whenever the tool or a variant's page fails, the visitor
 > gets the control, unassigned. A site builder's integration, where there is one, also fails the
 > site's build when a configured variant page was not built.

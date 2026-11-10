@@ -1,6 +1,6 @@
 // A site's CMOkit configuration, which is deployed with the edge and the lifecycle (ADR-0009) and
-// declares each experiment's plan and status (ADR-0013) and each sequence of messages to leads
-// (ADR-0014).
+// declares each experiment's plan and status (ADR-0013), each sequence of messages to leads, and the
+// site's waitlist (ADR-0014).
 
 /**
  * `draft`: the edge serves the control to everyone. `running`: the edge assigns visitors and records
@@ -56,6 +56,11 @@ export interface Config {
       /** The project's id (Project settings → Project ID), which `cmokit experiments sync` needs. */
       project?: number;
     };
+    /**
+     * Query parameters a visit records besides its campaign parameters, such as a partner's code
+     * (MSR-08). Any other parameter still reaches the page, but is never sent to analytics.
+     */
+    params?: string[];
   };
   experiments?: Experiment[];
   /** How messages are sent. Needed when there are sequences. */
@@ -72,6 +77,21 @@ export interface Config {
     };
   };
   sequences?: Sequence[];
+  /**
+   * A waitlist (ADR-0014): a form's conversion event puts its address on the list, and a maintainer
+   * activates people from it with `cmokit waitlist activate`, which sends each the activation message.
+   * Each person gets a referral link, and the list ranks people by how many joined through theirs.
+   */
+  waitlist?: {
+    /** The conversion event, from a form that carries an email address, that joins the list. */
+    event: string;
+    /** The query parameter that carries a referral code. Defaults to `ref`. */
+    referral?: string;
+    /** The message sent at activation, as `messages/<template>.md`, whose `{{link}}` is `link`. */
+    template: string;
+    /** Where an activated person goes next, such as the product's sign-up page. */
+    link: string;
+  };
   /**
    * A subscription the product sells (ADR-0017): its plan's price in the payment processor and its
    * free trial. The product's Worker gives and revokes access as each subscription changes.
@@ -96,6 +116,8 @@ export interface Resolved {
       app: string;
       project?: number;
     };
+    /** Every query parameter a visit records: the campaign parameters, the site's own and the referral one. */
+    params: string[];
   };
   experiments: (Experiment & { split: Record<string, number> })[];
   /** How messages are sent, named for the job: the sending service's own settings are its adapter's. */
@@ -103,6 +125,7 @@ export interface Resolved {
   sequences: (Required<Omit<Sequence, 'messages'>> & { messages: (Message & { afterMs: number })[] })[];
   /** The subscription the product sells, named for the job: the price id is the payments adapter's. */
   subscription?: { trialDays: number; price: string };
+  waitlist?: { event: string; referral: string; template: string; link: string };
 }
 
 export const CONVERT_PATH = '/_cmokit/convert';
@@ -123,6 +146,42 @@ export const LIFECYCLE_CHECKOUT = '/internal/checkout';
 export const LIFECYCLE_PORTAL = '/internal/portal';
 /** The cookie that remembers a visitor's lead, so a later conversion can end its sequence. */
 export const LEAD_COOKIE = 'cmokit_lead';
+/** The cookie that keeps the parameters of a visitor's first arrival that carried any (MSR-08). */
+export const FIRST_COOKIE = 'cmokit_from';
+/** Where the edge passes a maintainer's waitlist requests to the lifecycle, which checks their key. */
+export const WAITLIST_PATH = '/_cmokit/waitlist';
+/** The lifecycle's route that answers whether an address is activated, which only a product's Worker reaches. */
+export const LIFECYCLE_ACTIVATED = '/internal/activated';
+/**
+ * The query parameters that name a visit's channel: UTM parameters and ad platforms' click ids. A
+ * visit records those it was requested with, so the channel reaches analytics even when the browser's
+ * script is blocked.
+ */
+export const CAMPAIGN_PARAMS: readonly string[] = [
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_name', 'utm_term',
+  'gclid', 'gad_source', 'gclsrc', 'dclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'twclid',
+  'li_fat_id', 'mc_cid', 'igshid', 'ttclid', 'rdt_cid', 'irclid', '_kx', 'epik', 'qclid', 'sccid',
+  'oppref', 'bfcid',
+];
+/** A query parameter's name, as a site's configuration may add one to those recorded. */
+export const PARAM = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** A URL with its query string and fragment taken off, as analytics receives it (MSR-08). */
+export function bareUrl(url: string): string {
+  if (!URL.canParse(url)) return url;
+  const parsed = new URL(url);
+  return `${parsed.origin}${parsed.pathname}`;
+}
+
+/**
+ * A person's referral code on a waitlist: a hash of their lead key, so the edge and the lifecycle
+ * agree on it without asking each other.
+ */
+export async function referralCode(key: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`referral:${key}`));
+  return [...new Uint8Array(digest)].slice(0, 5).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** A form field carrying a lead's email address. */
 export const EMAIL = /^[^\s@<>()",;:]{1,64}@[a-z0-9.-]{1,190}\.[a-z]{2,24}$/i;
 
@@ -191,7 +250,18 @@ export function problems(config: Config): string[] {
       if (normalizePath(page) === path) found.push(`${where}: variant "${name}" is the page under experiment`);
     }
   }
+  for (const param of config.analytics?.params ?? []) {
+    if (!PARAM.test(param)) found.push(`analytics.params: "${param}" must match ${PARAM}`);
+  }
   found.push(...sequenceProblems(config));
+  const w = config.waitlist;
+  if (w) {
+    if (!EVENT_NAME.test(w.event ?? '')) found.push(`waitlist.event must be an event name matching ${EVENT_NAME}`);
+    if (w.referral !== undefined && !PARAM.test(w.referral)) found.push(`waitlist.referral must match ${PARAM}`);
+    if (!TEMPLATE.test(w.template ?? '')) found.push(`waitlist.template must match ${TEMPLATE}`);
+    if (!/^https:\/\//.test(w.link ?? '') || !URL.canParse(w.link)) found.push('waitlist.link must be an https address');
+    if (!config.messaging) found.push('messaging is needed to send the waitlist\'s activation message');
+  }
   const s = config.subscription;
   if (s) {
     if (!(Number.isInteger(s.trialDays) && s.trialDays >= 0 && s.trialDays <= 730)) found.push('subscription.trialDays must be a whole number of days from 0 to 730');
@@ -216,6 +286,7 @@ function sequenceProblems(config: Config): string[] {
   for (const sequence of sequences) {
     const where = `sequence "${sequence.name}"`;
     if (!FLAG.test(sequence.name ?? '')) found.push(`${where}: name must match ${FLAG}`);
+    if (sequence.name === 'waitlist') found.push(`${where}: "waitlist" is the waitlist's own name`);
     if (names.has(sequence.name)) found.push(`${where}: name is used twice`);
     names.add(sequence.name);
     if (!EVENT_NAME.test(sequence.start ?? '')) found.push(`${where}: start must be an event name matching ${EVENT_NAME}`);
@@ -258,9 +329,15 @@ export function resolve(config: Config): Resolved {
   const host = config.analytics.posthog.host ?? DEFAULT_HOST;
   const m = config.messaging;
   return {
-    analytics: { posthog: { key, host, app: appHost(host), ...(project === undefined ? {} : { project }) } },
+    analytics: {
+      posthog: { key, host, app: appHost(host), ...(project === undefined ? {} : { project }) },
+      params: [...new Set([...CAMPAIGN_PARAMS, ...(config.analytics.params ?? []),
+        ...(config.waitlist ? [config.waitlist.referral ?? 'ref'] : [])])],
+    },
     ...(m ? { messaging: { from: m.from, fromName: m.fromName ?? '', address: m.address, unsubscribeGroup: m.sendgrid.unsubscribeGroup } } : {}),
     ...(config.subscription ? { subscription: { trialDays: config.subscription.trialDays, price: config.subscription.stripe.price } } : {}),
+    ...(config.waitlist ? { waitlist: { event: config.waitlist.event, referral: config.waitlist.referral ?? 'ref',
+      template: config.waitlist.template, link: config.waitlist.link } } : {}),
     sequences: (config.sequences ?? []).map((q) => ({
       name: q.name,
       start: q.start,

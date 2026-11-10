@@ -8,6 +8,7 @@
 # scoped to the project, with experiment:write, feature_flag:write, query:read and
 # experiment_saved_metric:read). A site that sells a subscription also sets the secrets
 # STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, and binds its product in lifecycle/wrangler.jsonc.
+# A site with a waitlist sets the secret WAITLIST_KEY, which the cmokit waitlist command is given.
 name: deploy
 
 on:
@@ -60,7 +61,7 @@ jobs:
         run: |
           secrets="$RUNNER_TEMP/lifecycle-secrets.json"
           node -e '
-            const names = ["SENDGRID_API_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"];
+            const names = ["SENDGRID_API_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "WAITLIST_KEY"];
             const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
             require("fs").writeFileSync(process.argv[1], JSON.stringify(set));
           ' "$secrets"
@@ -74,6 +75,7 @@ jobs:
           SENDGRID_WEBHOOK_KEY: ${{ vars.SENDGRID_WEBHOOK_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          WAITLIST_KEY: ${{ secrets.WAITLIST_KEY }}
       - run: npx wrangler deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
