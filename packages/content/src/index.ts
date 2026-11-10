@@ -139,6 +139,7 @@ export function createContentServer(options: ContentServerOptions) {
         return await handleAccount(request, url, account, {
           issuer: options.issuer, audience: options.audience, tokens: options.tokens, billing: options.billing, terms: options.terms,
           customer: options.customer,
+          brandsOf: options.customersOf,
           served: async (checked) => {
             const slug = await served(checked);
             if (slug !== undefined && !ONE_SLUG.test(slug)) throw new Ambiguous();
@@ -146,7 +147,9 @@ export function createContentServer(options: ContentServerOptions) {
           },
         });
       } catch (error) {
-        if (error instanceof Ambiguous) return new Response(AMBIGUOUS, { status: 403 });
+        // A sign-in made before the person had several brands names none of them: signing in again
+        // asks which brand to show.
+        if (error instanceof Ambiguous) return new Response(null, { status: 303, headers: { location: '/signin' } });
         throw error;
       }
     }

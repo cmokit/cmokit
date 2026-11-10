@@ -67,6 +67,8 @@ export interface AccountView {
     slug: string;
     /** Whether the person can add another brand here. */
     addBrand: boolean;
+    /** The slugs of every brand the person is a user of, this one among them. */
+    brands: string[];
     /** The brand's waitlist, ranked by referrals, and how a site joins it (ADR-0043). */
     waitlist?: {
       people: WaitlistEntry[];
@@ -109,13 +111,17 @@ export function accountPage(view: AccountView): Response {
   const brand = version === 0
     ? '<p>No brand context yet. Ask Claude to build it with you.</p>'
     : `<p>Version ${version}${at ? `, approved ${escape(at.slice(0, 10))}` : ''}.</p>${sections.join('\n')}${offers.length ? `<h3>Offers</h3><ul>${offers.join('')}</ul>` : ''}`;
-  const brands = c.addBrand ? `<h2>Brands</h2>
+  const others = c.brands.filter((b) => b !== c.slug);
+  const listed = `<ul><li>${escape(c.slug)} (shown on this page)</li>${others.map((b) => `<li>${escape(b)}</li>`).join('')}</ul>`
+    + (others.length ? '<p><a href="/signin">Switch brand</a>: sign in again and choose the brand to show.</p>' : '');
+  const brands = c.addBrand || others.length ? `<h2>Brands</h2>
 <p>Each brand has its own brand context, connections and content, and after the beta its own subscription.</p>
-<form method="post" action="/brands">
+${listed}
+${c.addBrand ? `<form method="post" action="/brands">
   <label for="brand-name">New brand's name</label>
   <input id="brand-name" name="name" maxlength="60" required>
   <button type="submit">Add a brand</button>
-</form>` : '';
+</form>` : ''}` : '';
   const w = c.waitlist;
   const waitlist = w ? `<h2>Waitlist</h2>
 <p>People join from a form on your site. Joining gives no access until you activate them.${w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>

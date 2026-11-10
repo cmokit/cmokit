@@ -38,6 +38,8 @@ export interface AccountContext {
   /** The customer a person's sign-in serves, as at the hosted MCP address, or undefined for none. */
   served(checked: { person: string; customer?: string }): Promise<string | undefined>;
   customer(slug: string): CustomerCalls & CustomerPages & { exportAll(): Promise<{ json: string; markdown: string }> };
+  /** The slugs of every brand the person is a user of. */
+  brandsOf?(person: string): Promise<string[]>;
   billing?: Billing;
   terms?: Terms;
 }
@@ -167,6 +169,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
       brand: await customer.brandRead(),
       slug,
       addBrand: account.addBrand !== undefined,
+      brands: context.brandsOf ? await context.brandsOf(checked.person) : [slug],
     };
     view.customer.waitlist = {
       people: await customer.waitlistList(),
@@ -190,7 +193,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
 /** The line the page shows after a change, from the address its form sent the person back to. */
 function notice(url: URL): string | undefined {
   const brand = url.searchParams.get('brand');
-  if (brand === 'added') return 'Your new brand is ready. To use it, sign in again here or reconnect CMOkit in Claude, and choose it.';
+  if (brand === 'added') return 'Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOkit in Claude and choose it.';
   if (brand === 'invalid') return 'A brand name is 1 to 60 letters, numbers, spaces and . & \' -.';
   const activated = url.searchParams.get('activated');
   if (activated === 'done') return 'Activated. CMOkit sends no email yet, so tell them yourself.';

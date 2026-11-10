@@ -60,7 +60,8 @@ its own billing, so pricing by brand needs no new billing model, and a one-brand
 
 ### Confirmation
 
-The account page tests show that any user of a brand adds another from the page's own form. The
+The account page tests show that any user of a brand adds another from the page's own form, and
+that the page lists every brand of the person, with a way to switch to another. The
 waitlist's tests are ADR-0043's.
 
 ## Pros and Cons of the Options
