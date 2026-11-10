@@ -103,8 +103,14 @@ export async function handleAccount(request: Request, url: URL, account: Account
 
   const changes = route === 'POST /brands' || route === 'POST /waitlist/activate' || route === 'POST /waitlist/sites';
   if (route !== 'GET /' && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
-  // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too.
-  if (changes && request.headers.get('origin') !== account.origin) return new Response(null, { status: 403 });
+  // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
+  // pages' referrer policy is same-origin, because under no-referrer Safari sends a form's Origin as
+  // "null", which refused every change made from an iPhone.
+  if (changes && request.headers.get('origin') !== account.origin) {
+    return new Response('This change has to be made from your account page. Go back to it, reload it and try again.', {
+      status: 403, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' },
+    });
+  }
 
   const session = readCookie(request, SESSION);
   const checked = session ? await context.tokens.check(session) : undefined;
