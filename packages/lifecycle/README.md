@@ -14,6 +14,10 @@ through a service binding.
 - **Analytics:** every send, delivery, open, click and unsubscribe is recorded in PostHog under the
   visitor's id, with the variant and channel the lead came from.
 - **Privacy:** a lead's address is forgotten once its sequence ends.
+- **Waitlist:** a site can keep one. Joining gives no access; a maintainer activates each person
+  with `cmokit waitlist activate`, which sends the site's activation message once, and a product
+  the site sells asks the lifecycle whether an address is activated. Each person has a referral
+  link, and the list is ranked by how many people joined through it.
 
 A site's lifecycle Worker:
 

@@ -54,7 +54,8 @@ export const TOOLS: Tool[] = [
     description: 'What this customer has connected and what is missing, with a one-time link for each missing '
       + 'connection. Give the person the link to open in a browser; they enter any key there, never in the '
       + 'conversation. A link works once and expires within minutes. A connection marked optional, such as the '
-      + 'event platform, is needed only by a brand that sells events.',
+      + 'event platform, is needed only by a brand that sells events. When the beta terms are missing, no other '
+      + 'tool works until the person opens their link and accepts them there.',
     inputSchema: object({}),
     annotations: readOnly('Account status'),
     call: (_args, { customer, person, base }) => customer.status(person, base),

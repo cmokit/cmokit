@@ -8,11 +8,13 @@
 // a person with none is offered only account_status, whose link starts a subscription (ADR-0017),
 // unless they were activated without a checkout, as in a closed beta: then their first call makes
 // their customer, with them as its first user (CUS-03). A customer whose access has lapsed keeps
-// account_status and nothing else. Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
+// account_status and nothing else. When the server has terms, as a closed beta's, a user who has not
+// accepted their current version is offered account_status alone too, whose link opens the page to
+// accept them (ADR-0039). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { Refusal } from './customer.ts';
-import { donePage, gonePage, keyPage, subscriptionPage } from './pages.ts';
+import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece } from './customer.ts';
@@ -35,6 +37,18 @@ export interface Tokens {
 export interface CustomerPages {
   linkFor(token: string): Promise<{ vendor: string; label: string; help: string } | undefined>;
   connect(token: string, key: string): Promise<{ ok: true; calendar: string } | { ok: false; problem: string }>;
+  termsAccepted(person: string, version: string): Promise<boolean>;
+  termsLink(person: string): Promise<{ token: string; expires: string }>;
+  termsFor(token: string): Promise<boolean>;
+  acceptTerms(token: string, version: string): Promise<boolean>;
+}
+
+/** Terms every user accepts before using the server, as a closed beta's (ADR-0039). */
+export interface Terms {
+  /** Where the terms are published. */
+  url: string;
+  /** Their current version; a new version is accepted again. */
+  version: string;
 }
 
 /** The lifecycle's links for a hosted customer's subscription (ADR-0017). */
@@ -62,6 +76,8 @@ export interface ContentServerOptions {
    * and returns its slug; undefined for anyone else. Safe to repeat for the same person.
    */
   activate?(person: string): Promise<string | undefined>;
+  /** Absent when users accept no terms on this server, as when it is self-hosted. */
+  terms?: Terms;
 }
 
 const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
@@ -75,6 +91,8 @@ const ONE_SLUG = new RegExp(`^${SLUG}$`);
 const HOSTED = '/mcp';
 const HOSTED_METADATA = '/.well-known/oauth-protected-resource/mcp';
 const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
+const TERMS_PAGE = new RegExp(`^/customers/${SLUG}/terms$`);
+const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for the link to read and accept them.';
 const SUBSCRIPTION = '/subscription';
 
 type Message = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, any> };
@@ -88,6 +106,9 @@ export function createContentServer(options: ContentServerOptions) {
     if (url.pathname === HOSTED_METADATA) return metadata(request, `${url.origin}${HOSTED}`, options.issuer);
 
     if ((match = url.pathname.match(CONNECT))) return connectPage(request, url, options.customer(match[1]));
+    if ((match = url.pathname.match(TERMS_PAGE))) {
+      return options.terms ? acceptPage(request, url, options.customer(match[1]), options.terms) : new Response('Not found', { status: 404 });
+    }
     if (url.pathname === SUBSCRIPTION && request.method === 'GET') return subscriptionPage(url.searchParams.get('s') ?? '');
 
     const slug = url.pathname.match(MCP)?.[1];
@@ -131,7 +152,13 @@ export function createContentServer(options: ContentServerOptions) {
         const held = await customer.billing();
         return held ? billing.portal(held, back('managed')) : undefined;
       } : undefined;
-      const answer = await respond(message, { person: checked.person, base: `${url.origin}/customers/${served}`, customer }, manage);
+      const base = `${url.origin}/customers/${served}`;
+      const { terms } = options;
+      const unaccepted = terms && !(await customer.termsAccepted(checked.person, terms.version)) ? async () => {
+        const { token, expires } = await customer.termsLink(checked.person);
+        return { what: 'terms', label: 'CMOkit beta terms', terms: terms.url, link: `${base}/terms?t=${token}`, expires };
+      } : undefined;
+      const answer = await respond(message, { person: checked.person, base, customer }, manage, unaccepted);
       return Response.json(answer);
     }
 
@@ -177,18 +204,32 @@ async function respondUnsubscribed(message: Message, person: string, billing: Bi
   return failure(id, -32601, `Method not found: ${method}`);
 }
 
-async function respond(message: Message, context: { person: string; base: string; customer: CustomerCalls }, manage?: () => Promise<string | undefined>) {
+/**
+ * A user's call. `unaccepted` is present while the person has not accepted the server's terms, and
+ * makes the missing item that links to the page to accept them.
+ */
+async function respond(
+  message: Message,
+  context: { person: string; base: string; customer: CustomerCalls },
+  manage?: () => Promise<string | undefined>,
+  unaccepted?: () => Promise<Record<string, unknown>>,
+) {
   const { id = null, method, params = {} } = message;
   if (method === 'initialize') return initialized(id, params);
   if (method === 'ping') return success(id, {});
-  if (method === 'tools/list') return success(id, { tools: TOOLS.map(listed) });
+  if (method === 'tools/list') return success(id, { tools: (unaccepted ? TOOLS.filter((t) => t.name === 'account_status') : TOOLS).map(listed) });
   if (method === 'tools/call') {
     const tool = TOOLS.find((t) => t.name === params.name);
     if (!tool) return failure(id, -32602, `Unknown tool: ${params.name}`);
     const isStatus = tool.name === 'account_status';
+    if (!isStatus && unaccepted) return refused(id, UNACCEPTED);
     if (!isStatus && (await context.customer.access()) === 'lapsed') return refused(id, LAPSED);
     try {
-      const data = await tool.call(params.arguments ?? {}, context);
+      let data = await tool.call(params.arguments ?? {}, context);
+      if (isStatus && unaccepted) {
+        const status = data as { missing: unknown[] };
+        data = { ...status, missing: [await unaccepted(), ...status.missing] };
+      }
       if (isStatus && manage) {
         // The status still answers when the billing portal cannot be reached.
         const link = await manage().catch(() => undefined);
@@ -220,6 +261,21 @@ async function connectPage(request: Request, url: URL, customer: CustomerPages):
     if (!link) return gonePage();
     const result = await customer.connect(token, key);
     return result.ok ? donePage(link.label, result.calendar) : keyPage({ label: link.label, help: link.help, token, problem: result.problem });
+  }
+  return new Response(null, { status: 405, headers: { allow: 'GET, POST' } });
+}
+
+async function acceptPage(request: Request, url: URL, customer: CustomerPages, terms: Terms): Promise<Response> {
+  if (request.method === 'GET') {
+    const token = url.searchParams.get('t') ?? '';
+    if (!token || !(await customer.termsFor(token))) return gonePage();
+    return termsPage({ url: terms.url, version: terms.version, token });
+  }
+  if (request.method === 'POST') {
+    const form = await request.formData();
+    const token = String(form.get('t') ?? '');
+    if (form.get('accept') !== 'yes') return termsPage({ url: terms.url, version: terms.version, token, problem: 'Tick the box to accept the terms.' });
+    return token && await customer.acceptTerms(token, terms.version) ? acceptedPage() : gonePage();
   }
   return new Response(null, { status: 405, headers: { allow: 'GET, POST' } });
 }

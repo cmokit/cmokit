@@ -207,3 +207,56 @@ test('the one-time page takes a key once, and never through MCP', async () => {
   assert.equal((await call('globex', 'bob-token', 'account_status')).structuredContent.missing.length, 0);
   assert.equal((await handle(new Request(`${ORIGIN}/customers/acme/connect?t=${token}`))).status, 410, 'a link is for its own customer');
 });
+
+test('a user who has not accepted the terms is offered account_status alone, whose link accepts them once', async () => {
+  const acme = await readyCustomer();
+  const terms = { url: 'https://cmokit.example/beta-terms', version: '2026-11-10' };
+  const handle = createContentServer({ issuer: 'https://auth.example', audience: ORIGIN, tokens, customer: () => acme.customer, terms });
+  const rpc = async (method: string, params: object = {}) => {
+    const response = await handle(new Request(`${ORIGIN}/customers/acme/mcp`, {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ada-token' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    }));
+    return ((await response.json()) as { result: any }).result;
+  };
+
+  assert.deepEqual((await rpc('tools/list')).tools.map((t: { name: string }) => t.name), ['account_status']);
+  const brand = await rpc('tools/call', { name: 'brand_read', arguments: {} });
+  assert.equal(brand.isError, true);
+  assert.match(brand.content[0].text, /beta terms/);
+
+  const status = (await rpc('tools/call', { name: 'account_status', arguments: {} })).structuredContent;
+  const item = status.missing[0];
+  assert.equal(item.what, 'terms');
+  assert.equal(item.terms, terms.url);
+  const link = new URL(item.link);
+  assert.equal(link.pathname, '/customers/acme/terms');
+
+  const page = await handle(new Request(link));
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /https:\/\/cmokit\.example\/beta-terms/);
+  const post = (fields: Record<string, string>) => handle(new Request(`${ORIGIN}/customers/acme/terms`, { method: 'POST', body: new URLSearchParams(fields) }));
+  assert.equal((await post({ t: link.searchParams.get('t')! })).status, 400, 'the box must be ticked');
+  assert.equal((await post({ t: 'forged', accept: 'yes' })).status, 410);
+  assert.equal((await post({ t: link.searchParams.get('t')!, accept: 'yes' })).status, 200);
+  assert.equal((await post({ t: link.searchParams.get('t')!, accept: 'yes' })).status, 410, 'a link works once');
+  assert.equal((await handle(new Request(`${ORIGIN}/customers/acme/connect?t=${link.searchParams.get('t')}`))).status, 410, 'a terms link connects nothing');
+
+  assert.ok((await rpc('tools/list')).tools.length > 1);
+  assert.equal((await rpc('tools/call', { name: 'brand_read', arguments: {} })).isError, undefined);
+  assert.equal((await rpc('tools/call', { name: 'account_status', arguments: {} })).structuredContent.missing.some((m: { what: string }) => m.what === 'terms'), false);
+
+  // A new version of the terms is accepted again.
+  const renewed = createContentServer({ issuer: 'https://auth.example', audience: ORIGIN, tokens, customer: () => acme.customer, terms: { ...terms, version: '2026-12-01' } });
+  const listed = await renewed(new Request(`${ORIGIN}/customers/acme/mcp`, {
+    method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ada-token' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+  }));
+  const list = (await listed.json()) as { result: { tools: unknown[] } };
+  assert.equal(list.result.tools.length, 1);
+});
+
+test('without terms, the terms page does not exist', async () => {
+  const { handle } = await server();
+  assert.equal((await handle(new Request(`${ORIGIN}/customers/acme/terms?t=x`))).status, 404);
+});

@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0014: A lead's messages are a sequence declared in CMOkit's configuration, kept in a Durable Object per lead
 
-**Requirements served:** `LEAD-01`, `LEAD-02`, `LEAD-03`, `LOOP-01`, `LOOP-02`, `NFR-03`, `NFR-06`.
+**Requirements served:** `LEAD-01`, `LEAD-02`, `LEAD-03`, `LEAD-04`, `LOOP-01`, `LOOP-02`, `NFR-03`, `NFR-06`.
 
 ## Context and Problem Statement
 
@@ -65,6 +65,17 @@ the loop can propose a change to it like any other.
 > and a suppression end it. Every send, open, click and unsubscribe is recorded in analytics under
 > the visitor's id. A lead's object forgets the address once its sequence ends. Only linear sequences
 > are built; branching waits for the numbers to call for it.
+>
+> A site can also keep a waitlist (`LEAD-04`), declared in the same configuration: the event that
+> joins it, its referral parameter, its activation message's template and the link that message
+> gives. A conversion of that event with an email address puts the person on the list, kept in one
+> Durable Object for the site, and the edge answers it with the person's own referral link: the page
+> they joined on, with a code made from their lead key. A person who arrives through that link and
+> joins counts toward its owner, and the list is ranked by those counts, then by who joined first. A
+> maintainer reads the list and activates a person through the edge's waitlist address, with a key
+> the site's lifecycle holds; activating sends the activation message once, with an unsubscribe link
+> of its own, and a product the site sells asks the lifecycle whether an address is activated. People
+> join, and are activated, even when no sending key is set; the maintainer then tells them.
 
 ### Consequences
 
@@ -82,7 +93,9 @@ the loop can propose a change to it like any other.
 
 ### Confirmation
 
-Tests of the sequence run against a stand-in for the messaging interface and assert, for each step
+Tests of the waitlist assert the ranking, that nobody refers themselves, that reading and activating
+need the key, that the activation message is sent once and can be stopped, and that joining works
+with no sending key. Tests of the sequence run against a stand-in for the messaging interface and assert, for each step
 and each stopping event, the messages sent and that delivering an event twice acts once. That no
 handler names a messaging vendor is checked in review.
 
@@ -146,3 +159,4 @@ interface. Lead capture and attribution carry over; the messages would move into
 * Someone who is not a developer must edit sequences without an agent.
 * The numbers show a branch is needed, or segments of leads need different sequences.
 * SMS becomes a main channel.
+* A waitlist outgrows one Durable Object, or needs a way in other than an email address.

@@ -5,14 +5,17 @@
 //   export default worker;
 //
 // with the site's CMOkit configuration and its message templates bundled into it at deploy
-// (ADR-0008), and `Lead` bound as the Durable Object class LEADS. It has no route of its own: the
-// edge reaches it through a service binding, and so does a product's Worker that asks it for checkout
-// and portal links. It reaches the product through a service binding named PRODUCT (ADR-0017). The
-// only host-specific code in the lifecycle lives here.
+// (ADR-0008), and `Lead` bound as the Durable Object class LEADS. The site's waitlist is one more
+// object of that class, named `waitlist`, so a waitlist needs no binding of its own (ADR-0014). It has
+// no route of its own: the edge reaches it through a service binding, and so does a product's Worker
+// that asks it for checkout and portal links or whether an address is activated. It reaches the
+// product through a service binding named PRODUCT (ADR-0017). The only host-specific code in the
+// lifecycle lives here.
 
-import { LIFECYCLE_LEAD, defineConfig, resolve, type Config, type Resolved } from '@cmokit/cli';
-import { createLifecycle, type Leads, type Messaging } from './index.ts';
+import { defineConfig, resolve, type Config, type Resolved } from '@cmokit/cli';
+import { WAITLIST, createLifecycle, type Leads, type Messaging, type WaitlistCalls } from './index.ts';
 import { Lead as LeadLogic, type Capture } from './lead.ts';
+import { Waitlist as WaitlistLogic, type Joining } from './waitlist.ts';
 import { parse } from './render.ts';
 import { posthog } from './posthog.ts';
 import { sendgrid } from './sendgrid.ts';
@@ -32,6 +35,8 @@ export interface LifecycleEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   /** The product's Worker, whose API gives and revokes a customer's access. */
   PRODUCT?: Product;
+  /** The key a maintainer's `cmokit waitlist` requests carry. A secret. */
+  WAITLIST_KEY?: string;
 }
 
 export interface DurableObjectNamespace {
@@ -70,6 +75,12 @@ export function templateProblems(config: Resolved, templates: Record<string, str
       }
     }
   }
+  const waitlist = config.waitlist?.template;
+  if (waitlist !== undefined) {
+    const text = templates[waitlist];
+    if (text === undefined) found.push(`waitlist: no template messages/${waitlist}.md`);
+    else if ('problem' in parse(text)) found.push(`messages/${waitlist}.md ${(parse(text) as { problem: string }).problem}`);
+  }
   return found;
 }
 
@@ -87,17 +98,19 @@ export function createLifecycleWorker(config: Config, templates: Record<string, 
 
   class Lead {
     readonly #ctx: DurableObjectState;
+    readonly #sql: Sql;
     readonly #lead: LeadLogic;
 
     constructor(ctx: DurableObjectState, env: LifecycleEnv) {
       this.#ctx = ctx;
-      const sql: Sql = { all: (query, ...params) => ctx.storage.sql.exec(query, ...params).toArray() };
-      this.#lead = new LeadLogic(sql, { config: resolved, templates, messaging: messagingFor(env), analytics });
+      this.#sql = { all: (query, ...params) => ctx.storage.sql.exec(query, ...params).toArray() };
+      this.#lead = new LeadLogic(this.#sql, { config: resolved, templates, messaging: messagingFor(env), analytics });
     }
 
     async fetch(request: Request): Promise<Response> {
       const action = new URL(request.url).pathname;
       const body = await request.json() as Record<string, string>;
+      if (action.startsWith(`/${WAITLIST}/`)) return this.#waitlist(action.slice(WAITLIST.length + 1), body);
       if (action === '/start') {
         const at = await this.#lead.start(body as unknown as Capture, Date.now());
         if (at !== null) await this.#ctx.storage.setAlarm(at);
@@ -119,6 +132,20 @@ export function createLifecycleWorker(config: Config, templates: Record<string, 
     async alarm(): Promise<void> {
       const at = await this.#lead.wake(Date.now());
       if (at !== null) await this.#ctx.storage.setAlarm(at);
+    }
+
+    // The waitlist's object holds no lead, and a lead's object no waitlist.
+    async #waitlist(action: string, body: Record<string, string>): Promise<Response> {
+      const list = new WaitlistLogic(this.#sql);
+      if (action === '/join') {
+        await list.join(body as unknown as Joining, Date.now());
+        return Response.json({});
+      }
+      if (action === '/list') return Response.json(list.list());
+      if (action === '/activate') return Response.json({ found: list.has(body.email), activated: list.activate(body.email, Date.now()) });
+      if (action === '/activated') return Response.json(list.isActivated(body.email));
+      if (action === '/unsubscribe') return Response.json({ email: list.unsubscribe(body.key, body.token) ?? null });
+      return new Response(null, { status: 404 });
     }
   }
 
@@ -142,16 +169,35 @@ export function createLifecycleWorker(config: Config, templates: Record<string, 
     };
   };
 
+  const waitlistFor = (env: LifecycleEnv): WaitlistCalls => {
+    const call = async <T>(action: string, body: object): Promise<T> => {
+      const stub = env.LEADS.get(env.LEADS.idFromName(WAITLIST));
+      const response = await stub.fetch(`https://lead/${WAITLIST}${action}`, { method: 'POST', body: JSON.stringify(body) });
+      return response.json() as Promise<T>;
+    };
+    return {
+      join: async (joining) => void await call('/join', joining),
+      list: () => call('/list', {}),
+      activate: async (email) => {
+        const answer = await call<{ found: boolean; activated?: ReturnType<WaitlistLogic['activate']> }>('/activate', { email });
+        return { found: answer.found, ...(answer.activated ? { activated: answer.activated } : {}) };
+      },
+      isActivated: (email) => call('/activated', { email }),
+      unsubscribe: async (key, token) => (await call<{ email: string | null }>('/unsubscribe', { key, token })).email ?? undefined,
+    };
+  };
+
   const worker = {
     async fetch(request: Request, env: LifecycleEnv): Promise<Response> {
-      // Without a key no message could be sent, so no lead is captured into a sequence it would fail.
-      if (!env.SENDGRID_API_KEY && new URL(request.url).pathname === LIFECYCLE_LEAD) {
-        return new Response('SENDGRID_API_KEY is not set', { status: 503 });
-      }
       const subscriptions = resolved.subscription && env.STRIPE_SECRET_KEY && env.PRODUCT
         ? createSubscriptions({ config: resolved, payments: stripe({ key: env.STRIPE_SECRET_KEY, webhookSecret: env.STRIPE_WEBHOOK_SECRET }), product: env.PRODUCT })
         : undefined;
-      const handle = createLifecycle({ config: resolved, leads: leadsFor(env), messaging: messagingFor(env), analytics, subscriptions });
+      // Without a key no message can be sent, so no lead is captured into a sequence it would fail.
+      const handle = createLifecycle({
+        config: resolved, leads: leadsFor(env), messaging: messagingFor(env), analytics, subscriptions, templates,
+        sending: Boolean(env.SENDGRID_API_KEY),
+        ...(resolved.waitlist ? { waitlist: waitlistFor(env), ...(env.WAITLIST_KEY ? { waitlistKey: env.WAITLIST_KEY } : {}) } : {}),
+      });
       return handle(request);
     },
   };

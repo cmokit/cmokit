@@ -2,9 +2,11 @@
 // configuration, and is run by the deploy after the edge is deployed. `plan` estimates how long each
 // experiment must run, and `results` reads each one's results, as the tool computes them. `mcp`
 // offers an agent the same, except that it only previews a sync: the deploy makes the change.
+// `waitlist` reads a site's waitlist, ranked by referrals, and activates a person on it (ADR-0014).
 
 import { estimate, results, sync } from './experiments.ts';
 import { serve } from './mcp.ts';
+import { activate, describeActivation, describeWaitlist, readWaitlist, WAITLIST_KEY_VARIABLE } from './waitlist.ts';
 import { connect, describePlans, describeReports, describeSync, KEY_VARIABLE, CONFIG_FILE, type Io } from './session.ts';
 
 export { KEY_VARIABLE } from './session.ts';
@@ -13,19 +15,25 @@ const USAGE = `Usage: cmokit experiments sync [--dry-run] [--config <file>]
        cmokit experiments plan [<flag>] [--effect <percent>] [--json] [--config <file>]
        cmokit experiments results [<flag>] [--json] [--config <file>]
        cmokit mcp [--config <file>]
+       cmokit waitlist --site <url> [--json]
+       cmokit waitlist activate <email> --site <url>
 
   sync      Makes PostHog's experiments match cmokit.config.ts.
   plan      Estimates how long each experiment not ended must run, from its page's recent traffic
             and its goal's conversion rate there.
   results   Reads each experiment's results on its goal, as PostHog computes them.
   mcp       Serves plan, results and a preview of sync to an agent, as an MCP server on stdio.
+  waitlist  Lists the site's waitlist, those who referred the most people first. With activate,
+            gives the person with that address access and sends them the activation message.
 
   --dry-run   Print what would change, and change nothing.
   --effect    The smallest relative lift to detect, in percent. Defaults to the project's default.
   --json      Print JSON instead of text.
   --config    The configuration file. Defaults to cmokit.config.ts.
+  --site      The site whose waitlist it is, such as https://example.com.
 
-  Reads PostHog's personal API key from ${KEY_VARIABLE}.`;
+  Reads PostHog's personal API key from ${KEY_VARIABLE}, and the site's waitlist key from
+  ${WAITLIST_KEY_VARIABLE}.`;
 
 export interface CommandIo extends Io {
   out(line: string): void;
@@ -69,8 +77,46 @@ function parse(args: string[]): Parsed | undefined {
   return parsed;
 }
 
+function parseWaitlist(args: string[]): { site: string; activate?: string; json: boolean } | undefined {
+  const rest = args.slice(1);
+  let site: string | undefined;
+  let email: string | undefined;
+  let json = false;
+  const activating = rest[0] === 'activate';
+  for (let i = activating ? 1 : 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg === '--site') site = rest[++i];
+    else if (arg === '--json' && !activating) json = true;
+    else if (activating && email === undefined && !arg.startsWith('--')) email = arg;
+    else return undefined;
+  }
+  if (!site || (activating && !email)) return undefined;
+  return { site, json, ...(activating ? { activate: email } : {}) };
+}
+
+async function waitlist(args: string[], io: CommandIo): Promise<number> {
+  const parsed = parseWaitlist(args);
+  if (!parsed) {
+    io.out(USAGE);
+    return 2;
+  }
+  try {
+    if (parsed.activate !== undefined) {
+      io.out(describeActivation(await activate(parsed.site, parsed.activate, io)));
+      return 0;
+    }
+    const list = await readWaitlist(parsed.site, io);
+    for (const line of parsed.json ? [JSON.stringify(list, null, 2)] : describeWaitlist(list)) io.out(line);
+    return 0;
+  } catch (error) {
+    io.out(`cmokit: ${(error as Error).message}`);
+    return 1;
+  }
+}
+
 /** Runs the command and returns its exit code. */
 export async function run(args: string[], io: CommandIo): Promise<number> {
+  if (args[0] === 'waitlist') return waitlist(args, io);
   if (args[0] === 'mcp') {
     const file = args[1] === '--config' && args[2] ? args[2] : CONFIG_FILE;
     if (args.length !== 1 && !(args.length === 3 && args[1] === '--config')) {

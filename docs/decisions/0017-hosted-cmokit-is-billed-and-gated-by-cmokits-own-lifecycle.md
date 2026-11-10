@@ -59,8 +59,10 @@ CMOkit's own billing through it is the most direct test of it there is.
 > credits, and nothing is metered.
 >
 > A person can also be activated without a checkout, as in a closed beta. Hosted CMOkit's operator
-> lists the email addresses activated, and a signed-in person whose proven address is listed gets a
-> customer of their own at their first call, with them as its first user and no billing (`CUS-03`).
+> lists the email addresses activated, or activates people on the waitlist of CMOkit's own site
+> (ADR-0014), which the content server asks the lifecycle about over its service binding. A
+> signed-in person whose proven address is listed or activated gets a customer of their own at their
+> first call, with them as its first user and no billing (`CUS-03`).
 > Its access is active, and the lifecycle never changes it, since no subscription names it.
 
 ### Consequences
@@ -78,8 +80,8 @@ CMOkit's own billing through it is the most direct test of it there is.
 
 The lifecycle's own tests cover the subscription events. A test of the hosted services asserts that a
 revoked customer's write tools refuse, and that its sign-in, checkout and export still work. A test
-of the content server's Worker asserts that an activated address gets one customer at its first
-call, and that any other address is offered only the subscription.
+of the content server's Worker asserts that an address listed or activated on the waitlist gets one
+customer at its first call, and that any other address is offered only the subscription.
 
 ## Pros and Cons of the Options
 
@@ -122,4 +124,4 @@ and nothing in the hosted services depends on how access was decided.
   usage needs credits.
 * A hosted feature arrives whose cost scales with use, such as sending email on a customer's behalf.
 * Sales tax obligations outgrow what the payment processor collects.
-* The closed beta ends, or activation moves from the operator's list to the waitlist.
+* The closed beta ends.
