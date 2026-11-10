@@ -145,13 +145,19 @@ test('signing out clears the session, and other paths at the account origin fall
 
 test('any user of a brand adds another, from the account page\'s own form only', async () => {
   const { get, post, added } = await server({ brands: true });
-  assert.match(await (await get('/', session('ada-token'))).text(), /<form method="post" action="\/brands">/);
+  const page = await (await get('/', session('ada-token'))).text();
+  assert.match(page, /<form method="post" action="\/brands">/);
+  // Under no-referrer, Safari sends the form's Origin as "null" and every change would be refused.
+  assert.match(page, /<meta name="referrer" content="same-origin">/);
   const made = await post('/brands', { name: 'CFO Kit' }, session('ada-token'));
   assert.equal(made.status, 303);
   assert.equal(made.headers.get('location'), '/?brand=added');
   assert.deepEqual(added, [['ada', 'CFO Kit']]);
   assert.match(await (await get('/?brand=added', session('ada-token'))).text(), /Your new brand is ready/);
-  assert.equal((await post('/brands', { name: 'CFO Kit' }, session('ada-token'), 'https://evil.example')).status, 403);
+  const refused = await post('/brands', { name: 'CFO Kit' }, session('ada-token'), 'https://evil.example');
+  assert.equal(refused.status, 403);
+  assert.match(refused.headers.get('content-type') ?? '', /^text\/plain/, 'a refusal is shown, not offered as a download');
+  assert.match(await refused.text(), /account page/);
   assert.equal((await post('/brands', { name: '<script>' }, session('ada-token'))).headers.get('location'), '/?brand=invalid');
   assert.equal((await post('/brands', { name: 'CFO Kit' }, session('bob-token'))).status, 403, 'not a user of this brand');
   assert.equal((await post('/brands', { name: 'CFO Kit' }, session('new-token'))).status, 404, 'no brand yet, so nothing to add from');
