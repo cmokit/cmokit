@@ -11,9 +11,11 @@
 // reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
 // issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
 // binding. A person whose proven email address is in ACTIVATED_EMAILS, or whom a maintainer activated
-// on the site's waitlist, which the server asks the lifecycle about, is made a customer of their own
-// at their first call, with no checkout (CUS-03, ADR-0014). The only host-specific code in the content server
-// lives here.
+// on the site's waitlist, which the server asks the lifecycle about, becomes CMOkit's customer at their
+// first call, with no checkout: the server makes their first brand, with them as its first user (CUS-03,
+// ADR-0014). On the account page they add more brands, and the brand WAITLIST_CUSTOMER names, CMOkit's
+// own, lists the site's waitlist and activates people from it (ADR-0042). The only host-specific code
+// in the content server lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
@@ -37,8 +39,8 @@ export interface ContentEnv {
   LIFECYCLE?: { fetch(input: string, init?: RequestInit): Promise<Response> };
   /**
    * The email addresses activated without a checkout, as in a closed beta, separated by commas or
-   * spaces. A person whose proven address is one of them gets a customer of their own at their first
-   * call. A variable.
+   * spaces. A person whose proven address is one of them becomes CMOkit's customer at their first
+   * call, with a first brand made for them. A variable.
    */
   ACTIVATED_EMAILS?: string;
   /** Where the terms every user accepts are published, as a closed beta's (ADR-0039). A variable. */
@@ -47,6 +49,11 @@ export interface ContentEnv {
   TERMS_VERSION?: string;
   /** Where the account page is served, as https://app.cmokit.ai; no account page without it (ADR-0041). A variable. */
   APP_URL?: string;
+  /**
+   * The slug of the brand that owns the LIFECYCLE site's waitlist, as CMOkit's own; its users see the
+   * waitlist on the account page and activate people from it (ADR-0042). A variable.
+   */
+  WAITLIST_CUSTOMER?: string;
 }
 
 /** What CMOkit's issuer offers the content server over its service binding. */
@@ -66,6 +73,8 @@ const LIFECYCLE_ORIGIN = 'https://lifecycle.internal';
 const LIFECYCLE_CHECKOUT = '/internal/checkout';
 const LIFECYCLE_PORTAL = '/internal/portal';
 const LIFECYCLE_ACTIVATED = '/internal/activated';
+const LIFECYCLE_WAITLIST = '/internal/waitlist';
+const LIFECYCLE_ACTIVATE = '/internal/activate';
 
 /** The lifecycle's checkout and portal links, over its service binding. */
 export function lifecycleBilling(env: ContentEnv): Billing | undefined {
@@ -91,12 +100,44 @@ export async function waitlistActivated(lifecycle: NonNullable<ContentEnv['LIFEC
   return ((await response.json()) as { activated?: boolean }).activated === true;
 }
 
+/** The LIFECYCLE site's waitlist, for the account page of the brand WAITLIST_CUSTOMER names (ADR-0042). */
+export function lifecycleWaitlist(env: ContentEnv): AccountOptions['waitlist'] {
+  const lifecycle = env.LIFECYCLE;
+  const owner = env.WAITLIST_CUSTOMER?.trim();
+  if (!lifecycle || !owner) return undefined;
+  const post = (path: string, body: object) => lifecycle.fetch(`${LIFECYCLE_ORIGIN}${path}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+  });
+  return {
+    owner,
+    async list() {
+      const response = await post(LIFECYCLE_WAITLIST, {});
+      if (!response.ok) throw new Error(`The lifecycle answered ${response.status}`);
+      const { waitlist } = await response.json() as { waitlist: { email: string; joined: string; referrals: number; activated: string | null }[] };
+      return waitlist.map(({ email, joined, referrals, activated }) => ({ email, joined, referrals, activated }));
+    },
+    async activate(email) {
+      const response = await post(LIFECYCLE_ACTIVATE, { email });
+      if (response.status === 404) return { found: false, sent: false };
+      if (!response.ok) throw new Error(`The lifecycle answered ${response.status}`);
+      return { found: true, sent: ((await response.json()) as { sent?: boolean }).sent === true };
+    },
+  };
+}
+
+/** A new brand's slug, from its name, with a random end so two brands of one name never meet. */
+export function brandSlug(name: string): string {
+  const base = name.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+  const end = [...crypto.getRandomValues(new Uint8Array(3))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `${base || 'brand'}-${end}`;
+}
+
 /** The addresses in ACTIVATED_EMAILS, in lower case. */
 export function activatedEmails(env: ContentEnv): Set<string> {
   return new Set((env.ACTIVATED_EMAILS ?? '').split(/[\s,]+/).map((a) => a.trim().toLowerCase()).filter(Boolean));
 }
 
-/** A person's own customer's slug, the same every time, so activating them twice makes one customer. */
+/** An activated person's first brand's slug, the same every time, so activating them twice makes one brand. */
 export async function activatedSlug(person: string): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`activated ${person}`)));
   return `c${[...digest].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 15)}`;
@@ -234,6 +275,23 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
     };
   };
 
+  /** Any user of a brand adds another, with no cap during the closed beta (ADR-0042). */
+  const accountWith = (env: ContentEnv): AccountOptions | undefined => {
+    const account = accountFor(env);
+    const issuer = env.ISSUER;
+    if (!account || !issuer) return account;
+    return {
+      ...account,
+      async addBrand(person, name) {
+        const slug = brandSlug(name);
+        await customerFor(env, slug).addUser(person);
+        await issuer.addCustomer(person, slug);
+        return slug;
+      },
+      waitlist: lifecycleWaitlist(env),
+    };
+  };
+
   const worker = {
     async fetch(request: Request, env: ContentEnv): Promise<Response> {
       const handle = createContentServer({
@@ -245,7 +303,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         billing: lifecycleBilling(env),
         activate: activation(env),
         ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
-        account: accountFor(env),
+        account: accountWith(env),
       });
       return handle(request);
     },

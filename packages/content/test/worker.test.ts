@@ -18,7 +18,7 @@ registerHooks({
   },
 });
 
-const { activatedEmails, activatedSlug, createContentWorker, issuerTokens, lifecycleBilling, waitlistActivated } = await import('../src/worker.ts');
+const { activatedEmails, activatedSlug, brandSlug, createContentWorker, issuerTokens, lifecycleBilling, lifecycleWaitlist, waitlistActivated } = await import('../src/worker.ts');
 
 test('the Worker routes each address to its customer\'s object, and refusals come back as tool errors', async () => {
   const { worker, Customer } = createContentWorker({
@@ -139,7 +139,7 @@ test('lifecycleBilling asks the lifecycle for checkout and portal links', async 
   ]);
 });
 
-test('a person whose proven address is activated gets one customer of their own at their first call, with no checkout', async () => {
+test('a person whose proven address is activated becomes CMOkit\'s customer at their first call, with one first brand and no checkout', async () => {
   const people: Record<string, { token: string; email: string | null }> = {
     ada: { token: 'ta', email: 'Ada@Example.com' },
     bob: { token: 'tb', email: 'bob@example.com' },
@@ -226,4 +226,37 @@ test('waitlistActivated reads the lifecycle\'s answer, and says no when it canno
   assert.equal(await waitlistActivated(answering(Response.json({ activated: true })), 'a@example.com'), true);
   assert.equal(await waitlistActivated(answering(Response.json({ activated: false })), 'a@example.com'), false);
   assert.equal(await waitlistActivated(answering(new Response(null, { status: 404 })), 'a@example.com'), false);
+});
+
+test('lifecycleWaitlist lists the site\'s waitlist and activates people over the binding, for the brand that owns it', async () => {
+  assert.equal(lifecycleWaitlist({} as ContentEnv), undefined);
+  const asked: { url: string; body: unknown }[] = [];
+  const LIFECYCLE = {
+    fetch: async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init!.body)) as { email?: string };
+      asked.push({ url, body });
+      if (url.endsWith('/internal/waitlist')) {
+        return Response.json({ waitlist: [{ email: 'cy@example.com', joined: '2026-11-09T10:00:00.000Z', code: 'abc', referredBy: null, referrals: 2, activated: null }] });
+      }
+      if (body.email === 'zed@example.com') return Response.json({ activated: false }, { status: 404 });
+      return Response.json({ email: body.email, activated: true, sent: true });
+    },
+  };
+  assert.equal(lifecycleWaitlist({ LIFECYCLE } as unknown as ContentEnv), undefined, 'no owner, no waitlist on the page');
+  const waitlist = lifecycleWaitlist({ LIFECYCLE, WAITLIST_CUSTOMER: ' cmokit-1a2b3c ' } as unknown as ContentEnv)!;
+  assert.equal(waitlist.owner, 'cmokit-1a2b3c');
+  assert.deepEqual(await waitlist.list(), [{ email: 'cy@example.com', joined: '2026-11-09T10:00:00.000Z', referrals: 2, activated: null }]);
+  assert.deepEqual(await waitlist.activate('cy@example.com'), { found: true, sent: true });
+  assert.deepEqual(await waitlist.activate('zed@example.com'), { found: false, sent: false });
+  assert.deepEqual(asked.map((a) => a.url), [
+    'https://lifecycle.internal/internal/waitlist', 'https://lifecycle.internal/internal/activate', 'https://lifecycle.internal/internal/activate',
+  ]);
+});
+
+test('a new brand\'s slug comes from its name, with a random end, and is always a valid slug', () => {
+  assert.match(brandSlug('CFO Kit'), /^cfo-kit-[0-9a-f]{6}$/);
+  assert.match(brandSlug('Café & Co.'), /^cafe-co-[0-9a-f]{6}$/);
+  assert.match(brandSlug('東京'), /^brand-[0-9a-f]{6}$/);
+  assert.notEqual(brandSlug('CFO Kit'), brandSlug('CFO Kit'));
+  assert.match(brandSlug('a'.repeat(60)), /^[a-z0-9][a-z0-9-]{0,62}$/);
 });

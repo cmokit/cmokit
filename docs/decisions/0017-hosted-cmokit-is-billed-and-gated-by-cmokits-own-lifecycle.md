@@ -61,8 +61,9 @@ CMOkit's own billing through it is the most direct test of it there is.
 > A person can also be activated without a checkout, as in a closed beta. Hosted CMOkit's operator
 > lists the email addresses activated, or activates people on the waitlist of CMOkit's own site
 > (ADR-0014), which the content server asks the lifecycle about over its service binding. A
-> signed-in person whose proven address is listed or activated gets a customer of their own at their
-> first call, with them as its first user and no billing (`CUS-03`).
+> signed-in person whose proven address is listed or activated becomes CMOkit's customer at their
+> first call: CMOkit makes their first brand, a customer with them as its first user and no billing
+> (`CUS-03`, ADR-0042).
 > Its access is active, and the lifecycle never changes it, since no subscription names it.
 
 ### Consequences

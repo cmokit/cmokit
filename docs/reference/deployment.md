@@ -52,8 +52,9 @@ from `@cmokit/content`.
 | `ISSUER` | Service binding | Yes | The issuer's Worker, which checks each token and knows each person's customers. |
 | `LIFECYCLE` | Service binding | To sell a subscription or activate from a waitlist | The lifecycle Worker that makes checkout and portal links and knows who its site's waitlist has activated. Without it, a person with no customer is told to ask whoever runs it to add them. |
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
-| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or whom the lifecycle's waitlist has activated, gets a customer of their own at their first call. |
+| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or whom the lifecycle's waitlist has activated, becomes CMOkit's customer at their first call, with a first brand made for them. |
 | `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version. When both are set, a user who has not accepted that version is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
+| `WAITLIST_CUSTOMER` | Worker variable | No | The slug of the brand that owns the `LIFECYCLE` site's waitlist, as CMOkit's own, shown on its account page as "Brand". That brand's users see the waitlist on the account page, ranked by referrals, and activate people from it one by one, which needs a `@cmokit/lifecycle` release later than 0.2.0 (ADR-0042). No other brand sees it. |
 | `APP_URL` | Worker variable | No | Where the account page is served, as `https://app.cmokit.ai`, at a route of this Worker (ADR-0041). It needs the `ISSUER` binding and the issuer's own `APP_URL`. Without it, no account page is served. |
 
 A customer's credentials are not among these: each is entered by the customer on a one-time page of
@@ -111,6 +112,7 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `TERMS_URL`, `TERMS_VERSION` | Variables | For the closed beta | Deployed as the content server's variables of the same names. |
+| `WAITLIST_CUSTOMER` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |

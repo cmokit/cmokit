@@ -1,7 +1,7 @@
 // The one-time pages: on one a person enters a key for a vendor that only issues keys (ADR-0019), and
 // the key travels from the person's browser to the content server, never through a conversation; on
 // another a user accepts the server's terms (ADR-0039). The account page shows a signed-in person their
-// account (ADR-0041).
+// account (ADR-0041), where they add a brand and, for the waitlist's owner, activate people (ADR-0042).
 
 import { SECTIONS, type BrandContext } from './customer.ts';
 
@@ -55,10 +55,26 @@ export function subscriptionPage(state: string): Response {
   return html(`<h1>${title}</h1><p>${text}</p>`, 200);
 }
 
+/** One person on a site's waitlist, as the account page lists it, ranked by referrals. */
+export interface WaitlistEntry {
+  email: string;
+  joined: string;
+  referrals: number;
+  activated: string | null;
+}
+
 /** What the account page shows. Absent `customer` means the person is no customer's user yet. */
 export interface AccountView {
   email: string | null;
+  /** The line shown after a change made on the page. */
+  notice?: string;
   customer?: {
+    /** The brand's slug, the name it goes by when signing in and in settings. */
+    slug: string;
+    /** Whether the person can add another brand here. */
+    addBrand: boolean;
+    /** The bound site's waitlist, when this brand owns it. */
+    waitlist?: WaitlistEntry[] | 'unavailable';
     access: string;
     connections: { vendor: string; name: string }[];
     missing: { label: string; link: string; optional: boolean }[];
@@ -72,7 +88,7 @@ const ACCESS: Record<string, string> = { trial: 'Free trial', active: 'Active', 
 
 /** A signed-in person's account (ADR-0041). It changes nothing; changes are made in Claude. */
 export function accountPage(view: AccountView): Response {
-  const who = `<p>Signed in${view.email ? ` as ${escape(view.email)}` : ''}.</p>`;
+  const who = `${view.notice ? `<p role="status"><strong>${escape(view.notice)}</strong></p>` : ''}<p>Signed in${view.email ? ` as ${escape(view.email)}` : ''}.</p>`;
   const signOut = '<form method="post" action="/signout"><button type="submit">Sign out</button></form>';
   const c = view.customer;
   if (!c) {
@@ -91,7 +107,22 @@ export function accountPage(view: AccountView): Response {
   const brand = version === 0
     ? '<p>No brand context yet. Ask Claude to build it with you.</p>'
     : `<p>Version ${version}${at ? `, approved ${escape(at.slice(0, 10))}` : ''}.</p>${sections.join('\n')}${offers.length ? `<h3>Offers</h3><ul>${offers.join('')}</ul>` : ''}`;
+  const brands = c.addBrand ? `<h2>Brands</h2>
+<p>Each brand has its own brand context, connections and content, and after the beta its own subscription.</p>
+<form method="post" action="/brands">
+  <label for="brand-name">New brand's name</label>
+  <input id="brand-name" name="name" maxlength="60" required>
+  <button type="submit">Add a brand</button>
+</form>` : '';
+  const waitlist = c.waitlist === 'unavailable'
+    ? '<h2>Beta waitlist</h2><p>The waitlist can\'t be read yet. The site\'s lifecycle needs a newer release.</p>'
+    : c.waitlist ? `<h2>Beta waitlist</h2>
+${c.waitlist.length ? `<p>${c.waitlist.length} on the waitlist, most referrals first. Activating someone emails them, and they can sign in and use CMOkit.</p>
+<ul>${c.waitlist.map((w) => `<li>${escape(w.email)}, joined ${escape(w.joined.slice(0, 10))}, ${w.referrals} referral${w.referrals === 1 ? '' : 's'}: ${w.activated
+    ? `activated ${escape(w.activated.slice(0, 10))}`
+    : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(w.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
   return html(`<h1>Your CMOkit account</h1>${who}
+<p>Brand: ${escape(c.slug)}.</p>
 <p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>
 ${terms}
 <h2>Connections</h2>
@@ -100,7 +131,9 @@ ${missing.length ? `<p>Not connected yet:</p><ul>${missing.join('')}</ul>` : ''}
 <h2>Brand context</h2>
 ${brand}
 <p>To change your brand context or settings, ask Claude.</p>
-<p><a href="/export">Download everything CMOkit holds for this account</a></p>
+<p><a href="/export">Download everything CMOkit holds for this brand</a></p>
+${brands}
+${waitlist}
 ${signOut}`, 200);
 }
 
