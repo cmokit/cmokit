@@ -183,7 +183,7 @@ function notice(url: URL): string | undefined {
   if (activated === 'sent') return 'Activated. CMOkit emailed them.';
   if (activated === 'unsent') return 'Activated, but the activation email could not be sent, so tell them yourself.';
   if (activated === 'missing') return 'That address is not on the waitlist.';
-  if (activated === 'failed') return 'The waitlist could not be reached, so nobody was activated. Try again later.';
+  if (activated === 'failed') return "The waitlist could not be reached, so nobody was activated. The site's lifecycle may not be set up yet, or may need a newer release.";
   return undefined;
 }
 

@@ -12,7 +12,7 @@ const config = resolve({
   sequences: [{ name: 'welcome', start: 'signup', stop: ['trial_started'], messages: [{ template: 'welcome', after: '0m' }] }],
 });
 
-function setup(withLifecycle = true, site: Resolved = config) {
+function setup(withLifecycle = true, site: Resolved = config, referer = 'https://site.example/?utm_source=news&plan=pro') {
   const events: AnalyticsEvent[] = [];
   const captured: CapturedLead[] = [];
   const later: string[] = [];
@@ -41,7 +41,7 @@ function setup(withLifecycle = true, site: Resolved = config) {
     async convert(body: object, cookie = 'cmokit_id=v1; cmokit_x_landing=b') {
       const response = await handle(new Request('https://site.example/_cmokit/convert', {
         method: 'POST',
-        headers: { 'user-agent': BROWSER, cookie, referer: 'https://site.example/?utm_source=news&plan=pro', 'content-type': 'application/json' },
+        headers: { 'user-agent': BROWSER, cookie, referer, 'content-type': 'application/json' },
         body: JSON.stringify(body),
       }));
       await Promise.all(work);
@@ -83,9 +83,23 @@ test('joining the waitlist captures a lead with no sequence and answers with the
   assert.equal(response.status, 200);
   const key = await leadKey('ada@example.com');
   const { referral } = await response.json() as { referral: string };
-  assert.equal(referral, `https://site.example/?ref=${await referralCode(key)}`);
+  assert.equal(referral, `https://site.example/?utm_source=news&plan=pro&ref=${await referralCode(key)}`,
+    'the link keeps every query parameter of the page the person joined on');
   assert.equal(edge.captured.length, 1);
   assert.equal(edge.captured[0].properties.ref, 'friend1', 'the code the person arrived with goes to the lifecycle');
+});
+
+test('a referral link replaces the code the person arrived with and drops the fragment', async () => {
+  const waitlisted = resolve({
+    analytics: { posthog: { key: 'phc_test' } },
+    messaging: { from: 'hello@site.example', address: '1 Main St', sendgrid: { unsubscribeGroup: 42 } },
+    waitlist: { event: 'waitlist_joined', template: 'in', link: 'https://app.site.example/start' },
+  });
+  const edge = setup(true, waitlisted, 'https://site.example/beta?ref=friend1&utm_campaign=launch#join');
+  const response = await edge.convert({ name: 'waitlist_joined', email: 'ada@example.com' });
+  const { referral } = await response.json() as { referral: string };
+  const code = await referralCode(await leadKey('ada@example.com'));
+  assert.equal(referral, `https://site.example/beta?ref=${code}&utm_campaign=launch`);
 });
 
 test('a later conversion by the lead may end its sequence; others are only recorded', async () => {

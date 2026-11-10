@@ -36,7 +36,8 @@ The customer portal is turned on in Stripe's settings.
 A site with a waitlist names it in `cmokit.config.ts`, as
 `waitlist: { event, template, link, referral }`: the conversion event that joins it, the activation
 message's template, the link that message gives, and the referral parameter, `ref` unless set. The
-edge answers a join with the person's referral link. A product the site sells asks the lifecycle,
+edge answers a join with the person's referral link: the page they joined on, with every query
+parameter it had, carrying their own code. A product the site sells asks the lifecycle,
 over its service binding, whether an address is activated.
 
 ## The content server Worker

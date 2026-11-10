@@ -118,7 +118,12 @@ export function lifecycleWaitlist(env: ContentEnv): AccountOptions['waitlist'] {
     },
     async activate(email) {
       const response = await post(LIFECYCLE_ACTIVATE, { email });
-      if (response.status === 404) return { found: false, sent: false };
+      // Only the lifecycle's own answer says an address is not on the list. A bare 404 comes from a
+      // lifecycle with no waitlist or one too old to know the route, so the list was not reached.
+      if (response.status === 404) {
+        const answer = await response.json().catch(() => undefined) as { activated?: unknown } | undefined;
+        if (answer?.activated === false) return { found: false, sent: false };
+      }
       if (!response.ok) throw new Error(`The lifecycle answered ${response.status}`);
       return { found: true, sent: ((await response.json()) as { sent?: boolean }).sent === true };
     },
