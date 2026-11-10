@@ -51,8 +51,8 @@ the page.
 CMOkit's content production is also offered as a commercial hosted service, for content marketers
 and creators who post a lot of short-form video and sell something through it: an event, an offer, a
 launch, a subscription. Most of them are not developers. They work in Claude, on the desktop, on the
-web and on their phone, with no terminal and no repository. For them, CMOkit also runs their site's
-waitlist, referral links and messages, while their site stays where they host it. CMOkit stays open
+web and on their phone, with no terminal and no repository. For them, CMOkit also runs their waitlist,
+referral links and messages, from CMOkit's own domains, so they set up no domain. CMOkit stays open
 source, and anyone can still run the engine, and the content service, themselves.
 
 * **Very little to set up.** A customer creates a CMOkit account and subscribes, and connects the

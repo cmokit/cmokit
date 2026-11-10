@@ -44,4 +44,4 @@ from [adr-template.md](adr-template.md).
 | [0037](0037-platform-ai-content-rules-are-a-reviewed-file-in-the-skill-refreshed-monthly-in-ci.md) | Platforms' rules on AI-made content are a reviewed file in the content skill, refreshed monthly by a model in CI that proposes a pull request | Proposed |
 | [0038](0038-a-pull-request-is-opened-ready-for-review-and-merged-only-when-a-maintainer-says.md) | A pull request is opened ready for review, and merged only when a maintainer says so | Proposed |
 | [0039](0039-beta-terms-are-accepted-on-a-one-time-page-and-kept-with-the-customer.md) | Beta terms are accepted on a one-time page the conversation links to, and kept with the customer | Proposed |
-| [0040](0040-hosted-cmokit-runs-each-customer-sites-edge-and-lifecycle-on-its-own-cloudflare-account.md) | Hosted CMOkit runs each customer site's edge and lifecycle on CMOkit's own Cloudflare account, one deployment per site | Proposed |
+| [0040](0040-a-hosted-customers-waitlist-and-messages-are-served-from-cmokits-own-domains.md) | A hosted customer's waitlist, referral links and messages are served from CMOkit's own domains | Proposed |

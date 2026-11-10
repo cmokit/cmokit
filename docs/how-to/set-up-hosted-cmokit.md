@@ -178,18 +178,3 @@ first, then again in live mode.
    server's binding names. Push, so the site deploys.
 6. Run **deploy-hosted** here again. It finds the site's lifecycle and connects the content server to
    it, which turns subscriptions on.
-
-## 10. A customer's site
-
-Hosted CMOkit runs each customer site's edge and lifecycle, its waitlist, referral links and
-messages, on this same Cloudflare account, one deployment per site (ADR-0040). CMOkit's own site,
-cmokit.ai, is the first. For each site:
-
-1. Add the site's domain to this Cloudflare account, and point its nameservers at Cloudflare.
-2. Make a repository for the site from the starter (`npm create cmokit`), with the site's
-   `cmokit.config.ts` and messages.
-3. Give that repository this account's `CLOUDFLARE_ACCOUNT_ID` as a variable, `CLOUDFLARE_API_TOKEN`
-   as a secret, and the secrets the [deployment reference](../reference/deployment.md) lists for the
-   edge and lifecycle Workers. Push, so the site deploys.
-
-The site itself stays where its owner builds and hosts it.

@@ -7,7 +7,7 @@ requirements cite no decision record.
 
 | Topic | Boundary |
 |---|---|
-| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. Hosted CMOkit runs a customer site's edge and lifecycle, and it neither hosts nor publishes to any site. |
+| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. Hosted CMOkit serves a customer's waitlist, referral links and messages from CMOkit's own domains, and neither hosts nor publishes to any site of the customer's. |
 | A page builder or CMS | Pages are made with whatever builds the site: a static site generator, a CMS or anything else. |
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
 | Ad budgets and ad accounts | Paid acquisition is part of the loop: CMOkit traffics ads in the person's own ad account, after their approval and within the budget they set, analyzes how they perform and plans the next round, and automates more of that as the person allows. The ad account, the budget and the money stay the person's; CMOkit holds no ad account of its own and never sets or raises a budget. |
@@ -127,7 +127,7 @@ requirements cite no decision record.
 
 ## Hosted offering (`HST-`)
 
-What hosted CMOkit must do, and how a customer is set up for it. A self-hosted adopter runs the engine on an account of its own; for a hosted customer, CMOkit runs it.
+What hosted CMOkit must do, and how a customer is set up for it. A self-hosted adopter runs the engine on an account and domain of its own; a hosted customer sets up neither.
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
@@ -144,7 +144,7 @@ What hosted CMOkit must do, and how a customer is set up for it. A self-hosted a
 | **HST-13** | A customer can export everything CMOkit holds for it, in a readable form, and close its account, which deletes what CMOkit holds. | Must | Proposed |
 | **HST-14** | CMOkit is its own first customer: its own site, on GitHub Pages, is built with CMOkit, and the short-form content that markets CMOkit to creators is made with the content plugin. | Must | Proposed |
 | **HST-15** | While hosted CMOkit is in a closed beta, a user accepts its beta terms, on a page of CMOkit's that the conversation links to, before using anything but their account's status, and accepts each new version of them again. | Must | Proposed |
-| **HST-16** | A hosted customer's site has its waitlist, referral links and messages run for it by CMOkit, with no Cloudflare account, repository or deploy of the customer's own. The site itself stays where its owner builds and hosts it. | Must | Proposed |
+| **HST-16** | A hosted customer's waitlist, referral links and messages are run for it by CMOkit, from CMOkit's own domains, with no domain, DNS, Cloudflare account, repository or deploy of the customer's own. | Must | Proposed |
 | **HST-17** | A customer views and manages its profile, its brand context and the settings its CMOkit skills use, on CMOkit's account page at `app.cmokit.ai`, where an activated person's account is. | Must | Proposed |
 
 ## Content (`CNT-`)
