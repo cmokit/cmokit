@@ -45,3 +45,4 @@ from [adr-template.md](adr-template.md).
 | [0038](0038-a-pull-request-is-opened-ready-for-review-and-merged-only-when-a-maintainer-says.md) | A pull request is opened ready for review, and merged only when a maintainer says so | Proposed |
 | [0039](0039-beta-terms-are-accepted-on-a-one-time-page-and-kept-with-the-customer.md) | Beta terms are accepted on a one-time page the conversation links to, and kept with the customer | Proposed |
 | [0040](0040-a-hosted-customers-landing-page-and-waitlist-are-served-by-cmokit-at-a-domain-the-customer-points-at-it.md) | A hosted customer's landing page and waitlist are served by CMOkit, at a custom domain the customer points at it | Proposed |
+| [0041](0041-the-account-page-is-served-by-the-content-server-and-signs-in-through-the-issuer-as-an-oauth-client.md) | The account page is served by the content server, and signs in through the issuer as an OAuth client | Proposed |

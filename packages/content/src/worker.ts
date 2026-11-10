@@ -17,7 +17,7 @@
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
-import { createContentServer, type Billing, type CustomerPages, type Tokens } from './index.ts';
+import { createContentServer, type AccountOptions, type Billing, type CustomerPages, type Tokens } from './index.ts';
 import { luma } from './luma.ts';
 import type { Sql } from './sql.ts';
 import type { CustomerCalls } from './tools.ts';
@@ -45,10 +45,14 @@ export interface ContentEnv {
   TERMS_URL?: string;
   /** The terms' current version; a user accepts each new version. A variable. */
   TERMS_VERSION?: string;
+  /** Where the account page is served, as https://app.cmokit.ai; no account page without it (ADR-0041). A variable. */
+  APP_URL?: string;
 }
 
 /** What CMOkit's issuer offers the content server over its service binding. */
 export interface IssuerBinding {
+  /** The issuer's own routes, as its token endpoint, which the account page signs in through. */
+  fetch?(input: string, init?: RequestInit): Promise<Response>;
   validateToken(resource: string, token: string): Promise<{ userId: string; audience: string; props: { person: string; customer: string | null } } | null>;
   /** The customers a person is a user of. */
   customers(person: string): Promise<string[]>;
@@ -133,8 +137,30 @@ export interface CustomerClass {
 
 /** The calls the Worker may make on a customer's object. */
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
-  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser'] as const;
+  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll'] as const;
 type Call = (typeof CALLS)[number];
+
+/** The account page, at APP_URL, signing in through the issuer over its service binding (ADR-0041). */
+export function accountFor(env: ContentEnv): AccountOptions | undefined {
+  const issuer = env.ISSUER;
+  if (!env.APP_URL || !issuer?.fetch) return undefined;
+  const fetchIssuer = issuer.fetch.bind(issuer);
+  return {
+    origin: new URL(env.APP_URL).origin,
+    exchange: async (form) => {
+      const response = await fetchIssuer(`${env.ISSUER_URL.replace(/\/$/, '')}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+      });
+      if (!response.ok) return undefined;
+      const body = await response.json() as { access_token?: unknown; expires_in?: unknown };
+      if (typeof body.access_token !== 'string') return undefined;
+      return { access_token: body.access_token, ...(typeof body.expires_in === 'number' ? { expires_in: body.expires_in } : {}) };
+    },
+    email: (person) => issuer.email(person),
+  };
+}
 
 export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }) {
   class Customer {
@@ -219,6 +245,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         billing: lifecycleBilling(env),
         activate: activation(env),
         ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
+        account: accountFor(env),
       });
       return handle(request);
     },

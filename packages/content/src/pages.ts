@@ -1,6 +1,9 @@
 // The one-time pages: on one a person enters a key for a vendor that only issues keys (ADR-0019), and
 // the key travels from the person's browser to the content server, never through a conversation; on
-// another a user accepts the server's terms (ADR-0039).
+// another a user accepts the server's terms (ADR-0039). The account page shows a signed-in person their
+// account (ADR-0041).
+
+import { SECTIONS, type BrandContext } from './customer.ts';
 
 export function keyPage(page: { label: string; help: string; token: string; problem?: string }): Response {
   return html(`<h1>Connect ${escape(page.label)}</h1>
@@ -50,6 +53,59 @@ const SUBSCRIPTION = {
 export function subscriptionPage(state: string): Response {
   const [title, text] = SUBSCRIPTION[state as keyof typeof SUBSCRIPTION] ?? SUBSCRIPTION.managed;
   return html(`<h1>${title}</h1><p>${text}</p>`, 200);
+}
+
+/** What the account page shows. Absent `customer` means the person is no customer's user yet. */
+export interface AccountView {
+  email: string | null;
+  customer?: {
+    access: string;
+    connections: { vendor: string; name: string }[];
+    missing: { label: string; link: string; optional: boolean }[];
+    brand: { version: number; context: BrandContext; at: string | null };
+    terms?: { accepted: boolean; version: string; url: string; link?: string };
+    manage?: string;
+  };
+}
+
+const ACCESS: Record<string, string> = { trial: 'Free trial', active: 'Active', lapsed: 'Lapsed: pay to reopen your records' };
+
+/** A signed-in person's account (ADR-0041). It changes nothing; changes are made in Claude. */
+export function accountPage(view: AccountView): Response {
+  const who = `<p>Signed in${view.email ? ` as ${escape(view.email)}` : ''}.</p>`;
+  const signOut = '<form method="post" action="/signout"><button type="submit">Sign out</button></form>';
+  const c = view.customer;
+  if (!c) {
+    return html(`<h1>Your CMOkit account</h1>${who}
+<p>This account has no CMOkit subscription yet. Ask Claude to set CMOkit up, and come back here afterwards.</p>${signOut}`, 200);
+  }
+  const terms = c.terms ? `<h2>Beta terms</h2>
+<p>${c.terms.accepted
+    ? `You accepted <a href="${escape(c.terms.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a>, version ${escape(c.terms.version)}.`
+    : `You have not accepted <a href="${escape(c.terms.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a> (version ${escape(c.terms.version)}) yet. <a href="${escape(c.terms.link ?? '')}">Read and accept them</a>.`}</p>` : '';
+  const connected = c.connections.map((x) => `<li>${escape(x.vendor)}: ${escape(x.name)}</li>`);
+  const missing = c.missing.map((m) => `<li>${escape(m.label)}${m.optional ? ' (optional)' : ''}: <a href="${escape(m.link)}">connect</a></li>`);
+  const { version, context, at } = c.brand;
+  const sections = SECTIONS.filter((s) => context.sections[s]).map((s) => `<h3>${escape(s.replace('_', ' '))}</h3><p>${escape(context.sections[s] ?? '')}</p>`);
+  const offers = context.offers.map((o) => `<li>${escape(o.name)}</li>`);
+  const brand = version === 0
+    ? '<p>No brand context yet. Ask Claude to build it with you.</p>'
+    : `<p>Version ${version}${at ? `, approved ${escape(at.slice(0, 10))}` : ''}.</p>${sections.join('\n')}${offers.length ? `<h3>Offers</h3><ul>${offers.join('')}</ul>` : ''}`;
+  return html(`<h1>Your CMOkit account</h1>${who}
+<p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>
+${terms}
+<h2>Connections</h2>
+${connected.length ? `<ul>${connected.join('')}</ul>` : '<p>Nothing connected yet.</p>'}
+${missing.length ? `<p>Not connected yet:</p><ul>${missing.join('')}</ul>` : ''}
+<h2>Brand context</h2>
+${brand}
+<p>To change your brand context or settings, ask Claude.</p>
+<p><a href="/export">Download everything CMOkit holds for this account</a></p>
+${signOut}`, 200);
+}
+
+export function signedOutPage(): Response {
+  return html('<h1>You are signed out</h1><p><a href="/">Sign in again</a></p>', 200);
 }
 
 function html(body: string, status: number): Response {
