@@ -85,7 +85,9 @@ test('the lifecycle\'s entrypoint makes a customer with the person who paid as i
     ISSUER: {
       validateToken: async () => null,
       customers: async () => [],
+      brands: async () => [],
       addCustomer: async (person: string, customer: string) => void added.push(`${person} ${customer}`),
+      nameCustomer: async () => true,
       email: async () => null,
     },
     CUSTOMERS: {
@@ -164,9 +166,11 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
     ISSUER: {
       validateToken: async () => null,
       customers: async (person: string) => theirs[person] ?? [],
+      brands: async (person: string) => (theirs[person] ?? []).map((slug) => ({ slug, name: null })),
       addCustomer: async (person: string, customer: string) => {
         theirs[person] = [...new Set([...(theirs[person] ?? []), customer])];
       },
+      nameCustomer: async () => true,
       email: async (person: string) => people[person]?.email ?? null,
     },
     CUSTOMERS: {

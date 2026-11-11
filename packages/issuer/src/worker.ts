@@ -7,13 +7,13 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOkit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers` and `addCustomer` over a service binding (ADR-0029, ADR-0017), and `email` for activation without a checkout (CUS-03). Every variable and secret it reads is in
+// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), and `email` for activation without a checkout (CUS-03). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { OAuthAuthorizationServer, authorizationErrorRedirect, type AuthRequest as LibraryRequest } from '@cloudflare/workers-oauth-provider';
 import { Identity as IdentityLogic, Person as PersonLogic } from './accounts.ts';
-import { allowedRedirect, createSignIn, type Accounts, type Grant, type IdentityRecords, type PersonRecords, type SignInOAuth } from './index.ts';
+import { allowedRedirect, createSignIn, type Accounts, type Brand, type Grant, type IdentityRecords, type PersonRecords, type SignInOAuth } from './index.ts';
 import { github, google, meta, type Provider } from './providers.ts';
 import { sendgridCodes } from './sendgrid.ts';
 import type { Sql } from './sql.ts';
@@ -60,13 +60,15 @@ export interface IssuerEntrypoint {
     fetch(request: Request): Promise<Response>;
     validateToken(resource: string, token: string): Promise<ValidatedToken | null>;
     customers(person: string): Promise<string[]>;
-    addCustomer(person: string, customer: string): Promise<void>;
+    brands(person: string): Promise<Brand[]>;
+    addCustomer(person: string, customer: string, name?: string): Promise<void>;
+    nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
     email(person: string): Promise<string | null>;
   };
 }
 
 const IDENTITY_CALLS = ['person', 'claim', 'allow', 'issueCode', 'checkCode'] as const;
-const PERSON_CALLS = ['addIdentity', 'identities', 'email', 'customers', 'addCustomer'] as const;
+const PERSON_CALLS = ['addIdentity', 'identities', 'email', 'customers', 'brands', 'addCustomer', 'nameCustomer'] as const;
 
 /** A Durable Object class that runs one logic class's calls, each a POST of its arguments as JSON. */
 function objectClass<L>(Logic: new (sql: Sql) => L, calls: readonly string[]): ObjectClass {
@@ -186,9 +188,19 @@ export function createIssuerWorker(): { Issuer: IssuerEntrypoint; Identity: Obje
       return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).customers();
     }
 
-    /** What the content server calls when the lifecycle makes a customer for a person (ADR-0017). */
-    addCustomer(person: string, customer: string): Promise<void> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).addCustomer(customer, Date.now());
+    /** The customers a person is a user of, each with the name the person gave it, for the account page. */
+    brands(person: string): Promise<Brand[]> {
+      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).brands();
+    }
+
+    /** What the content server calls when it makes a customer for a person (ADR-0017), with the brand's name if it has one. */
+    addCustomer(person: string, customer: string, name?: string): Promise<void> {
+      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).addCustomer(customer, Date.now(), name);
+    }
+
+    /** Names, or renames, one of a person's customers, as they see it; false when it is not theirs. */
+    nameCustomer(person: string, customer: string, name: string): Promise<boolean> {
+      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).nameCustomer(customer, name);
     }
 
     /** The email address a person proved when signing in, for activation without a checkout (CUS-03). */

@@ -10,9 +10,9 @@
 
 import { choosePage, codePage, problemPage, signInPage, type ClientFacts } from './pages.ts';
 import type { Provider } from './providers.ts';
-import { SENDS_PER_NETWORK, type CodeCheck } from './accounts.ts';
+import { SENDS_PER_NETWORK, type Brand, type CodeCheck } from './accounts.ts';
 
-export { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS, SENDS_PER_NETWORK, type CodeCheck } from './accounts.ts';
+export { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS, SENDS_PER_NETWORK, type Brand, type CodeCheck } from './accounts.ts';
 export { github, google, meta, type Provider, type ProviderClient, type Signed } from './providers.ts';
 export type { Row, Sql } from './sql.ts';
 
@@ -57,7 +57,9 @@ export interface PersonRecords {
   addIdentity(name: string, email: string | null, now: number): Promise<void>;
   email(): Promise<string | null>;
   customers(): Promise<string[]>;
-  addCustomer(slug: string, now: number): Promise<void>;
+  brands(): Promise<Brand[]>;
+  addCustomer(slug: string, now: number, name?: string): Promise<void>;
+  nameCustomer(slug: string, name: string): Promise<boolean>;
 }
 
 /** The issuer's records, each in an object of its own (ADR-0030). */
@@ -220,11 +222,12 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     const person = await accounts.identity(identity).claim(crypto.randomUUID());
     const records = accounts.person(person);
     await records.addIdentity(identity, email, now());
-    const customers = await records.customers();
+    const brands = await records.brands();
+    const customers = brands.map((b) => b.slug);
     if (customers.length === 0) return complete(request, person, null, headers);
     if (customers.length === 1) return complete(request, person, customers[0], headers);
     const upstream = await oauth.beginUpstream(request, { data: { way: 'choose', person, customers } satisfies Upstream, headers });
-    return choosePage({ customers, state: upstream.state, headers: upstream.headers });
+    return choosePage({ brands, state: upstream.state, headers: upstream.headers });
   }
 
   async function chose(request: Request): Promise<Response> {

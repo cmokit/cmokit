@@ -65,7 +65,11 @@ export interface IssuerBinding {
   validateToken(resource: string, token: string): Promise<{ userId: string; audience: string; props: { person: string; customer: string | null } } | null>;
   /** The customers a person is a user of. */
   customers(person: string): Promise<string[]>;
-  addCustomer(person: string, customer: string): Promise<void>;
+  /** The customers a person is a user of, each with the name the person gave it, if any. */
+  brands(person: string): Promise<{ slug: string; name: string | null }[]>;
+  addCustomer(person: string, customer: string, name?: string): Promise<void>;
+  /** Names, or renames, one of a person's customers, as they see it; false when it is not theirs. */
+  nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
   /** The email address a person proved when signing in, if any. */
   email(person: string): Promise<string | null>;
 }
@@ -251,8 +255,12 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
       async addBrand(person, name) {
         const slug = brandSlug(name);
         await customerFor(env, slug).addUser(person);
-        await issuer.addCustomer(person, slug);
+        await issuer.addCustomer(person, slug, name);
         return slug;
+      },
+      brands: (person) => issuer.brands(person),
+      async renameBrand(person, slug, name) {
+        await issuer.nameCustomer(person, slug, name);
       },
       ...(env.WAITLIST_CUSTOMER?.trim() ? { cmokitWaitlist: env.WAITLIST_CUSTOMER.trim() } : {}),
     };
