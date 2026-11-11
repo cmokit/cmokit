@@ -20,6 +20,8 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
   const acme = await readyCustomer();
   const exchanged: URLSearchParams[] = [];
   const added: [string, string][] = [];
+  const renamed: [string, string, string][] = [];
+  const names: Record<string, string> = { 'cfo-kit-0a1b2c': 'CFO Kit' };
   const handle = createContentServer({
     issuer: ISSUER, audience: ORIGIN, tokens,
     customer: (slug) => (slug === 'acme' ? acme.customer : newCustomer().customer),
@@ -32,7 +34,11 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
         return form.get('code') === 'good-code' ? { access_token: 'ada-token', expires_in: 3600 } : undefined;
       },
       email: async (person) => (person === 'ada' ? 'ada@example.com' : null),
-      ...(options.brands ? { addBrand: async (person: string, name: string) => { added.push([person, name]); return 'cfo-kit-0a1b2c'; } } : {}),
+      ...(options.brands ? {
+        addBrand: async (person: string, name: string) => { added.push([person, name]); return 'cfo-kit-0a1b2c'; },
+        brands: async (person: string) => (options.brandsOf?.[person] ?? ['acme']).map((slug) => ({ slug, name: names[slug] ?? null })),
+        renameBrand: async (person: string, slug: string, name: string) => { renamed.push([person, slug, name]); names[slug] = name; },
+      } : {}),
       ...(options.cmokit ? { cmokitWaitlist: options.cmokit } : {}),
     },
   });
@@ -40,7 +46,7 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
   const post = (path: string, form: Record<string, string>, cookie: string, origin = APP) => handle(new Request(`${APP}${path}`, {
     method: 'POST', body: new URLSearchParams(form), headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' },
   }));
-  return { handle, get, post, exchanged, added, acme: acme.customer };
+  return { handle, get, post, exchanged, added, renamed, acme: acme.customer };
 }
 
 const session = (token: string) => `__Host-cmokit-session=${token}`;
@@ -199,12 +205,23 @@ test('on CMOkit\'s own brand, the page says activating someone lets them use CMO
   assert.match(await (await get('/', session('ada-token'))).text(), /Activating someone here lets them sign in and use CMOkit/);
 });
 
-test('the account page lists every brand of the person, and a sign-in that chose none signs in again to choose', async () => {
-  const { get } = await server({ brands: true, brandsOf: { ada: ['acme', 'cfo-kit-0a1b2c'], new: ['acme', 'cfo-kit-0a1b2c'] } });
+test('the account page lists every brand of the person by name, and a sign-in that chose none signs in again to choose', async () => {
+  const { get, post, renamed } = await server({ brands: true, brandsOf: { ada: ['acme', 'cfo-kit-0a1b2c'], new: ['acme', 'cfo-kit-0a1b2c'] } });
   const page = await (await get('/?brand=added', session('ada-token'))).text();
-  assert.match(page, /<li>acme \(shown on this page\)<\/li><li>cfo-kit-0a1b2c<\/li>/);
+  assert.match(page, /<p>Brand: Unnamed brand\.<\/p>/, 'a brand never named, such as the first one made at activation');
+  assert.match(page, /<li>Unnamed brand \(shown on this page\)<\/li><li>CFO Kit<\/li>/);
+  assert.doesNotMatch(page, /cfo-kit-0a1b2c/, 'brands are shown by name, not by code');
   assert.match(page, /<a href="\/signin">Switch brand<\/a>/);
   assert.match(page, /listed under Brands/);
+  // Naming the brand the page shows.
+  assert.match(page, /<form method="post" action="\/brands\/name">/);
+  const named = await post('/brands/name', { name: 'CMO Kit' }, session('ada-token'));
+  assert.equal(named.headers.get('location'), '/?brand=renamed');
+  assert.deepEqual(renamed, [['ada', 'acme', 'CMO Kit']]);
+  assert.match(await (await get('/?brand=renamed', session('ada-token'))).text(), /<p>Brand: CMO Kit\.<\/p>/);
+  assert.equal((await post('/brands/name', { name: '<b>' }, session('ada-token'))).headers.get('location'), '/?brand=invalid');
+  assert.equal((await post('/brands/name', { name: 'CMO Kit' }, session('ada-token'), 'https://evil.example')).status, 403);
+  assert.equal(renamed.length, 1);
   // A session from before the second brand names no brand: the page asks again rather than refusing.
   const again = await get('/', session('new-token'));
   assert.equal(again.status, 303);

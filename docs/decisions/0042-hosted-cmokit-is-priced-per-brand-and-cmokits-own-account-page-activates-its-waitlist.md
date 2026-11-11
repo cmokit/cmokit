@@ -44,7 +44,9 @@ its own billing, so pricing by brand needs no new billing model, and a one-brand
 > connections, content and subscription, billed to the person who added it. An activated person's
 > first brand is made at their first call (`CUS-03`); any user of a brand adds another on the
 > account page, and is its first user. While the closed beta is unpaid, a person may add any number
-> of brands and none is billed. Marketing's starting guess for the price is $29 a month per brand,
+> of brands and none is billed. A person sees each of their brands by the name they gave it, when
+> signing in and on the account page; the name is kept with their record at the issuer, and the
+> first brand made at activation has none until they name it on the account page. Marketing's starting guess for the price is $29 a month per brand,
 > to be set as configuration when paid plans start (`SUB-05`).
 >
 > The brand that the content server's `WAITLIST_CUSTOMER` names, CMOkit's own, activates people
@@ -61,7 +63,8 @@ its own billing, so pricing by brand needs no new billing model, and a one-brand
 ### Confirmation
 
 The account page tests show that any user of a brand adds another from the page's own form, and
-that the page lists every brand of the person, with a way to switch to another. The
+that the page lists every brand of the person by name, with a way to name it and to switch to
+another; the issuer's tests show the sign-in's brand choice by name. The
 waitlist's tests are ADR-0043's.
 
 ## Pros and Cons of the Options

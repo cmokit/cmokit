@@ -97,6 +97,12 @@ export class Identity {
   }
 }
 
+/** A customer a person is a user of: its slug, and the name the person gave it, if any. */
+export interface Brand {
+  slug: string;
+  name: string | null;
+}
+
 export class Person {
   readonly #sql: Sql;
 
@@ -104,7 +110,13 @@ export class Person {
     this.#sql = sql;
     sql.all('CREATE TABLE IF NOT EXISTS identities (name TEXT PRIMARY KEY, added_at INTEGER NOT NULL)');
     sql.all('CREATE TABLE IF NOT EXISTS email (one INTEGER PRIMARY KEY CHECK (one = 1), address TEXT NOT NULL)');
-    sql.all('CREATE TABLE IF NOT EXISTS customers (slug TEXT PRIMARY KEY, added_at INTEGER NOT NULL)');
+    sql.all('CREATE TABLE IF NOT EXISTS customers (slug TEXT PRIMARY KEY, added_at INTEGER NOT NULL, name TEXT)');
+    // Records made before brands had names have no name column.
+    try {
+      sql.all('ALTER TABLE customers ADD COLUMN name TEXT');
+    } catch {
+      // The column is there already.
+    }
   }
 
   /** Records a sign-in identity of this person's, and the email address it proved, if any. */
@@ -126,8 +138,22 @@ export class Person {
     return this.#sql.all('SELECT slug FROM customers ORDER BY added_at, slug').map((r) => String(r.slug));
   }
 
-  /** Indexes a customer this person was made a user of, in the step that made them one (ADR-0017). */
-  async addCustomer(slug: string, now: number): Promise<void> {
-    this.#sql.all('INSERT OR IGNORE INTO customers (slug, added_at) VALUES (?, ?)', slug, now);
+  /** The customers this person is a user of, each with the name the person gave it, if any. */
+  async brands(): Promise<Brand[]> {
+    return this.#sql.all('SELECT slug, name FROM customers ORDER BY added_at, slug')
+      .map((r) => ({ slug: String(r.slug), name: r.name === null || r.name === undefined ? null : String(r.name) }));
+  }
+
+  /**
+   * Indexes a customer this person was made a user of, in the step that made them one (ADR-0017),
+   * with the name they gave it, if any.
+   */
+  async addCustomer(slug: string, now: number, name?: string): Promise<void> {
+    this.#sql.all('INSERT OR IGNORE INTO customers (slug, added_at, name) VALUES (?, ?, ?)', slug, now, name ?? null);
+  }
+
+  /** Names, or renames, one of this person's customers; false when it is not one of theirs. */
+  async nameCustomer(slug: string, name: string): Promise<boolean> {
+    return this.#sql.all('UPDATE customers SET name = ? WHERE slug = ? RETURNING slug', name, slug).length > 0;
   }
 }

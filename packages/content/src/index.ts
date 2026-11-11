@@ -139,7 +139,6 @@ export function createContentServer(options: ContentServerOptions) {
         return await handleAccount(request, url, account, {
           issuer: options.issuer, audience: options.audience, tokens: options.tokens, billing: options.billing, terms: options.terms,
           customer: options.customer,
-          brandsOf: options.customersOf,
           served: async (checked) => {
             const slug = await served(checked);
             if (slug !== undefined && !ONE_SLUG.test(slug)) throw new Ambiguous();

@@ -67,8 +67,10 @@ export interface AccountView {
     slug: string;
     /** Whether the person can add another brand here. */
     addBrand: boolean;
-    /** The slugs of every brand the person is a user of, this one among them. */
-    brands: string[];
+    /** Every brand the person is a user of, this one among them, with the name the person gave it. */
+    brands: { slug: string; name: string | null }[];
+    /** Whether the person can name this brand here. */
+    rename: boolean;
     /** The brand's waitlist, ranked by referrals, and how a site joins it (ADR-0043). */
     waitlist?: {
       people: WaitlistEntry[];
@@ -89,6 +91,11 @@ export interface AccountView {
 }
 
 const ACCESS: Record<string, string> = { trial: 'Free trial', active: 'Active', lapsed: 'Lapsed: pay to reopen your records' };
+
+/** What a person sees for a brand they never named, such as the first one made when they were activated. */
+export const UNNAMED_BRAND = 'Unnamed brand';
+
+const brandName = (name: string | null): string => name ?? UNNAMED_BRAND;
 
 /** A signed-in person's account (ADR-0041). Its brand context and settings are changed in Claude; brands and the waitlist here. */
 export function accountPage(view: AccountView): Response {
@@ -111,10 +118,16 @@ export function accountPage(view: AccountView): Response {
   const brand = version === 0
     ? '<p>No brand context yet. Ask Claude to build it with you.</p>'
     : `<p>Version ${version}${at ? `, approved ${escape(at.slice(0, 10))}` : ''}.</p>${sections.join('\n')}${offers.length ? `<h3>Offers</h3><ul>${offers.join('')}</ul>` : ''}`;
-  const others = c.brands.filter((b) => b !== c.slug);
-  const listed = `<ul><li>${escape(c.slug)} (shown on this page)</li>${others.map((b) => `<li>${escape(b)}</li>`).join('')}</ul>`
-    + (others.length ? '<p><a href="/signin">Switch brand</a>: sign in again and choose the brand to show.</p>' : '');
-  const brands = c.addBrand || others.length ? `<h2>Brands</h2>
+  const name = brandName(c.brands.find((b) => b.slug === c.slug)?.name ?? null);
+  const others = c.brands.filter((b) => b.slug !== c.slug);
+  const listed = `<ul><li>${escape(name)} (shown on this page)</li>${others.map((b) => `<li>${escape(brandName(b.name))}</li>`).join('')}</ul>`
+    + (others.length ? '<p><a href="/signin">Switch brand</a>: sign in again and choose the brand to show.</p>' : '')
+    + (c.rename ? `<form method="post" action="/brands/name">
+  <label for="brand-rename">Name of the brand shown on this page</label>
+  <input id="brand-rename" name="name" maxlength="60" required value="${escape(c.brands.find((b) => b.slug === c.slug)?.name ?? '')}">
+  <button type="submit">Rename</button>
+</form>` : '');
+  const brands = c.addBrand || c.rename || others.length ? `<h2>Brands</h2>
 <p>Each brand has its own brand context, connections and content, and after the beta its own subscription.</p>
 ${listed}
 ${c.addBrand ? `<form method="post" action="/brands">
@@ -137,7 +150,7 @@ ${w.people.length ? `<p>${w.people.length} on the waitlist, most referrals first
     ? `activated ${escape(p.activated.slice(0, 10))}`
     : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
   return html(`<h1>Your CMOkit account</h1>${who}
-<p>Brand: ${escape(c.slug)}.</p>
+<p>Brand: ${escape(name)}.</p>
 <p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>
 ${terms}
 <h2>Connections</h2>

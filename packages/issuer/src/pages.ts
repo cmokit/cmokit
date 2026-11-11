@@ -74,8 +74,11 @@ export function codePage(options: { address: string; state: string; problem?: st
 </form>`, options.problem ? 400 : 200, options.headers);
 }
 
-export function choosePage(options: { customers: string[]; state: string; headers: Headers }): Response {
-  const choices = options.customers.map((slug, i) => `<label><input type="radio" name="customer" value="${escape(slug)}"${i === 0 ? ' checked' : ''} style="width:auto"> ${escape(slug)}</label><br>`).join('\n');
+/** What a person sees for a brand they never named, such as the first one made when they were activated. */
+export const UNNAMED_BRAND = 'Unnamed brand';
+
+export function choosePage(options: { brands: { slug: string; name: string | null }[]; state: string; headers: Headers }): Response {
+  const choices = options.brands.map((b, i) => `<label><input type="radio" name="customer" value="${escape(b.slug)}"${i === 0 ? ' checked' : ''} style="width:auto"> ${escape(b.name ?? UNNAMED_BRAND)}</label><br>`).join('\n');
   return page('Which brand?', `<p>Your account has more than one CMOkit brand. This connection will serve the one you choose.</p>
 <form method="post" action="/choose?state=${encodeURIComponent(options.state)}">
 ${choices}

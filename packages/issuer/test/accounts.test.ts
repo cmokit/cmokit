@@ -79,3 +79,16 @@ test('a person keeps their identities, the email they proved and their customers
   assert.equal(await person.email(), 'ada@example.com');
   assert.deepEqual(await person.customers(), ['acme']);
 });
+
+test('a person names their brands, and a record made before names keeps its brands', async () => {
+  const db = sqlite();
+  db.all('CREATE TABLE customers (slug TEXT PRIMARY KEY, added_at INTEGER NOT NULL)');
+  db.all('INSERT INTO customers (slug, added_at) VALUES (?, ?)', 'c0ffee', T0);
+  const person = new Person(db);
+  await person.addCustomer('cfo-kit-0a1b2c', T0 + 1, 'CFO Kit');
+  assert.deepEqual(await person.brands(), [{ slug: 'c0ffee', name: null }, { slug: 'cfo-kit-0a1b2c', name: 'CFO Kit' }]);
+  assert.equal(await person.nameCustomer('c0ffee', 'CMO Kit'), true);
+  assert.equal(await person.nameCustomer('initech', 'Initech'), false, 'only a brand of theirs');
+  assert.deepEqual(await person.brands(), [{ slug: 'c0ffee', name: 'CMO Kit' }, { slug: 'cfo-kit-0a1b2c', name: 'CFO Kit' }]);
+  assert.deepEqual(await new Person(db).customers(), ['c0ffee', 'cfo-kit-0a1b2c'], 'opening the record again changes nothing');
+});

@@ -26,6 +26,10 @@ export interface AccountOptions {
    * slug (ADR-0042). Absent when users cannot add brands here.
    */
   addBrand?(person: string, name: string): Promise<string>;
+  /** Every brand the person is a user of, each with the name the person gave it, if any. */
+  brands?(person: string): Promise<{ slug: string; name: string | null }[]>;
+  /** Names, or renames, one of the person's brands, as they see it. Absent when brands cannot be named here. */
+  renameBrand?(person: string, slug: string, name: string): Promise<void>;
   /** The slug of the brand whose waitlist lets people use CMOkit itself, as CMOkit's own (ADR-0043). */
   cmokitWaitlist?: string;
 }
@@ -38,8 +42,6 @@ export interface AccountContext {
   /** The customer a person's sign-in serves, as at the hosted MCP address, or undefined for none. */
   served(checked: { person: string; customer?: string }): Promise<string | undefined>;
   customer(slug: string): CustomerCalls & CustomerPages & { exportAll(): Promise<{ json: string; markdown: string }> };
-  /** The slugs of every brand the person is a user of. */
-  brandsOf?(person: string): Promise<string[]>;
   billing?: Billing;
   terms?: Terms;
 }
@@ -47,7 +49,7 @@ export interface AccountContext {
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/waitlist/activate', '/waitlist/sites']);
+const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -103,7 +105,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return response;
   }
 
-  const changes = route === 'POST /brands' || route === 'POST /waitlist/activate' || route === 'POST /waitlist/sites';
+  const changes = route === 'POST /brands' || route === 'POST /brands/name' || route === 'POST /waitlist/activate' || route === 'POST /waitlist/sites';
   if (route !== 'GET /' && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
   // pages' referrer policy is same-origin, because under no-referrer Safari sends a form's Origin as
@@ -127,6 +129,14 @@ export async function handleAccount(request: Request, url: URL, account: Account
     if (!BRAND_NAME.test(name)) return seeOther('/?brand=invalid');
     await account.addBrand(checked.person, name);
     return seeOther('/?brand=added');
+  }
+
+  if (route === 'POST /brands/name') {
+    if (!customer || slug === undefined || !account.renameBrand) return new Response('Not found', { status: 404 });
+    const name = String((await request.formData()).get('name') ?? '').trim();
+    if (!BRAND_NAME.test(name)) return seeOther('/?brand=invalid');
+    await account.renameBrand(checked.person, slug, name);
+    return seeOther('/?brand=renamed');
   }
 
   if (route === 'POST /waitlist/activate') {
@@ -169,7 +179,8 @@ export async function handleAccount(request: Request, url: URL, account: Account
       brand: await customer.brandRead(),
       slug,
       addBrand: account.addBrand !== undefined,
-      brands: context.brandsOf ? await context.brandsOf(checked.person) : [slug],
+      brands: account.brands ? await account.brands(checked.person) : [{ slug, name: null }],
+      rename: account.renameBrand !== undefined,
     };
     view.customer.waitlist = {
       people: await customer.waitlistList(),
@@ -193,6 +204,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
 /** The line the page shows after a change, from the address its form sent the person back to. */
 function notice(url: URL): string | undefined {
   const brand = url.searchParams.get('brand');
+  if (brand === 'renamed') return 'Brand renamed.';
   if (brand === 'added') return 'Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOkit in Claude and choose it.';
   if (brand === 'invalid') return 'A brand name is 1 to 60 letters, numbers, spaces and . & \' -.';
   const activated = url.searchParams.get('activated');

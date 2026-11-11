@@ -108,8 +108,8 @@ function setup(extra: Partial<Env> = {}) {
     SENDGRID_API_KEY: 'sg-key', MAIL_FROM: 'signin@cmokit.example', ...extra,
   } as Env;
   const worker = new Issuer({ waitUntil() {}, passThroughOnException() {} }, env) as unknown as InstanceType<typeof Issuer> & { fetch(r: Request): Promise<Response> };
-  const addCustomer = async (person: string, slug: string) => {
-    await people.get(person).fetch('https://object/addCustomer', { method: 'POST', body: JSON.stringify([slug, 0]) });
+  const addCustomer = async (person: string, slug: string, name?: string) => {
+    await people.get(person).fetch('https://object/addCustomer', { method: 'POST', body: JSON.stringify(name ? [slug, 0, name] : [slug, 0]) });
   };
   return { worker, env, people, identities, addCustomer };
 }
@@ -370,11 +370,12 @@ test('a person with two customers chooses which one this connection serves', asy
     await emailSignIn(worker, 'ada@example.com', net.mail);
     const person = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string }).result;
     await addCustomer(person, 'acme');
-    await addCustomer(person, 'globex');
+    await addCustomer(person, 'globex', 'Globex');
     const { done, go } = await emailSignIn(worker, 'ada@example.com', net.mail);
     const chooser = await done.text();
-    assert.match(chooser, /acme/);
-    assert.match(chooser, /globex/);
+    // Each brand is shown by the name the person gave it; one never named says so.
+    assert.match(chooser, /value="acme"[^>]*> Unnamed brand</);
+    assert.match(chooser, /value="globex"[^>]*> Globex</);
 
     const forged = await go(`/choose?state=${encodeURIComponent(stateIn(chooser))}`, { form: { customer: 'initech' } });
     assert.equal(forged.status, 400);
