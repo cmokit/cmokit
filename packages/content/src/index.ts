@@ -15,13 +15,15 @@
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { handleAccount, isAccountPath, type AccountOptions } from './account.ts';
-import { Refusal, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
+import { Refusal, type InstagramAccount, type InstagramStart, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
+import { MEMBER_SCOPES, type InstagramApp } from './instagram.ts';
 import { handleJoin, type JoinOptions } from './join.ts';
-import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
+import { acceptedPage, donePage, gonePage, instagramFailedPage, instagramJoinedPage, keyPage, subscriptionPage, termsPage } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export type { AccountOptions } from './account.ts';
-export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
+export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type InstagramAccount, type InstagramStart, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
+export { instagramApp, InstagramError, type InstagramApp, type InstagramOptions } from './instagram.ts';
 export { joinSnippet, type JoinOptions } from './join.ts';
 export { tally, type EventSummary, type Events, type GuestFacts, type Tally } from './events.ts';
 export { PLATFORMS, trackedLink, type Platform } from './links.ts';
@@ -54,6 +56,13 @@ export interface CustomerPages {
   waitlistJoin(email: string, details?: WaitlistDetails): Promise<WaitlistJoined>;
   waitlistList(): Promise<WaitlistEntry[]>;
   waitlistActivate(email: string): Promise<{ found: boolean }>;
+  /** Connecting Instagram, by a person on the waitlist or by the brand (ADR-0045). */
+  instagramStart(kind: 'member' | 'brand', subject: string, back?: string): Promise<string>;
+  instagramTake(token: string): Promise<InstagramStart | undefined>;
+  waitlistInstagram(code: string, id: string, username: string): Promise<{ found: boolean; place: number | null }>;
+  instagramSave(person: string, id: string, username: string, token: string): Promise<void>;
+  instagramAccount(): Promise<InstagramAccount | null>;
+  instagramCount(): Promise<{ reels: number; people: number }>;
 }
 
 /** Terms every user accepts before using the server, as a closed beta's (ADR-0039). */
@@ -95,6 +104,11 @@ export interface ContentServerOptions {
   account?: AccountOptions;
   /** How joins to a brand's waitlist are slowed; absent, none are (ADR-0043). */
   join?: JoinOptions;
+  /**
+   * The Instagram app, whose redirect address is the account page's /instagram/callback; absent, no
+   * one connects Instagram (ADR-0045). It needs the account page.
+   */
+  instagram?: InstagramApp;
 }
 
 const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
@@ -112,6 +126,10 @@ const TERMS_PAGE = new RegExp(`^/customers/${SLUG}/terms$`);
 const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for the link to read and accept them.';
 const SUBSCRIPTION = '/subscription';
 const JOIN = new RegExp(`^/join/${SLUG}$`);
+const INSTAGRAM_CALLBACK = '/instagram/callback';
+/** The value Instagram hands back names the brand, so one redirect address serves every brand. */
+const INSTAGRAM_STATE = new RegExp(`^${SLUG}\\.([A-Za-z0-9_-]{32})$`);
+const instagramState = (slug: string, token: string) => `${slug}.${token}`;
 const AMBIGUOUS = 'This account has more than one brand. Sign in again to choose one.';
 
 /** A sign-in that names no one customer. */
@@ -134,11 +152,16 @@ export function createContentServer(options: ContentServerOptions) {
     };
 
     const { account } = options;
+    const instagram = account ? options.instagram : undefined;
+    if (instagram && url.origin === account!.origin && url.pathname === INSTAGRAM_CALLBACK && request.method === 'GET') {
+      return instagramCallback(url, instagram, options.customer, account!.origin);
+    }
     if (account && url.origin === account.origin && isAccountPath(url.pathname)) {
       try {
         return await handleAccount(request, url, account, {
           issuer: options.issuer, audience: options.audience, tokens: options.tokens, billing: options.billing, terms: options.terms,
           customer: options.customer,
+          ...(instagram ? { instagram: { app: instagram, state: instagramState } } : {}),
           served: async (checked) => {
             const slug = await served(checked);
             if (slug !== undefined && !ONE_SLUG.test(slug)) throw new Ambiguous();
@@ -161,7 +184,13 @@ export function createContentServer(options: ContentServerOptions) {
       return options.terms ? acceptPage(request, url, options.customer(match[1]), options.terms) : new Response('Not found', { status: 404 });
     }
     if (url.pathname === SUBSCRIPTION && request.method === 'GET') return subscriptionPage(url.searchParams.get('s') ?? '');
-    if ((match = url.pathname.match(JOIN))) return handleJoin(request, options.customer(match[1]), options.join);
+    if ((match = url.pathname.match(JOIN))) {
+      const slug = match[1];
+      return handleJoin(request, options.customer(slug), {
+        ...options.join,
+        ...(instagram ? { instagram: (token: string) => instagram.authorizeUrl(instagramState(slug, token), MEMBER_SCOPES) } : {}),
+      });
+    }
 
     const slug = url.pathname.match(MCP)?.[1];
     if (slug !== undefined || url.pathname === HOSTED) {
@@ -297,6 +326,35 @@ async function respond(
     }
   }
   return failure(id, -32601, `Method not found: ${method}`);
+}
+
+/**
+ * Where Instagram sends a person back. A person on a waitlist who connected is shown their place; a
+ * brand's user who connected the brand's account goes back to the account page.
+ */
+async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: ContentServerOptions['customer'], origin: string): Promise<Response> {
+  const state = url.searchParams.get('state')?.match(INSTAGRAM_STATE);
+  if (!state) return gonePage();
+  const customer = customerOf(state[1]);
+  const start = await customer.instagramTake(state[2]);
+  if (!start) return gonePage();
+  const code = url.searchParams.get('code');
+  if (!code) return instagramFailedPage();
+  let connected: { token: string; id: string; username: string };
+  try {
+    connected = await instagram.connect(code);
+  } catch (error) {
+    if ((error as Error).name === 'InstagramError') return instagramFailedPage();
+    throw error;
+  }
+  if (start.kind === 'member') {
+    const { found, place } = await customer.waitlistInstagram(start.subject, connected.id, connected.username);
+    return found ? instagramJoinedPage({ username: connected.username, place, back: start.back }) : gonePage();
+  }
+  const lasting = await instagram.longLived(connected.token).catch(() => undefined);
+  if (!lasting) return instagramFailedPage();
+  await customer.instagramSave(start.subject, connected.id, connected.username, lasting.token);
+  return new Response(null, { status: 303, headers: { location: `${origin}/?instagram=connected` } });
 }
 
 async function connectPage(request: Request, url: URL, customer: CustomerPages): Promise<Response> {

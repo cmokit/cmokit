@@ -3,7 +3,7 @@
 // another a user accepts the server's terms (ADR-0039). The account page shows a signed-in person their
 // account (ADR-0041), where they add a brand (ADR-0042) and run the brand's waitlist (ADR-0043).
 
-import { SECTIONS, type BrandContext, type WaitlistEntry } from './customer.ts';
+import { SECTIONS, type BrandContext, type InstagramAccount, type WaitlistEntry } from './customer.ts';
 
 export type { WaitlistEntry } from './customer.ts';
 
@@ -80,6 +80,8 @@ export interface AccountView {
       snippet: string;
       /** Whether activating someone on this list lets them use CMOkit itself, as on CMOkit's own brand. */
       grantsCmokit: boolean;
+      /** The brand's own Instagram account, when an Instagram app is set up (ADR-0045); null until connected. */
+      instagram?: InstagramAccount | null;
     };
     access: string;
     connections: { vendor: string; name: string }[];
@@ -145,8 +147,9 @@ ${c.addBrand ? `<form method="post" action="/brands">
 </form>
 ${w.sites.length ? `<p>Paste this into a page on ${w.sites.length === 1 ? 'that site' : 'those sites'}:</p>
 <pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem"><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}
-${w.people.length ? `<p>${w.people.length} on the waitlist, most referrals first. An Instagram handle is what the person typed; nobody has checked it is theirs.</p>
-<ul>${w.people.map((p) => `<li>${escape(p.email)}${p.instagram ? `, Instagram @${escape(p.instagram)}` : ''}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}: ${p.activated
+${w.instagram !== undefined ? instagramSection(w.instagram) : ''}
+${w.people.length ? `<p>${w.people.length} on the waitlist, ranked by referrals plus Reels commented on, then who joined first.</p>
+<ul>${w.people.map((p) => `<li>${escape(p.email)}${p.instagram ? `, Instagram @${escape(p.instagram)}, commented on ${p.engaged} Reel${p.engaged === 1 ? '' : 's'}` : ''}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}: ${p.activated
     ? `activated ${escape(p.activated.slice(0, 10))}`
     : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
   return html(`<h1>Your CMOkit account</h1>${who}
@@ -193,4 +196,30 @@ function escape(text: string): string {
 function cameFrom(source: Record<string, string>): string {
   const tags = Object.entries(source);
   return tags.length ? `, came from ${tags.map(([name, value]) => `${escape(name)}=${escape(value)}`).join(' ')}` : '';
+}
+
+/** The brand's Instagram account on its account page: connect it, then count comments on its Reels. */
+function instagramSection(account: InstagramAccount | null): string {
+  if (!account) {
+    return `<p>Connect your brand's Instagram business or creator account, so comments on your Reels move people up the waitlist.</p>
+<form method="post" action="/instagram/connect"><button type="submit">Connect Instagram</button></form>`;
+  }
+  const counted = account.counted
+    ? `Last counted ${escape(account.counted.at.slice(0, 16).replace('T', ' '))} UTC: ${account.counted.people} ${account.counted.people === 1 ? 'person' : 'people'} commented on your last ${account.counted.reels} Reel${account.counted.reels === 1 ? '' : 's'}.`
+    : 'Not counted yet.';
+  return `<p>Instagram: @${escape(account.username)}. ${counted}</p>
+<form method="post" action="/instagram/count"><button type="submit">Count comments on your Reels</button></form>`;
+}
+
+/** Where Instagram sends a person back, once they connected their account to a brand's waitlist. */
+export function instagramJoinedPage(page: { username: string; place: number | null; back: string | null }): Response {
+  return html(`<h1>Instagram connected</h1>
+<p>@${escape(page.username)} is connected${page.place ? `, and you're number ${page.place} on the list` : ''}. Each of our Reels you comment on moves you up.</p>
+${page.back ? `<p><a href="${escape(page.back)}">Back</a></p>` : ''}`, 200);
+}
+
+/** When Instagram did not connect: the person said no, or their account is not a business or creator account. */
+export function instagramFailedPage(): Response {
+  return html(`<h1>Instagram didn't connect</h1>
+<p>Connecting needs an Instagram business or creator account. You can switch to one in Instagram's settings, then try again from the page you joined on.</p>`, 400);
 }

@@ -15,11 +15,13 @@
 // at their first call, with no checkout: the server makes their first brand, with them as its first
 // user (CUS-03, ADR-0043). On the account page they add more brands (ADR-0042), and each brand runs a
 // waitlist of its own that any page on its sites joins (ADR-0043); the JOINS rate limit, when bound,
-// slows joins from one address. The only host-specific code in the content server lives here.
+// slows joins from one address. With INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET, people on a waitlist
+// and the brand itself connect Instagram (ADR-0045). The only host-specific code in the content server lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
 import { createContentServer, type AccountOptions, type Billing, type CustomerPages, type Tokens } from './index.ts';
+import { instagramApp, type InstagramApp } from './instagram.ts';
 import { luma } from './luma.ts';
 import type { Sql } from './sql.ts';
 import type { CustomerCalls } from './tools.ts';
@@ -54,6 +56,10 @@ export interface ContentEnv {
    * it becomes CMOkit's customer at their first call (ADR-0043). A variable.
    */
   WAITLIST_CUSTOMER?: string;
+  /** The Instagram app ID of the Meta app's Instagram product (ADR-0045). A variable. */
+  INSTAGRAM_APP_ID?: string;
+  /** The Instagram app secret from the same place. A secret. */
+  INSTAGRAM_APP_SECRET?: string;
   /** A Workers rate limit, keyed by the joining visitor's address, that slows joins to waitlists. */
   JOINS?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
@@ -99,6 +105,14 @@ export function brandSlug(name: string): string {
   const base = name.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
   const end = [...crypto.getRandomValues(new Uint8Array(3))].map((b) => b.toString(16).padStart(2, '0')).join('');
   return `${base || 'brand'}-${end}`;
+}
+
+/** The Instagram app, sending people back to the account page, when its ID and secret are set. */
+export function instagramFor(env: ContentEnv): InstagramApp | undefined {
+  const appId = env.INSTAGRAM_APP_ID?.trim();
+  const appSecret = env.INSTAGRAM_APP_SECRET?.trim();
+  if (!appId || !appSecret || !env.APP_URL) return undefined;
+  return instagramApp({ appId, appSecret, redirectUri: `${new URL(env.APP_URL).origin}/instagram/callback` });
 }
 
 /** The addresses in ACTIVATED_EMAILS, in lower case. */
@@ -148,7 +162,8 @@ export interface CustomerClass {
 /** The calls the Worker may make on a customer's object. */
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
   'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
-  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated'] as const;
+  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated',
+  'instagramStart', 'instagramTake', 'waitlistInstagram', 'instagramSave', 'instagramAccount', 'instagramCount'] as const;
 type Call = (typeof CALLS)[number];
 
 /** The account page, at APP_URL, signing in through the issuer over its service binding (ADR-0041). */
@@ -179,7 +194,8 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
 
     constructor(ctx: DurableObjectState, env: ContentEnv) {
       const sql: Sql = { all: (query, ...params) => ctx.storage.sql.exec(query, ...params).toArray() };
-      this.#logic = new CustomerLogic(sql, { vault: aesGcmVault(env.CREDENTIAL_KEY), events: luma() });
+      const instagram = instagramFor(env);
+      this.#logic = new CustomerLogic(sql, { vault: aesGcmVault(env.CREDENTIAL_KEY), events: luma(), ...(instagram ? { instagram } : {}) });
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -279,6 +295,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
         ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
         account: accountWith(env),
         join: { allow: env.JOINS ? async (key) => (await env.JOINS!.limit({ key })).success : undefined },
+        instagram: instagramFor(env),
       });
       return handle(request);
     },
