@@ -16,14 +16,14 @@ const tokens: Tokens = {
   },
 };
 
-async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string } = {}) {
+async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string; brandsOf?: Record<string, string[]> } = {}) {
   const acme = await readyCustomer();
   const exchanged: URLSearchParams[] = [];
   const added: [string, string][] = [];
   const handle = createContentServer({
     issuer: ISSUER, audience: ORIGIN, tokens,
     customer: (slug) => (slug === 'acme' ? acme.customer : newCustomer().customer),
-    customersOf: async () => [],
+    customersOf: async (person) => options.brandsOf?.[person] ?? [],
     ...(options.terms ? { terms: { url: 'https://example.com/terms', version: '2026-11-08' } } : {}),
     account: {
       origin: APP,
@@ -197,4 +197,16 @@ test('a brand\'s users list its sites, get the form to paste, and activate peopl
 test('on CMOkit\'s own brand, the page says activating someone lets them use CMOkit', async () => {
   const { get } = await server({ cmokit: 'acme' });
   assert.match(await (await get('/', session('ada-token'))).text(), /Activating someone here lets them sign in and use CMOkit/);
+});
+
+test('the account page lists every brand of the person, and a sign-in that chose none signs in again to choose', async () => {
+  const { get } = await server({ brands: true, brandsOf: { ada: ['acme', 'cfo-kit-0a1b2c'], new: ['acme', 'cfo-kit-0a1b2c'] } });
+  const page = await (await get('/?brand=added', session('ada-token'))).text();
+  assert.match(page, /<li>acme \(shown on this page\)<\/li><li>cfo-kit-0a1b2c<\/li>/);
+  assert.match(page, /<a href="\/signin">Switch brand<\/a>/);
+  assert.match(page, /listed under Brands/);
+  // A session from before the second brand names no brand: the page asks again rather than refusing.
+  const again = await get('/', session('new-token'));
+  assert.equal(again.status, 303);
+  assert.equal(again.headers.get('location'), '/signin');
 });
