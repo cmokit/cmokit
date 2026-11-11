@@ -184,12 +184,13 @@ test('a brand\'s users list its sites, get the form to paste, and activate peopl
   assert.equal((await post('/waitlist/sites', { sites: 'evil.example' }, session('ada-token'), 'https://evil.example')).status, 403);
 
   const joined = await handle(new Request(`${APP}/join/acme`, {
-    method: 'POST', body: new URLSearchParams({ email: 'cy@example.com' }), headers: { origin: 'https://brand.example', accept: 'application/json' },
+    method: 'POST', body: new URLSearchParams({ email: 'cy@example.com', instagram: '@cy', page: 'https://brand.example/?utm_content=reel-1' }),
+    headers: { origin: 'https://brand.example', accept: 'application/json' },
   }));
   assert.equal(joined.status, 200);
   html = await (await get('/', session('ada-token'))).text();
   assert.match(html, /action=&#34;https:\/\/app\.example\/join\/acme&#34;/, 'the snippet names this brand\'s join address');
-  assert.match(html, /cy@example\.com, joined \d{4}-\d{2}-\d{2}, 0 referrals: <form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
+  assert.match(html, /cy@example\.com, Instagram @cy, joined \d{4}-\d{2}-\d{2}, 0 referrals, came from utm_content=reel-1: <form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
 
   const done = await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'));
   assert.equal(done.status, 303);

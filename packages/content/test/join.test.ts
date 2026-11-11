@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createContentServer, type Tokens } from '../src/index.ts';
 import { joinSnippet } from '../src/join.ts';
-import { newCustomer } from './fixtures.ts';
+import { Customer, aesGcmVault } from '../src/index.ts';
+import { KEY, eventsStandIn, newCustomer, sqlite } from './fixtures.ts';
 
 const SITE = 'https://brand.example';
 const tokens: Tokens = { check: async () => undefined };
@@ -92,20 +93,69 @@ test('a bad address, a filled trap and too many tries add no one', async () => {
   assert.deepEqual(await customer.waitlistList(), []);
 });
 
+test('a joiner learns their place in line, which referrals move up and activation takes them out of', async () => {
+  const { join, customer, later } = await setup();
+  const place = async (fields: Record<string, string>) => ((await (await join(fields)).json()) as { place: number | null }).place;
+  assert.equal(await place({ email: 'cy@example.com' }), 1);
+  later(1000);
+  assert.equal(await place({ email: 'di@example.com' }), 2);
+  later(1000);
+  const ed = await (await join({ email: 'ed@example.com' })).json() as { referral: string; place: number };
+  assert.equal(ed.place, 3);
+  await join({ email: 'fi@example.com', ref: new URL(ed.referral).searchParams.get('ref')! });
+  assert.equal(await place({ email: 'ed@example.com' }), 1, 'joining again shows their place now, after a referral moved them up');
+  await customer.waitlistActivate('ed@example.com');
+  assert.equal(await place({ email: 'cy@example.com' }), 1, 'an activated person no longer waits ahead of anyone');
+  assert.equal(await place({ email: 'ed@example.com' }), null);
+  const page = await join({ email: 'di@example.com' }, { json: false });
+  assert.match(await page.text(), /You're number 2 on the list/);
+});
+
+test('a joiner may give an Instagram handle, and the page\'s tracking tags are kept as where they came from', async () => {
+  const { join, customer } = await setup();
+  await join({ email: 'cy@example.com', instagram: ' @Cy.Makes_Things ', page: `${SITE}/beta?utm_source=instagram&utm_content=reel-1&other=x&ref=abc` });
+  await join({ email: 'di@example.com' });
+  assert.equal((await join({ email: 'ed@example.com', instagram: 'not a handle!' })).status, 400);
+  assert.equal((await customer.waitlistList()).length, 2, 'a bad handle adds no one');
+  // A handle given later replaces the one before, and where they first came from stays.
+  await join({ email: 'di@example.com', instagram: 'di', page: `${SITE}/?utm_content=reel-2` });
+  await join({ email: 'cy@example.com', instagram: 'someone_else' });
+  const [cy, di] = await customer.waitlistList();
+  assert.equal(cy.instagram, 'someone_else');
+  assert.deepEqual(cy.source, { utm_source: 'instagram', utm_content: 'reel-1' });
+  assert.equal(di.instagram, 'di');
+  assert.deepEqual(di.source, {});
+});
+
+test('a brand\'s waitlist made before handles and tags were kept gains them', async () => {
+  const sql = sqlite();
+  sql.all(`CREATE TABLE waitlist (email TEXT PRIMARY KEY, shown TEXT NOT NULL, joined_at INTEGER NOT NULL,
+    code TEXT NOT NULL UNIQUE, referred_by TEXT, activated_at INTEGER)`);
+  sql.all("INSERT INTO waitlist VALUES ('cy@example.com', 'cy@example.com', 1, 'c0de', NULL, NULL)");
+  const customer = new Customer(sql, { vault: aesGcmVault(KEY), events: eventsStandIn().events });
+  await customer.waitlistJoin('di@example.com', { instagram: 'di' });
+  assert.deepEqual((await customer.waitlistList()).map((p) => [p.email, p.instagram]), [['cy@example.com', null], ['di@example.com', 'di']]);
+});
+
 test('a form sent with no script gets a short page with the person\'s link', async () => {
   const { join } = await setup();
   const response = await join({ email: 'cy@example.com', page: `${SITE}/?utm_source=reel` }, { json: false });
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type') ?? '', /text\/html/);
-  assert.match(await response.text(), /You're on the list.*https:\/\/brand\.example\/\?utm_source=reel&amp;ref=/s);
+  assert.match(await response.text(), /You're number 1 on the list.*https:\/\/brand\.example\/\?utm_source=reel&amp;ref=/s);
 });
 
 test('the snippet posts to the brand\'s join address and sends the page and the code the visitor arrived with', () => {
   const snippet = joinSnippet('https://app.example/join/acme');
-  assert.match(snippet, /<form method="post" action="https:\/\/app\.example\/join\/acme" data-cmokit-waitlist>/);
+  assert.match(snippet, /<form method="post" action="https:\/\/app\.example\/join\/acme" data-cmokit-join>/);
   assert.match(snippet, /body\.set\('page', location\.href\)/);
   assert.match(snippet, /get\('ref'\)/);
   assert.match(snippet, /name="website"/);
+  const [join, boost] = snippet.split('data-cmokit-boost hidden');
+  assert.doesNotMatch(join, /name="instagram"/, 'joining asks for the address alone');
+  assert.match(boost, /Boost even more.*name="instagram"/s, 'the handle is the step after joining');
+  assert.match(snippet, /Boost your place: share your referral link/);
+  assert.match(snippet, /"You're number " \+ answer\.place/);
 });
 
 test('site addresses are kept as https origins, and anything else is refused', async () => {

@@ -7,7 +7,7 @@
 
 import type { EventSummary, Events, Tally } from './events.ts';
 import { PLATFORMS, destinationProblem, trackedLink, type Platform } from './links.ts';
-import type { Sql } from './sql.ts';
+import type { Row, Sql } from './sql.ts';
 import { hash, randomToken, type Vault } from './vault.ts';
 
 /** The brand context's sections, as `CNT-01` lists them; what the brand sells is its offers. */
@@ -117,6 +117,8 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS waitlist (email TEXT PRIMARY KEY, shown TEXT NOT NULL, joined_at INTEGER NOT NULL,
     code TEXT NOT NULL UNIQUE, referred_by TEXT, activated_at INTEGER)`,
 ];
+/** Columns added to the waitlist after it was first made; each is added to an older brand's records. */
+const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT'];
 const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist'];
 /** The most site addresses a brand's waitlist accepts joins from. */
 const MAX_SITES = 10;
@@ -127,6 +129,25 @@ export interface WaitlistEntry {
   joined: string;
   referrals: number;
   activated: string | null;
+  /** The Instagram handle they gave, without its @; nobody checks that it is theirs. */
+  instagram: string | null;
+  /** The tracking tags (utm_*) of the page they joined on, such as the Reel's utm_content. */
+  source: Record<string, string>;
+}
+
+/** What a person may give when joining, beyond their address. */
+export interface WaitlistDetails {
+  ref?: string;
+  instagram?: string;
+  source?: Record<string, string>;
+}
+
+/** What joining answers: the person's code, whether they are new, and their place among those still waiting. */
+export interface WaitlistJoined {
+  code: string;
+  joined: boolean;
+  /** 1 for the first in line; null once they are activated, since they no longer wait. */
+  place: number | null;
 }
 /** The one-time link to accept the server's terms is kept with the links to connect a vendor. */
 const TERMS = 'terms';
@@ -143,6 +164,13 @@ export class Customer {
     this.#now = deps.now ?? Date.now;
     this.#newId = deps.newId ?? (() => `p${randomToken().replace(/[^a-z0-9]/g, '').slice(0, 9)}`);
     for (const statement of SCHEMA) sql.all(statement);
+    for (const column of WAITLIST_ADDED) {
+      try {
+        sql.all(`ALTER TABLE waitlist ADD COLUMN ${column}`);
+      } catch {
+        // Already added.
+      }
+    }
   }
 
   // Users and access.
@@ -542,30 +570,51 @@ export class Customer {
   }
 
   /**
-   * Puts a person on the waitlist, or finds them there, and returns their referral code. A code they
-   * arrived with counts toward its owner only when it is another person's on this list.
+   * Puts a person on the waitlist, or finds them there, and returns their referral code and place in
+   * line. A code they arrived with counts toward its owner only when it is another person's on this
+   * list. A handle given on a later join replaces the one they gave before; where they first came from stays.
    */
-  async waitlistJoin(email: string, ref?: string): Promise<{ code: string; joined: boolean }> {
+  async waitlistJoin(email: string, details: WaitlistDetails = {}): Promise<WaitlistJoined> {
     const key = email.trim().toLowerCase();
+    const instagram = details.instagram ?? null;
     const found = this.#sql.all('SELECT code FROM waitlist WHERE email = ?', key)[0];
-    if (found) return { code: found.code as string, joined: false };
-    const referrer = ref ? this.#sql.all('SELECT code FROM waitlist WHERE code = ?', ref)[0] : undefined;
+    if (found) {
+      if (instagram) this.#sql.all('UPDATE waitlist SET instagram = ? WHERE email = ?', instagram, key);
+      return { code: found.code as string, joined: false, place: this.#place(found.code as string) };
+    }
+    const referrer = details.ref ? this.#sql.all('SELECT code FROM waitlist WHERE code = ?', details.ref)[0] : undefined;
     const code = randomToken().replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
-    this.#sql.all('INSERT INTO waitlist (email, shown, joined_at, code, referred_by, activated_at) VALUES (?, ?, ?, ?, ?, NULL)',
-      key, email.trim(), this.#now(), code, (referrer?.code as string | undefined) ?? null);
-    return { code, joined: true };
+    const source = details.source && Object.keys(details.source).length ? JSON.stringify(details.source) : null;
+    this.#sql.all(`INSERT INTO waitlist (email, shown, joined_at, code, referred_by, activated_at, instagram, source)
+      VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+      key, email.trim(), this.#now(), code, (referrer?.code as string | undefined) ?? null, instagram, source);
+    return { code, joined: true, place: this.#place(code) };
   }
 
   /** Everyone on the waitlist, most referrals first, then who joined first. */
   async waitlistList(): Promise<WaitlistEntry[]> {
-    return this.#sql.all(`SELECT w.shown, w.joined_at, w.activated_at,
-        (SELECT COUNT(*) FROM waitlist r WHERE r.referred_by = w.code) AS referrals
-      FROM waitlist w ORDER BY referrals DESC, w.joined_at ASC, w.rowid ASC`).map((row) => ({
+    return this.#ranked().map((row) => ({
       email: row.shown as string,
       joined: iso(row.joined_at as number),
       referrals: Number(row.referrals),
       activated: row.activated_at === null ? null : iso(row.activated_at as number),
+      instagram: (row.instagram as string | null) ?? null,
+      source: row.source ? JSON.parse(row.source as string) as Record<string, string> : {},
     }));
+  }
+
+  /** The waitlist in the order its users see it. */
+  #ranked(): Row[] {
+    return this.#sql.all(`SELECT w.shown, w.code, w.joined_at, w.activated_at, w.instagram, w.source,
+        (SELECT COUNT(*) FROM waitlist r WHERE r.referred_by = w.code) AS referrals
+      FROM waitlist w ORDER BY referrals DESC, w.joined_at ASC, w.rowid ASC`);
+  }
+
+  /** A person's place in that order among those not yet activated; null once they are activated. */
+  #place(code: string): number | null {
+    const waiting = this.#ranked().filter((row) => row.activated_at === null);
+    const at = waiting.findIndex((row) => row.code === code);
+    return at === -1 ? null : at + 1;
   }
 
   /** Activates a person on the waitlist; found is false for an address not on it. Safe to repeat. */
