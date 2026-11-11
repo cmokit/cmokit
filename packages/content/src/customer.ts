@@ -104,7 +104,7 @@ export interface CustomerDeps {
 const LINK_MS = 15 * 60_000;
 const AHEAD_DAYS = 120;
 const DAY = 86_400_000;
-/** How long a start of connecting Instagram can be finished. */
+/** How long a start of connecting the brand's Instagram can be finished. */
 const INSTAGRAM_START_MS = 60 * 60_000;
 /** The vendor a brand's own Instagram account is kept under with its other connections. */
 const INSTAGRAM = 'instagram';
@@ -138,7 +138,7 @@ export interface WaitlistEntry {
   joined: string;
   referrals: number;
   activated: string | null;
-  /** The Instagram account they connected, without its @. */
+  /** The Instagram handle they proved by commenting their code, without its @. */
   instagram: string | null;
   /** How many of the brand's recent Reels that account commented on, at the last count. */
   engaged: number;
@@ -152,12 +152,9 @@ export interface WaitlistDetails {
   source?: Record<string, string>;
 }
 
-/** Who started connecting Instagram: a person on the waitlist, by their code, or a user of the brand. */
+/** Who started connecting the brand's Instagram: one of its users. */
 export interface InstagramStart {
-  kind: 'member' | 'brand';
-  subject: string;
-  /** Where to send a person on the waitlist back to, the page they joined on. */
-  back: string | null;
+  person: string;
 }
 
 /** The brand's own Instagram account, and its last count of comments, as its users see them. */
@@ -613,7 +610,7 @@ export class Customer {
 
   /**
    * Everyone on the waitlist, ranked by their boost (people who joined through their link, and the
-   * brand's recent Reels their connected Instagram commented on), then by who joined first.
+   * brand's recent Reels their proved handle commented on), then by who joined first.
    */
   async waitlistList(): Promise<WaitlistEntry[]> {
     return this.#ranked().map((row) => ({
@@ -621,7 +618,7 @@ export class Customer {
       joined: iso(row.joined_at as number),
       referrals: Number(row.referrals),
       activated: row.activated_at === null ? null : iso(row.activated_at as number),
-      // A handle typed before accounts were connected was never proved, so only a connected one shows.
+      // A handle typed into an older form was never proved, so only a proved one shows.
       instagram: row.instagram_id === null ? null : (row.instagram as string | null),
       engaged: Number(row.engaged ?? 0),
       source: row.source ? JSON.parse(row.source as string) as Record<string, string> : {},
@@ -656,39 +653,28 @@ export class Customer {
     return this.#sql.all('SELECT 1 FROM waitlist WHERE email = ? AND activated_at IS NOT NULL', email.trim().toLowerCase()).length > 0;
   }
 
-  // Instagram (ADR-0045). A person on the waitlist connects their account to prove their handle; the
-  // brand connects its own, and the comments on its recent Reels move people up.
+  // Instagram (ADR-0045). Only the brand connects its account. A person on the waitlist proves their
+  // handle by commenting their code on one of the brand's Reels, and the comments on its recent Reels
+  // then move them up.
 
-  /** Starts connecting Instagram, and returns the one-time value Instagram hands back to finish it. */
-  async instagramStart(kind: 'member' | 'brand', subject: string, back?: string): Promise<string> {
+  /** Starts connecting the brand's Instagram, and returns the one-time value Meta hands back to finish it. */
+  async instagramStart(person: string): Promise<string> {
     this.#sql.all('DELETE FROM instagram_starts WHERE expires_at <= ?', this.#now());
     const token = randomToken();
-    this.#sql.all('INSERT INTO instagram_starts (hash, kind, subject, back, expires_at) VALUES (?, ?, ?, ?, ?)',
-      await hash(token), kind, subject, back ?? null, this.#now() + INSTAGRAM_START_MS);
+    this.#sql.all('INSERT INTO instagram_starts (hash, kind, subject, back, expires_at) VALUES (?, ?, ?, NULL, ?)',
+      await hash(token), 'brand', person, this.#now() + INSTAGRAM_START_MS);
     return token;
   }
 
   /** The start a value names, used up, while it is unexpired. */
   async instagramTake(token: string): Promise<InstagramStart | undefined> {
     const tokenHash = await hash(token);
-    const row = this.#sql.all('SELECT kind, subject, back FROM instagram_starts WHERE hash = ? AND expires_at > ?', tokenHash, this.#now())[0];
+    const row = this.#sql.all('SELECT subject FROM instagram_starts WHERE hash = ? AND kind = ? AND expires_at > ?', tokenHash, 'brand', this.#now())[0];
     this.#sql.all('DELETE FROM instagram_starts WHERE hash = ?', tokenHash);
-    if (!row) return undefined;
-    return { kind: row.kind as 'member' | 'brand', subject: row.subject as string, back: row.back as string | null };
+    return row ? { person: row.subject as string } : undefined;
   }
 
-  /**
-   * Keeps the Instagram account a person on the waitlist connected, by their code. An account is one
-   * person's: connecting it again from another address moves it there.
-   */
-  async waitlistInstagram(code: string, id: string, username: string): Promise<{ found: boolean; place: number | null }> {
-    if (this.#sql.all('SELECT 1 FROM waitlist WHERE code = ?', code).length === 0) return { found: false, place: null };
-    this.#sql.all('UPDATE waitlist SET instagram = NULL, instagram_id = NULL, engaged = NULL WHERE instagram_id = ? AND code <> ?', id, code);
-    this.#sql.all('UPDATE waitlist SET instagram = ?, instagram_id = ? WHERE code = ?', username, id, code);
-    return { found: true, place: this.#place(code) };
-  }
-
-  /** Keeps the brand's own Instagram account, its long-lived token sealed. */
+  /** Keeps the brand's own Instagram account, by its ID, with the portfolio's token sealed. */
   async instagramSave(person: string, id: string, username: string, token: string): Promise<void> {
     this.#sql.all(
       `INSERT INTO connections (vendor, identifier, name, sealed, connected_by, connected_at) VALUES (?, ?, ?, ?, ?, ?)
@@ -707,33 +693,36 @@ export class Customer {
   }
 
   /**
-   * Counts, for each person on the waitlist with a connected account, how many of the brand's recent
-   * Reels they commented on. The brand's token is refreshed first once it is a day old, so it lasts
-   * while the brand keeps counting.
+   * Reads the comments on the brand's recent Reels. A comment that carries a person's code ties the
+   * commenter's handle to that person, unless either is tied already: the first proof stands. Then each
+   * tied person is counted for the Reels their handle commented on.
    */
   async instagramCount(): Promise<{ reels: number; people: number }> {
     const instagram = this.#deps.instagram;
-    const row = this.#sql.all('SELECT sealed, connected_at FROM connections WHERE vendor = ?', INSTAGRAM)[0];
+    const row = this.#sql.all('SELECT identifier, sealed FROM connections WHERE vendor = ?', INSTAGRAM)[0];
     if (!instagram || !row) throw new Refusal('Connect the brand\'s Instagram account first.');
-    let token = await this.#deps.vault.open(row.sealed as string);
-    if (this.#now() - (row.connected_at as number) > DAY) {
-      const fresh = await instagram.refresh(token).catch(() => undefined);
-      if (fresh) {
-        token = fresh.token;
-        this.#sql.all('UPDATE connections SET sealed = ?, connected_at = ? WHERE vendor = ?', await this.#deps.vault.seal(token), this.#now(), INSTAGRAM);
-      }
-    }
-    const { reels, commenters } = await instagram.reelCommenters(token).catch((error) => {
+    const token = await this.#deps.vault.open(row.sealed as string);
+    const { reels, comments } = await instagram.reelComments(token, row.identifier as string).catch((error) => {
       if (error instanceof InstagramError) throw new Refusal(`Instagram could not be read: ${error.message}`);
       throw error;
     });
-    const per = new Map<string, number>();
-    for (const { username } of commenters) per.set(username, (per.get(username) ?? 0) + 1);
+
+    const codes = new Set(this.#sql.all('SELECT code FROM waitlist WHERE instagram_id IS NULL').map((r) => r.code as string));
+    for (const { username, text } of comments) {
+      const code = text.match(/[A-Za-z0-9]+/g)?.find((word) => codes.has(word));
+      if (!code) continue;
+      if (this.#sql.all('SELECT 1 FROM waitlist WHERE instagram = ? AND instagram_id IS NOT NULL', username).length > 0) continue;
+      // instagram_id marks a proved handle; a commenter has no ID CMOkit can read, so it holds the handle.
+      this.#sql.all('UPDATE waitlist SET instagram = ?, instagram_id = ? WHERE code = ?', username, username, code);
+      codes.delete(code);
+    }
+
+    const per = new Map<string, Set<string>>();
+    for (const { reel, username } of comments) per.set(username, (per.get(username) ?? new Set()).add(reel));
     this.#sql.all('UPDATE waitlist SET engaged = NULL');
     let people = 0;
-    for (const [username, count] of per) {
-      const updated = this.#sql.all('UPDATE waitlist SET engaged = ? WHERE instagram = ? AND instagram_id IS NOT NULL RETURNING 1', count, username);
-      people += updated.length;
+    for (const [username, commented] of per) {
+      people += this.#sql.all('UPDATE waitlist SET engaged = ? WHERE instagram = ? AND instagram_id IS NOT NULL RETURNING 1', commented.size, username).length;
     }
     this.#set('instagram_counted', JSON.stringify({ at: iso(this.#now()), reels, people }));
     return { reels, people };

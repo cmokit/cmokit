@@ -50,7 +50,7 @@ to it", because it is the only option that gives every brand its own list with n
 > list is ranked by those counts, then by who joined first. The answer also gives the person their
 > place in that ranking among those not yet activated, on every join, so joining again shows where
 > they stand now. The pasted form is a funnel (ADR-0044): join with an address, then share the
-> referral link to move up, then connect Instagram to move up more (ADR-0045). The page's tracking tags (its `utm_*`
+> referral link to move up, then comment their code on the brand's Reels to move up more (ADR-0045). The page's tracking tags (its `utm_*`
 > parameters, ADR-0031) are kept as where the person came from, so a brand sees which piece brought
 > each person. A brand's users see its list on the
 > account page and activate people one by one. A person activated on the list of the brand the

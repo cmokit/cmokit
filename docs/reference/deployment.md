@@ -56,7 +56,8 @@ from `@cmokit/content`.
 | `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or who was activated on the waitlist of the brand `WAITLIST_CUSTOMER` names, becomes CMOkit's customer at their first call, with a first brand made for them. |
 | `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version. When both are set, a user who has not accepted that version is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
 | `WAITLIST_CUSTOMER` | Worker variable | No | The slug of CMOkit's own brand, shown on its account page as "Brand". A person a user of that brand activates on its waitlist becomes CMOkit's customer at their first call (ADR-0043). Every brand has a waitlist of its own; only this one's lets people use CMOkit. |
-| `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Connect Instagram | The Instagram app ID and secret of a Meta app with the Instagram product's Instagram Login, whose redirect address is `<APP_URL>/instagram/callback` (ADR-0045). Without both, nobody is offered Connect Instagram. |
+| `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Connect Instagram | The app ID and app secret, from App settings > Basic, of a Meta app with the Instagram product's API setup with Unified login (ADR-0045). |
+| `INSTAGRAM_CONFIG_ID` | Variable | For Connect Instagram | The ID of that app's Facebook Login for Business configuration, whose redirect URL is `<APP_URL>/instagram/callback`. Without it and the two above, no brand is offered Connect Instagram and the waitlist form has no Instagram step. |
 | `JOINS` | Rate limit binding | No | A Workers rate limit, keyed by the visitor's address, that slows joins to every brand's waitlist at `/join/<brand>`. Without it, joins are not slowed. |
 | `APP_URL` | Worker variable | No | Where the account page is served, as `https://app.cmokit.ai`, at a route of this Worker (ADR-0041). It needs the `ISSUER` binding and the issuer's own `APP_URL`. Without it, no account page is served. |
 
@@ -116,7 +117,7 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `TERMS_URL`, `TERMS_VERSION` | Variables | For the closed beta | Deployed as the content server's variables of the same names. |
 | `WAITLIST_CUSTOMER` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
-| `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Connect Instagram | Deployed as the content server's of the same names. |
+| `INSTAGRAM_APP_ID`, `INSTAGRAM_CONFIG_ID`, `INSTAGRAM_APP_SECRET` | Variables, secret | For Connect Instagram | Deployed as the content server's of the same names. |
 | `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |

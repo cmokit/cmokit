@@ -9,7 +9,7 @@
 // uses the web-standard Request and Response only (ADR-0003).
 
 import { Refusal } from './customer.ts';
-import { BRAND_SCOPES, InstagramError, type InstagramApp } from './instagram.ts';
+import { InstagramError, type InstagramApp } from './instagram.ts';
 import { joinSnippet } from './join.ts';
 import { accountPage, signedOutPage, type AccountView } from './pages.ts';
 import type { Billing, CustomerPages, Terms, Tokens } from './index.ts';
@@ -45,7 +45,7 @@ export interface AccountContext {
   customer(slug: string): CustomerCalls & CustomerPages & { exportAll(): Promise<{ json: string; markdown: string }> };
   billing?: Billing;
   terms?: Terms;
-  /** The Instagram app and the slug-carrying value Instagram hands back, when one is set up (ADR-0045). */
+  /** The Instagram app and the slug-carrying value Meta hands back, when one is set up (ADR-0045). */
   instagram?: { app: InstagramApp; state(slug: string, token: string): string };
 }
 
@@ -162,8 +162,8 @@ export async function handleAccount(request: Request, url: URL, account: Account
   if (route === 'POST /instagram/connect') {
     const { instagram } = context;
     if (!customer || slug === undefined || !instagram) return new Response('Not found', { status: 404 });
-    const token = await customer.instagramStart('brand', checked.person);
-    return seeOther(instagram.app.authorizeUrl(instagram.state(slug, token), BRAND_SCOPES));
+    const token = await customer.instagramStart(checked.person);
+    return seeOther(instagram.app.loginUrl(instagram.state(slug, token)));
   }
 
   if (route === 'POST /instagram/count') {
