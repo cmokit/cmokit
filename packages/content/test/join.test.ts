@@ -117,11 +117,11 @@ test('a joiner may give an Instagram handle, and the page\'s tracking tags are k
   await join({ email: 'di@example.com' });
   assert.equal((await join({ email: 'ed@example.com', instagram: 'not a handle!' })).status, 400);
   assert.equal((await customer.waitlistList()).length, 2, 'a bad handle adds no one');
-  // A handle given later is kept when there was none, and where they first came from stays.
+  // A handle given later replaces the one before, and where they first came from stays.
   await join({ email: 'di@example.com', instagram: 'di', page: `${SITE}/?utm_content=reel-2` });
   await join({ email: 'cy@example.com', instagram: 'someone_else' });
   const [cy, di] = await customer.waitlistList();
-  assert.equal(cy.instagram, 'cy.makes_things');
+  assert.equal(cy.instagram, 'someone_else');
   assert.deepEqual(cy.source, { utm_source: 'instagram', utm_content: 'reel-1' });
   assert.equal(di.instagram, 'di');
   assert.deepEqual(di.source, {});
@@ -147,11 +147,14 @@ test('a form sent with no script gets a short page with the person\'s link', asy
 
 test('the snippet posts to the brand\'s join address and sends the page and the code the visitor arrived with', () => {
   const snippet = joinSnippet('https://app.example/join/acme');
-  assert.match(snippet, /<form method="post" action="https:\/\/app\.example\/join\/acme" data-cmokit-waitlist>/);
+  assert.match(snippet, /<form method="post" action="https:\/\/app\.example\/join\/acme" data-cmokit-join>/);
   assert.match(snippet, /body\.set\('page', location\.href\)/);
   assert.match(snippet, /get\('ref'\)/);
   assert.match(snippet, /name="website"/);
-  assert.match(snippet, /name="instagram" placeholder="@yourhandle \(optional\)"/);
+  const [join, boost] = snippet.split('data-cmokit-boost hidden');
+  assert.doesNotMatch(join, /name="instagram"/, 'joining asks for the address alone');
+  assert.match(boost, /Boost even more.*name="instagram"/s, 'the handle is the step after joining');
+  assert.match(snippet, /Boost your place: share your referral link/);
   assert.match(snippet, /"You're number " \+ answer\.place/);
 });
 

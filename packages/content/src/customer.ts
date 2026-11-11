@@ -572,14 +572,14 @@ export class Customer {
   /**
    * Puts a person on the waitlist, or finds them there, and returns their referral code and place in
    * line. A code they arrived with counts toward its owner only when it is another person's on this
-   * list. A handle given on a later join is kept when they had none; where they first came from stays.
+   * list. A handle given on a later join replaces the one they gave before; where they first came from stays.
    */
   async waitlistJoin(email: string, details: WaitlistDetails = {}): Promise<WaitlistJoined> {
     const key = email.trim().toLowerCase();
     const instagram = details.instagram ?? null;
     const found = this.#sql.all('SELECT code FROM waitlist WHERE email = ?', key)[0];
     if (found) {
-      if (instagram) this.#sql.all('UPDATE waitlist SET instagram = ? WHERE email = ? AND instagram IS NULL', instagram, key);
+      if (instagram) this.#sql.all('UPDATE waitlist SET instagram = ? WHERE email = ?', instagram, key);
       return { code: found.code as string, joined: false, place: this.#place(found.code as string) };
     }
     const referrer = details.ref ? this.#sql.all('SELECT code FROM waitlist WHERE code = ?', details.ref)[0] : undefined;

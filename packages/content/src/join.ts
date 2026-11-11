@@ -2,7 +2,7 @@
 // on GitHub Pages, posts to /join/<brand> here, with no Worker of the site's own. Only pages on the
 // site addresses the brand's users listed may add people, and the answer is the person's referral
 // link: the page they joined on, with every query parameter it had, carrying their own code, and
-// their place in line. An Instagram handle may come with the address, and the page's tracking tags
+// their place in line. An Instagram handle may come with a join or a later one, and the page's tracking tags
 // are kept with the person. It uses the web-standard Request and Response only (ADR-0003).
 
 import type { WaitlistDetails, WaitlistJoined } from './customer.ts';
@@ -133,30 +133,65 @@ function escape(text: string): string {
   return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
 
-/** The form and script a brand's site pastes into a page to let people join its waitlist. */
+/**
+ * The form and script a brand's site pastes into a page to let people join its waitlist. It is a
+ * funnel: join with an address; then share the referral link to move up; then, to move up more, give
+ * an Instagram handle. That last step is its own block, so a Connect Instagram button can take its
+ * place once joining by Instagram is built; until then the handle is kept as typed and not counted.
+ */
 export function joinSnippet(action: string): string {
-  return `<form method="post" action="${action}" data-cmokit-waitlist>
+  return `<div data-cmokit-waitlist>
+<form method="post" action="${action}" data-cmokit-join>
   <input type="email" name="email" required placeholder="you@example.com" aria-label="Email">
-  <input type="text" name="${INSTAGRAM}" placeholder="@yourhandle (optional)" aria-label="Instagram handle, optional" autocapitalize="none">
   <input type="text" name="${TRAP}" tabindex="-1" autocomplete="off" hidden>
   <button type="submit">Join the waitlist</button>
-  <p data-cmokit-referral hidden><span data-cmokit-place>You're on the list.</span> Share your link to move up: <a></a></p>
 </form>
+<div data-cmokit-joined hidden>
+  <p data-cmokit-place>You're on the list.</p>
+  <p>Boost your place: share your referral link. Everyone who joins through it moves you up.<br><a data-cmokit-referral></a></p>
+</div>
+<form data-cmokit-boost hidden>
+  <p>Boost even more: add your Instagram handle, then engage with our Reels. Engaging will move you up once we start counting it.</p>
+  <input type="text" name="${INSTAGRAM}" required placeholder="@yourhandle" aria-label="Instagram handle" autocapitalize="none">
+  <button type="submit">Add my Instagram</button>
+</form>
+<p data-cmokit-boosted hidden></p>
+</div>
 <script>
-document.querySelectorAll('form[data-cmokit-waitlist]').forEach((form) => {
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const body = new URLSearchParams(new FormData(form));
+document.querySelectorAll('[data-cmokit-waitlist]').forEach((box) => {
+  const join = box.querySelector('[data-cmokit-join]');
+  const boost = box.querySelector('[data-cmokit-boost]');
+  let email = '';
+  const send = async (fields) => {
+    const body = new URLSearchParams(fields);
+    body.set('email', email);
     body.set('page', location.href);
     body.set('${REFERRAL}', new URLSearchParams(location.search).get('${REFERRAL}') || '');
-    const response = await fetch(form.action, { method: 'POST', body, headers: { accept: 'application/json' } });
-    const answer = await response.json().catch(() => ({}));
+    const response = await fetch(join.action, { method: 'POST', body, headers: { accept: 'application/json' } });
+    return response.json().catch(() => ({}));
+  };
+  join.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    email = join.elements.email.value;
+    const answer = await send(new FormData(join));
     if (!answer.referral) return alert(answer.problem || 'That did not work. Try again.');
-    const shown = form.querySelector('[data-cmokit-referral]');
-    shown.querySelector('a').href = shown.querySelector('a').textContent = answer.referral;
-    if (answer.place) shown.querySelector('[data-cmokit-place]').textContent = "You're number " + answer.place + ' on the list.';
-    shown.hidden = false;
-    form.dispatchEvent(new CustomEvent('cmokit:joined', { bubbles: true, detail: { referral: answer.referral, place: answer.place ?? null } }));
+    const link = box.querySelector('[data-cmokit-referral]');
+    link.href = link.textContent = answer.referral;
+    if (answer.place) box.querySelector('[data-cmokit-place]').textContent = "You're number " + answer.place + ' on the list.';
+    join.hidden = true;
+    box.querySelector('[data-cmokit-joined]').hidden = false;
+    boost.hidden = false;
+    box.dispatchEvent(new CustomEvent('cmokit:joined', { bubbles: true, detail: { referral: answer.referral, place: answer.place ?? null } }));
+  });
+  boost.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const answer = await send(new FormData(boost));
+    if (!answer.referral) return alert(answer.problem || 'That did not work. Try again.');
+    boost.hidden = true;
+    const done = box.querySelector('[data-cmokit-boosted]');
+    done.textContent = 'Thanks. Your Instagram handle is saved.';
+    done.hidden = false;
+    box.dispatchEvent(new CustomEvent('cmokit:boosted', { bubbles: true }));
   });
 });
 </script>`;

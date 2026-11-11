@@ -49,8 +49,9 @@ to it", because it is the only option that gives every brand its own list with n
 > code in `ref`. A person who joins with another person's code counts toward that person, and the
 > list is ranked by those counts, then by who joined first. The answer also gives the person their
 > place in that ranking among those not yet activated, on every join, so joining again shows where
-> they stand now. A person may give an Instagram handle with their address; it is kept and shown as
-> typed, unchecked, and counts for nothing in the ranking. The page's tracking tags (its `utm_*`
+> they stand now. The pasted form is a funnel: join with an address, then share the referral link
+> to move up, then give an Instagram handle to move up more. Until joining by Instagram is built,
+> the handle is kept and shown as typed, unchecked, and counts for nothing in the ranking. The page's tracking tags (its `utm_*`
 > parameters, ADR-0031) are kept as where the person came from, so a brand sees which piece brought
 > each person. A brand's users see its list on the
 > account page and activate people one by one. A person activated on the list of the brand the
