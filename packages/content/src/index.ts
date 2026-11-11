@@ -15,13 +15,13 @@
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
 import { handleAccount, isAccountPath, type AccountOptions } from './account.ts';
-import { Refusal, type WaitlistEntry } from './customer.ts';
+import { Refusal, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
 import { handleJoin, type JoinOptions } from './join.ts';
 import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export type { AccountOptions } from './account.ts';
-export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type WaitlistEntry } from './customer.ts';
+export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
 export { joinSnippet, type JoinOptions } from './join.ts';
 export { tally, type EventSummary, type Events, type GuestFacts, type Tally } from './events.ts';
 export { PLATFORMS, trackedLink, type Platform } from './links.ts';
@@ -51,7 +51,7 @@ export interface CustomerPages {
   /** The brand's waitlist and the site addresses allowed to join it (ADR-0043). */
   waitlistSites(): Promise<string[]>;
   waitlistSetSites(sites: string[]): Promise<string[]>;
-  waitlistJoin(email: string, ref?: string): Promise<{ code: string; joined: boolean }>;
+  waitlistJoin(email: string, details?: WaitlistDetails): Promise<WaitlistJoined>;
   waitlistList(): Promise<WaitlistEntry[]>;
   waitlistActivate(email: string): Promise<{ found: boolean }>;
 }

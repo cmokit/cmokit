@@ -145,8 +145,8 @@ ${c.addBrand ? `<form method="post" action="/brands">
 </form>
 ${w.sites.length ? `<p>Paste this into a page on ${w.sites.length === 1 ? 'that site' : 'those sites'}:</p>
 <pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem"><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}
-${w.people.length ? `<p>${w.people.length} on the waitlist, most referrals first.</p>
-<ul>${w.people.map((p) => `<li>${escape(p.email)}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}: ${p.activated
+${w.people.length ? `<p>${w.people.length} on the waitlist, most referrals first. An Instagram handle is what the person typed; nobody has checked it is theirs.</p>
+<ul>${w.people.map((p) => `<li>${escape(p.email)}${p.instagram ? `, Instagram @${escape(p.instagram)}` : ''}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}: ${p.activated
     ? `activated ${escape(p.activated.slice(0, 10))}`
     : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
   return html(`<h1>Your CMOkit account</h1>${who}
@@ -187,4 +187,10 @@ input,button{font:inherit;display:block;width:100%;margin:.5rem 0;padding:.5rem;
 
 function escape(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** Where a person on the waitlist came from, as the tracking tags of the page they joined on. */
+function cameFrom(source: Record<string, string>): string {
+  const tags = Object.entries(source);
+  return tags.length ? `, came from ${tags.map(([name, value]) => `${escape(name)}=${escape(value)}`).join(' ')}` : '';
 }
