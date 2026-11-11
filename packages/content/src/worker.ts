@@ -15,8 +15,8 @@
 // at their first call, with no checkout: the server makes their first brand, with them as its first
 // user (CUS-03, ADR-0043). On the account page they add more brands (ADR-0042), and each brand runs a
 // waitlist of its own that any page on its sites joins (ADR-0043); the JOINS rate limit, when bound,
-// slows joins from one address. With INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET, people on a waitlist
-// and the brand itself connect Instagram (ADR-0045). The only host-specific code in the content server lives here.
+// slows joins from one address. With INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET and INSTAGRAM_CONFIG_ID, a
+// brand connects its Instagram, and people on its waitlist comment their code on its Reels (ADR-0045). The only host-specific code in the content server lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
@@ -56,10 +56,12 @@ export interface ContentEnv {
    * it becomes CMOkit's customer at their first call (ADR-0043). A variable.
    */
   WAITLIST_CUSTOMER?: string;
-  /** The Instagram app ID of the Meta app's Instagram product (ADR-0045). A variable. */
+  /** The Meta app's ID, from App settings > Basic (ADR-0045). A variable. */
   INSTAGRAM_APP_ID?: string;
-  /** The Instagram app secret from the same place. A secret. */
+  /** The Meta app's secret, from the same page. A secret. */
   INSTAGRAM_APP_SECRET?: string;
+  /** The Facebook Login for Business configuration under API setup with Unified login. A variable. */
+  INSTAGRAM_CONFIG_ID?: string;
   /** A Workers rate limit, keyed by the joining visitor's address, that slows joins to waitlists. */
   JOINS?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
@@ -107,12 +109,13 @@ export function brandSlug(name: string): string {
   return `${base || 'brand'}-${end}`;
 }
 
-/** The Instagram app, sending people back to the account page, when its ID and secret are set. */
+/** The Instagram app, sending brands back to the account page, when its ID, secret and configuration are set. */
 export function instagramFor(env: ContentEnv): InstagramApp | undefined {
   const appId = env.INSTAGRAM_APP_ID?.trim();
   const appSecret = env.INSTAGRAM_APP_SECRET?.trim();
-  if (!appId || !appSecret || !env.APP_URL) return undefined;
-  return instagramApp({ appId, appSecret, redirectUri: `${new URL(env.APP_URL).origin}/instagram/callback` });
+  const configId = env.INSTAGRAM_CONFIG_ID?.trim();
+  if (!appId || !appSecret || !configId || !env.APP_URL) return undefined;
+  return instagramApp({ appId, appSecret, configId, redirectUri: `${new URL(env.APP_URL).origin}/instagram/callback` });
 }
 
 /** The addresses in ACTIVATED_EMAILS, in lower case. */
@@ -163,7 +166,7 @@ export interface CustomerClass {
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
   'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
   'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated',
-  'instagramStart', 'instagramTake', 'waitlistInstagram', 'instagramSave', 'instagramAccount', 'instagramCount'] as const;
+  'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount'] as const;
 type Call = (typeof CALLS)[number];
 
 /** The account page, at APP_URL, signing in through the issuer over its service binding (ADR-0041). */

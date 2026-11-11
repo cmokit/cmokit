@@ -150,7 +150,8 @@ test('the snippet posts to the brand\'s join address and sends the page and the 
   const [join, instagram] = snippet.split('data-cmokit-instagram hidden');
   assert.match(join, /<input type="email" name="email"/);
   assert.doesNotMatch(join, /<input type="text" name="(?!website)/, 'joining asks for the address alone');
-  assert.match(instagram, /Boost even more: connect your Instagram.*data-cmokit-connect.*business or creator account/s, 'connecting Instagram is the step after joining');
+  assert.match(instagram, /Boost even more: comment this code on one of our Reels.*data-cmokit-code.*data-cmokit-account/s, 'commenting the code is the step after joining');
+  assert.doesNotMatch(snippet, /business or creator account|Connect Instagram/, 'a person on the waitlist never logs in to Instagram');
   assert.match(snippet, /if \(answer\.instagram\)/, 'and shows only when the waitlist offers it');
   assert.match(snippet, /Boost your place: share your referral link/);
   assert.match(snippet, /"You're number " \+ answer\.place/);

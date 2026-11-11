@@ -99,12 +99,13 @@ jobs:
           [ -n "$ACTIVATED_EMAILS" ] && vars+=(--var "ACTIVATED_EMAILS:$ACTIVATED_EMAILS")
           [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] && vars+=(--var "TERMS_URL:$TERMS_URL" --var "TERMS_VERSION:$TERMS_VERSION")
           [ -n "$WAITLIST_CUSTOMER" ] && vars+=(--var "WAITLIST_CUSTOMER:$WAITLIST_CUSTOMER")
-          [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && vars+=(--var "INSTAGRAM_APP_ID:$INSTAGRAM_APP_ID")
+          instagram() { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && [ -n "$INSTAGRAM_CONFIG_ID" ]; }
+          instagram && vars+=(--var "INSTAGRAM_APP_ID:$INSTAGRAM_APP_ID" --var "INSTAGRAM_CONFIG_ID:$INSTAGRAM_CONFIG_ID")
           npx wrangler deploy --config "$config" --secrets-file "$secrets" "${vars[@]}"
           rm "$secrets"
           [ -n "$ACTIVATED_EMAILS" ] || echo "::notice::Nobody is activated without a checkout; set the variable ACTIVATED_EMAILS."
           [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] || echo "::notice::No beta terms are asked for; set the variables TERMS_URL and TERMS_VERSION."
-          { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ]; } || echo "::notice::Connect Instagram is off; set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET."
+          instagram || echo "::notice::Connect Instagram is off; set INSTAGRAM_APP_ID, INSTAGRAM_CONFIG_ID and INSTAGRAM_APP_SECRET."
         env:
           CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
           ACTIVATED_EMAILS: ${{ vars.ACTIVATED_EMAILS }}
@@ -112,4 +113,5 @@ jobs:
           TERMS_VERSION: ${{ vars.TERMS_VERSION }}
           WAITLIST_CUSTOMER: ${{ vars.WAITLIST_CUSTOMER }}
           INSTAGRAM_APP_ID: ${{ vars.INSTAGRAM_APP_ID }}
+          INSTAGRAM_CONFIG_ID: ${{ vars.INSTAGRAM_CONFIG_ID }}
           INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}

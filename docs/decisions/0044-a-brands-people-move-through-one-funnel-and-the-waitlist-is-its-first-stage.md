@@ -39,7 +39,7 @@ Chosen option: "One funnel for each brand, kept in the brand's waitlist records,
 a stage of it", because it keeps one record of each person and builds nothing early.
 
 > A brand's funnel is the people in its waitlist records, each in one stage: joined, then boosted by
-> referrals and connected Instagram (ADR-0045), then activated. Where a person came from, their
+> referrals and comments on the brand's Reels (ADR-0045), then activated. Where a person came from, their
 > referral code and their place are kept from their first join and serve every stage after it. The
 > public beta's sign-up is the same join with activation made automatic, a brand setting added when
 > it is built. Subscribing is the lifecycle's checkout (ADR-0017) after activation, and the

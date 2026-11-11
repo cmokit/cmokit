@@ -2,11 +2,11 @@
 // on GitHub Pages, posts to /join/<brand> here, with no Worker of the site's own. Only pages on the
 // site addresses the brand's users listed may add people, and the answer is the person's referral
 // link: the page they joined on, with every query parameter it had, carrying their own code, and
-// their place in line, with the address where they connect Instagram to move up more (ADR-0045). The
-// page's tracking tags are kept with the person. It uses the web-standard Request and Response only
+// their place in line, and, once the brand connected its Instagram, the account whose Reels they
+// comment their code on to move up more (ADR-0045). The page's tracking tags are kept with the person. It uses the web-standard Request and Response only
 // (ADR-0003).
 
-import type { WaitlistDetails, WaitlistJoined } from './customer.ts';
+import type { InstagramAccount, WaitlistDetails, WaitlistJoined } from './customer.ts';
 
 /** The query parameter that carries a referral code. */
 export const REFERRAL = 'ref';
@@ -17,14 +17,12 @@ export const TRAP = 'website';
 export interface JoinCalls {
   waitlistSites(): Promise<string[]>;
   waitlistJoin(email: string, details?: WaitlistDetails): Promise<WaitlistJoined>;
-  instagramStart?(kind: 'member', code: string, back?: string): Promise<string>;
+  instagramAccount?(): Promise<InstagramAccount | null>;
 }
 
 export interface JoinOptions {
   /** Whether a visitor may join now; false slows a flood of joins from one place. Absent, every join is let through. */
   allow?(key: string): Promise<boolean>;
-  /** Instagram's page to connect an account, for the value a start hands back; absent with no Instagram app. */
-  instagram?(start: string): string;
 }
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]+$/;
@@ -65,20 +63,18 @@ export async function handleJoin(request: Request, customer: JoinCalls, options:
   const details: WaitlistDetails = { source };
   const ref = fields.ref?.trim();
   if (ref) details.ref = ref;
-  const back = link.href;
   const { code, place } = await customer.waitlistJoin(email, details);
   link.searchParams.set(REFERRAL, code);
-  const instagram = options.instagram && customer.instagramStart
-    ? options.instagram(await customer.instagramStart('member', code, back)) : undefined;
-  return answer(200, { referral: link.href, place, ...(instagram ? { instagram } : {}) });
+  const account = await customer.instagramAccount?.();
+  return answer(200, { referral: link.href, place, ...(account ? { instagram: { account: account.username, code } } : {}) });
 }
 
 interface Answer {
   referral?: string;
   /** Their place in line, from 1; null once they are activated. */
   place?: WaitlistJoined['place'];
-  /** Instagram's page where they connect their account to move up more. */
-  instagram?: string;
+  /** The brand's Instagram account, and the code they comment on its Reels to move up more. */
+  instagram?: { account: string; code: string };
   problem?: string;
 }
 
@@ -115,7 +111,7 @@ async function read(request: Request): Promise<Record<string, string | undefined
 function page(status: number, body: Answer, cors: Record<string, string>): Response {
   const main = body.referral
     ? `<h1>${body.place ? `You're number ${body.place} on the list` : "You're on the list"}</h1><p>Share your link. Everyone who joins through it moves you up.</p><p><a href="${escape(body.referral)}">${escape(body.referral)}</a></p>`
-      + (body.instagram ? `<p>${CONNECT_LINE} <a href="${escape(body.instagram)}">Connect Instagram</a></p><p>${PROFESSIONAL_LINE}</p>` : '')
+      + (body.instagram ? `<p>${COMMENT_LINE} <strong>${escape(body.instagram.code)}</strong></p><p><a href="${instagramPage(body.instagram.account)}">@${escape(body.instagram.account)} on Instagram</a></p>` : '')
     : `<h1>That didn't work</h1><p>${escape(body.problem ?? 'Try again.')}</p>`;
   return new Response(
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Waitlist</title>`
@@ -129,16 +125,18 @@ function escape(text: string): string {
   return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
 
-/** What the third step of the funnel says, beside its Connect Instagram button. */
-export const CONNECT_LINE = 'Boost even more: connect your Instagram, then comment on our Reels. Each Reel you comment on moves you up.';
-/** What it says about the accounts Instagram lets connect. */
-export const PROFESSIONAL_LINE = 'This needs an Instagram business or creator account. You can switch to one in Instagram\'s settings.';
+/** What the third step of the funnel says, above the person's code. */
+export const COMMENT_LINE = 'Boost even more: comment this code on one of our Reels, then comment on more. Each Reel you comment on moves you up.';
+
+/** The brand's profile on Instagram, where its Reels are. */
+function instagramPage(account: string): string {
+  return `https://www.instagram.com/${encodeURIComponent(account)}/`;
+}
 
 /**
  * The form and script a brand's site pastes into a page to let people join its waitlist. It is a
- * funnel: join with an address; then share the referral link to move up; then connect Instagram and
- * comment on the brand's Reels to move up more. The last step shows only when the brand's waitlist
- * offers it.
+ * funnel: join with an address; then share the referral link to move up; then comment the code on the
+ * brand's Reels to move up more. The last step shows only once the brand connected its Instagram.
  */
 export function joinSnippet(action: string): string {
   return `<div data-cmokit-waitlist>
@@ -152,9 +150,8 @@ export function joinSnippet(action: string): string {
   <p>Boost your place: share your referral link. Everyone who joins through it moves you up.<br><a data-cmokit-referral></a></p>
 </div>
 <div data-cmokit-instagram hidden>
-  <p>${CONNECT_LINE}</p>
-  <p><a data-cmokit-connect>Connect Instagram</a></p>
-  <p><small>${PROFESSIONAL_LINE.replace(/'/g, '&#39;')}</small></p>
+  <p>${COMMENT_LINE} <strong data-cmokit-code></strong></p>
+  <p><a data-cmokit-account></a></p>
 </div>
 </div>
 <script>
@@ -174,7 +171,10 @@ document.querySelectorAll('[data-cmokit-waitlist]').forEach((box) => {
     join.hidden = true;
     box.querySelector('[data-cmokit-joined]').hidden = false;
     if (answer.instagram) {
-      box.querySelector('[data-cmokit-connect]').href = answer.instagram;
+      box.querySelector('[data-cmokit-code]').textContent = answer.instagram.code;
+      const account = box.querySelector('[data-cmokit-account]');
+      account.href = 'https://www.instagram.com/' + encodeURIComponent(answer.instagram.account) + '/';
+      account.textContent = '@' + answer.instagram.account + ' on Instagram';
       box.querySelector('[data-cmokit-instagram]').hidden = false;
     }
     box.dispatchEvent(new CustomEvent('cmokit:joined', { bubbles: true, detail: { referral: answer.referral, place: answer.place ?? null } }));

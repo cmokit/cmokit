@@ -201,25 +201,12 @@ function cameFrom(source: Record<string, string>): string {
 /** The brand's Instagram account on its account page: connect it, then count comments on its Reels. */
 function instagramSection(account: InstagramAccount | null): string {
   if (!account) {
-    return `<p>Connect your brand's Instagram business or creator account, so comments on your Reels move people up the waitlist.</p>
+    return `<p>Connect your brand's Instagram business or creator account. People on your waitlist then comment their code on your Reels, and each Reel they comment on moves them up.</p>
 <form method="post" action="/instagram/connect"><button type="submit">Connect Instagram</button></form>`;
   }
   const counted = account.counted
-    ? `Last counted ${escape(account.counted.at.slice(0, 16).replace('T', ' '))} UTC: ${account.counted.people} ${account.counted.people === 1 ? 'person' : 'people'} commented on your last ${account.counted.reels} Reel${account.counted.reels === 1 ? '' : 's'}.`
+    ? `Last counted ${escape(account.counted.at.slice(0, 16).replace('T', ' '))} UTC: ${account.counted.people} ${account.counted.people === 1 ? 'person' : 'people'} on your waitlist commented on your last ${account.counted.reels} Reel${account.counted.reels === 1 ? '' : 's'}.`
     : 'Not counted yet.';
   return `<p>Instagram: @${escape(account.username)}. ${counted}</p>
 <form method="post" action="/instagram/count"><button type="submit">Count comments on your Reels</button></form>`;
-}
-
-/** Where Instagram sends a person back, once they connected their account to a brand's waitlist. */
-export function instagramJoinedPage(page: { username: string; place: number | null; back: string | null }): Response {
-  return html(`<h1>Instagram connected</h1>
-<p>@${escape(page.username)} is connected${page.place ? `, and you're number ${page.place} on the list` : ''}. Each of our Reels you comment on moves you up.</p>
-${page.back ? `<p><a href="${escape(page.back)}">Back</a></p>` : ''}`, 200);
-}
-
-/** When Instagram did not connect: the person said no, or their account is not a business or creator account. */
-export function instagramFailedPage(): Response {
-  return html(`<h1>Instagram didn't connect</h1>
-<p>Connecting needs an Instagram business or creator account. You can switch to one in Instagram's settings, then try again from the page you joined on.</p>`, 400);
 }

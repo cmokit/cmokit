@@ -148,29 +148,33 @@ When you change the terms, change the version, and everyone accepts again.
 
 ### Instagram on the waitlist
 
-After joining, a person is offered Connect Instagram, and each of your recent Reels they comment on
-moves them up (ADR-0045). Instagram reaches only business and creator accounts, so yours must be one.
+Connect your brand's Instagram, and the form's third step asks each person who joins to comment their
+code on one of your Reels. Each of your recent Reels their handle comments on moves them up
+(ADR-0045). Your brand's account must be a business or creator account; theirs can be any kind.
 
 1. At [developers.facebook.com/apps](https://developers.facebook.com/apps), choose **Create app**,
-   with the type **Business**.
-2. Add the **Instagram** product, and choose **API setup with Instagram login**.
-3. Copy the **Instagram app ID** and save it as the variable `INSTAGRAM_APP_ID`. Show the
-   **Instagram app secret**, and save it as the secret `INSTAGRAM_APP_SECRET`. These are not the
-   Facebook Login app's `META_APP_ID` and `META_APP_SECRET`.
-4. Under **Set up Instagram business login > Business login settings**, add this redirect URL:
+   with the use case **Manage messaging and content on Instagram**, and connect it to your business
+   portfolio.
+2. Under **Use cases > Customize > API setup with Unified login**, choose **Create new
+   configuration**, then **Create from template**. Under **Redirect URL**, register this address and
+   choose **Save**:
 
    ```
    https://app.cmokit.ai/instagram/callback
    ```
 
-5. Under **App roles > Roles**, add your brand's Instagram account, and anyone you want to test with,
-   as **Instagram testers**. Each accepts the invite in Instagram under **Settings > Website
-   permissions > Apps and websites**. Until Meta approves the app, only these accounts can connect.
-6. Deploy again. On your account page, under Waitlist, choose **Connect Instagram** and sign in with
-   your brand's account. Choose **Count comments on your Reels** whenever you want the list updated.
-7. Before you open the waitlist to everyone, submit the app for App Review, asking for Advanced
-   Access to `instagram_business_basic` and `instagram_business_manage_comments`. Meta asks for
-   business verification and a privacy policy address first.
+3. Save the **Configuration ID** shown there as the variable `INSTAGRAM_CONFIG_ID`. Under **App settings > Basic**,
+   save the **App ID** as the variable `INSTAGRAM_APP_ID`, and show the **App secret** and save it as
+   the secret `INSTAGRAM_APP_SECRET`.
+4. Under **App roles > Roles**, add your brand's Instagram account as an **Instagram tester**, and
+   accept the invite in Instagram under **Settings > Website permissions > Apps and websites >
+   Tester invites**.
+5. Deploy again. On your account page, under Waitlist, choose **Connect Instagram**, log in, and pick
+   the portfolio with your brand's account. Choose **Count comments on your Reels** whenever you want
+   the list updated.
+
+Your own brand needs no App Review, since you have a role on the app. Before another brand connects,
+Meta verifies your business portfolio and grants Advanced Access through App Review.
 
 ## 8. Deploy
 

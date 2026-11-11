@@ -16,14 +16,14 @@
 
 import { handleAccount, isAccountPath, type AccountOptions } from './account.ts';
 import { Refusal, type InstagramAccount, type InstagramStart, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
-import { MEMBER_SCOPES, type InstagramApp } from './instagram.ts';
+import type { InstagramApp } from './instagram.ts';
 import { handleJoin, type JoinOptions } from './join.ts';
-import { acceptedPage, donePage, gonePage, instagramFailedPage, instagramJoinedPage, keyPage, subscriptionPage, termsPage } from './pages.ts';
+import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export type { AccountOptions } from './account.ts';
 export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type InstagramAccount, type InstagramStart, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
-export { instagramApp, InstagramError, type InstagramApp, type InstagramOptions } from './instagram.ts';
+export { instagramApp, InstagramError, type InstagramApp, type InstagramOptions, type ReelComment } from './instagram.ts';
 export { joinSnippet, type JoinOptions } from './join.ts';
 export { tally, type EventSummary, type Events, type GuestFacts, type Tally } from './events.ts';
 export { PLATFORMS, trackedLink, type Platform } from './links.ts';
@@ -56,10 +56,9 @@ export interface CustomerPages {
   waitlistJoin(email: string, details?: WaitlistDetails): Promise<WaitlistJoined>;
   waitlistList(): Promise<WaitlistEntry[]>;
   waitlistActivate(email: string): Promise<{ found: boolean }>;
-  /** Connecting Instagram, by a person on the waitlist or by the brand (ADR-0045). */
-  instagramStart(kind: 'member' | 'brand', subject: string, back?: string): Promise<string>;
+  /** Connecting the brand's Instagram, and counting comments on its Reels (ADR-0045). */
+  instagramStart(person: string): Promise<string>;
   instagramTake(token: string): Promise<InstagramStart | undefined>;
-  waitlistInstagram(code: string, id: string, username: string): Promise<{ found: boolean; place: number | null }>;
   instagramSave(person: string, id: string, username: string, token: string): Promise<void>;
   instagramAccount(): Promise<InstagramAccount | null>;
   instagramCount(): Promise<{ reels: number; people: number }>;
@@ -106,7 +105,8 @@ export interface ContentServerOptions {
   join?: JoinOptions;
   /**
    * The Instagram app, whose redirect address is the account page's /instagram/callback; absent, no
-   * one connects Instagram (ADR-0045). It needs the account page.
+   * brand connects Instagram and the waitlist form offers no Instagram step (ADR-0045). It needs the
+   * account page.
    */
   instagram?: InstagramApp;
 }
@@ -127,7 +127,7 @@ const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for t
 const SUBSCRIPTION = '/subscription';
 const JOIN = new RegExp(`^/join/${SLUG}$`);
 const INSTAGRAM_CALLBACK = '/instagram/callback';
-/** The value Instagram hands back names the brand, so one redirect address serves every brand. */
+/** The value Meta hands back names the brand, so one redirect address serves every brand. */
 const INSTAGRAM_STATE = new RegExp(`^${SLUG}\\.([A-Za-z0-9_-]{32})$`);
 const instagramState = (slug: string, token: string) => `${slug}.${token}`;
 const AMBIGUOUS = 'This account has more than one brand. Sign in again to choose one.';
@@ -186,10 +186,11 @@ export function createContentServer(options: ContentServerOptions) {
     if (url.pathname === SUBSCRIPTION && request.method === 'GET') return subscriptionPage(url.searchParams.get('s') ?? '');
     if ((match = url.pathname.match(JOIN))) {
       const slug = match[1];
-      return handleJoin(request, options.customer(slug), {
-        ...options.join,
-        ...(instagram ? { instagram: (token: string) => instagram.authorizeUrl(instagramState(slug, token), MEMBER_SCOPES) } : {}),
-      });
+      const customer = options.customer(slug);
+      // The form's Instagram step names the brand's account, so it shows only while an app is set up.
+      return handleJoin(request, instagram ? customer : {
+        waitlistSites: () => customer.waitlistSites(), waitlistJoin: (email, details) => customer.waitlistJoin(email, details),
+      }, options.join);
     }
 
     const slug = url.pathname.match(MCP)?.[1];
@@ -329,8 +330,8 @@ async function respond(
 }
 
 /**
- * Where Instagram sends a person back. A person on a waitlist who connected is shown their place; a
- * brand's user who connected the brand's account goes back to the account page.
+ * Where Meta sends a brand's user back after they connected the brand's Instagram. Either way they go
+ * back to the account page, which says whether it worked.
  */
 async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: ContentServerOptions['customer'], origin: string): Promise<Response> {
   const state = url.searchParams.get('state')?.match(INSTAGRAM_STATE);
@@ -338,23 +339,17 @@ async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: 
   const customer = customerOf(state[1]);
   const start = await customer.instagramTake(state[2]);
   if (!start) return gonePage();
+  const back = (outcome: string) => new Response(null, { status: 303, headers: { location: `${origin}/?instagram=${outcome}` } });
   const code = url.searchParams.get('code');
-  if (!code) return instagramFailedPage();
-  let connected: { token: string; id: string; username: string };
+  if (!code) return back('failed');
   try {
-    connected = await instagram.connect(code);
+    const connected = await instagram.connect(code);
+    await customer.instagramSave(start.person, connected.id, connected.username, connected.token);
   } catch (error) {
-    if ((error as Error).name === 'InstagramError') return instagramFailedPage();
+    if ((error as Error).name === 'InstagramError') return back('failed');
     throw error;
   }
-  if (start.kind === 'member') {
-    const { found, place } = await customer.waitlistInstagram(start.subject, connected.id, connected.username);
-    return found ? instagramJoinedPage({ username: connected.username, place, back: start.back }) : gonePage();
-  }
-  const lasting = await instagram.longLived(connected.token).catch(() => undefined);
-  if (!lasting) return instagramFailedPage();
-  await customer.instagramSave(start.subject, connected.id, connected.username, lasting.token);
-  return new Response(null, { status: 303, headers: { location: `${origin}/?instagram=connected` } });
+  return back('connected');
 }
 
 async function connectPage(request: Request, url: URL, customer: CustomerPages): Promise<Response> {
