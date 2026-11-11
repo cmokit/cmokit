@@ -146,6 +146,32 @@ To ask every user to accept the beta terms first, publish them, then save the va
 with their address and `TERMS_VERSION` with their version, such as the date they were published.
 When you change the terms, change the version, and everyone accepts again.
 
+### Instagram on the waitlist
+
+After joining, a person is offered Connect Instagram, and each of your recent Reels they comment on
+moves them up (ADR-0045). Instagram reaches only business and creator accounts, so yours must be one.
+
+1. At [developers.facebook.com/apps](https://developers.facebook.com/apps), choose **Create app**,
+   with the type **Business**.
+2. Add the **Instagram** product, and choose **API setup with Instagram login**.
+3. Copy the **Instagram app ID** and save it as the variable `INSTAGRAM_APP_ID`. Show the
+   **Instagram app secret**, and save it as the secret `INSTAGRAM_APP_SECRET`. These are not the
+   Facebook Login app's `META_APP_ID` and `META_APP_SECRET`.
+4. Under **Set up Instagram business login > Business login settings**, add this redirect URL:
+
+   ```
+   https://app.cmokit.ai/instagram/callback
+   ```
+
+5. Under **App roles > Roles**, add your brand's Instagram account, and anyone you want to test with,
+   as **Instagram testers**. Each accepts the invite in Instagram under **Settings > Website
+   permissions > Apps and websites**. Until Meta approves the app, only these accounts can connect.
+6. Deploy again. On your account page, under Waitlist, choose **Connect Instagram** and sign in with
+   your brand's account. Choose **Count comments on your Reels** whenever you want the list updated.
+7. Before you open the waitlist to everyone, submit the app for App Review, asking for Advanced
+   Access to `instagram_business_basic` and `instagram_business_manage_comments`. Meta asks for
+   business verification and a privacy policy address first.
+
 ## 8. Deploy
 
 Every merge to `main` deploys: GitHub runs **deploy-hosted**, which deploys the issuer, then the

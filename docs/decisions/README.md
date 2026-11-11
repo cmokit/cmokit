@@ -48,3 +48,5 @@ from [adr-template.md](adr-template.md).
 | [0041](0041-the-account-page-is-served-by-the-content-server-and-signs-in-through-the-issuer-as-an-oauth-client.md) | The account page is served by the content server, and signs in through the issuer as an OAuth client | Proposed |
 | [0042](0042-hosted-cmokit-is-priced-per-brand-and-cmokits-own-account-page-activates-its-waitlist.md) | Hosted CMOkit is priced per brand, and CMOkit's own account page activates its waitlist | Proposed |
 | [0043](0043-each-brands-waitlist-is-kept-by-the-content-server-and-any-page-on-its-sites-joins-it.md) | Each brand's waitlist is kept by the content server, and any page on the brand's sites joins it | Proposed |
+| [0044](0044-a-brands-people-move-through-one-funnel-and-the-waitlist-is-its-first-stage.md) | A brand's people move through one funnel, and the waitlist is its first stage | Proposed |
+| [0045](0045-people-and-brands-connect-instagram-through-instagram-login-and-comments-on-reels-move-people-up.md) | People and brands connect Instagram through Instagram Login, and comments on a brand's Reels move people up its waitlist | Proposed |

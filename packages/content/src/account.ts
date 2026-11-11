@@ -9,6 +9,7 @@
 // uses the web-standard Request and Response only (ADR-0003).
 
 import { Refusal } from './customer.ts';
+import { BRAND_SCOPES, InstagramError, type InstagramApp } from './instagram.ts';
 import { joinSnippet } from './join.ts';
 import { accountPage, signedOutPage, type AccountView } from './pages.ts';
 import type { Billing, CustomerPages, Terms, Tokens } from './index.ts';
@@ -44,12 +45,14 @@ export interface AccountContext {
   customer(slug: string): CustomerCalls & CustomerPages & { exportAll(): Promise<{ json: string; markdown: string }> };
   billing?: Billing;
   terms?: Terms;
+  /** The Instagram app and the slug-carrying value Instagram hands back, when one is set up (ADR-0045). */
+  instagram?: { app: InstagramApp; state(slug: string, token: string): string };
 }
 
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites']);
+const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -105,7 +108,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return response;
   }
 
-  const changes = route === 'POST /brands' || route === 'POST /brands/name' || route === 'POST /waitlist/activate' || route === 'POST /waitlist/sites';
+  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count'].includes(route);
   if (route !== 'GET /' && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
   // pages' referrer policy is same-origin, because under no-referrer Safari sends a form's Origin as
@@ -156,6 +159,22 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return seeOther(`/?sites=${saved ? 'saved' : 'invalid'}`);
   }
 
+  if (route === 'POST /instagram/connect') {
+    const { instagram } = context;
+    if (!customer || slug === undefined || !instagram) return new Response('Not found', { status: 404 });
+    const token = await customer.instagramStart('brand', checked.person);
+    return seeOther(instagram.app.authorizeUrl(instagram.state(slug, token), BRAND_SCOPES));
+  }
+
+  if (route === 'POST /instagram/count') {
+    if (!customer || !context.instagram) return new Response('Not found', { status: 404 });
+    const counted = await customer.instagramCount().then(() => true, (error) => {
+      if (error instanceof Refusal || error instanceof InstagramError || (error as Error).name === 'Refusal') return false;
+      throw error;
+    });
+    return seeOther(`/?instagram=${counted ? 'counted' : 'failed'}`);
+  }
+
   if (route === 'GET /export') {
     if (!customer) return new Response('This account holds nothing yet.', { status: 404 });
     const { json } = await customer.exportAll();
@@ -187,6 +206,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
       sites: await customer.waitlistSites(),
       snippet: joinSnippet(`${account.origin}/join/${slug}`),
       grantsCmokit: slug === account.cmokitWaitlist,
+      ...(context.instagram ? { instagram: await customer.instagramAccount() } : {}),
     };
     const { terms, billing } = context;
     if (terms) {
@@ -210,6 +230,10 @@ function notice(url: URL): string | undefined {
   const activated = url.searchParams.get('activated');
   if (activated === 'done') return 'Activated. CMOkit sends no email yet, so tell them yourself.';
   if (activated === 'missing') return 'That address is not on the waitlist.';
+  const instagram = url.searchParams.get('instagram');
+  if (instagram === 'connected') return 'Instagram connected. Count comments on your Reels whenever you like.';
+  if (instagram === 'counted') return 'Comments counted, and the waitlist is ranked again.';
+  if (instagram === 'failed') return 'Instagram could not be read. Connect your Instagram account again, then count again.';
   const sites = url.searchParams.get('sites');
   if (sites === 'saved') return 'Site addresses saved.';
   if (sites === 'invalid') return 'Each site address must be an https address, such as https://example.com, and there can be at most 10.';
