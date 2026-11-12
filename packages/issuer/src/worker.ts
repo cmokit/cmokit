@@ -38,8 +38,9 @@ export interface IssuerEnv {
   META_APP_ID?: string;
   META_APP_SECRET?: string;
   /**
-   * The content server's Meta app, and a Unified Login configuration of the sign-in's own, whose
-   * redirect is `<ISSUER_URL>/callback`; with all three, creators sign in with Instagram (ADR-0048).
+   * The content server's Meta app, and a Unified Login configuration of the sign-in's own; the app
+   * must allow `<ISSUER_URL>/callback` as a redirect. With all three, creators sign in with Instagram
+   * (ADR-0048).
    */
   INSTAGRAM_APP_ID?: string;
   INSTAGRAM_APP_SECRET?: string;
