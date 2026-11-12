@@ -18,8 +18,8 @@
     "build": "npm run build -w @cmokit/cli && npm run build -w @cmokit/edge -w @cmokit/astro -w @cmokit/lifecycle -w @cmokit/issuer -w @cmokit/content -w create-cmokit",
     "build:starter": "npm run build -w cmokit-site",
     "check:hosted": "wrangler deploy --dry-run --config hosted/issuer/wrangler.jsonc --outdir .wrangler/dry-run/issuer && wrangler deploy --dry-run --config hosted/content/wrangler.jsonc --outdir .wrangler/dry-run/content",
-    "check:architecture": "node scripts/architecture.ts --check",
-    "docs": "node scripts/architecture.ts"
+    "check:architecture": "node --conditions=cmokit-source scripts/architecture.ts --check",
+    "docs": "node --conditions=cmokit-source scripts/architecture.ts"
   },
   "devDependencies": {
     "@fontsource-variable/instrument-sans": "^5.3.0",
