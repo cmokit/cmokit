@@ -98,24 +98,35 @@ test('signing in sends the person to the issuer with PKCE, and the callback keep
   assert.equal(refused.headers.get('location'), '/signin');
 });
 
-test('the page shows the signed-in account, its brand context and connections, and changes none of them', async () => {
+test('Home shows the brand, its brand context and connections, and changes none of them; Account shows who is signed in', async () => {
   const { get } = await server({ terms: true });
   const page = await get('/', session('ada-token'));
   assert.equal(page.status, 200);
   const html = await page.text();
-  assert.match(html, /ada@example\.com/);
+  assert.match(await (await get('/account', session('ada-token'))).text(), /ada@example\.com/);
   assert.match(html, /A breakfast for founders\./);
   assert.match(html, /Table/);
   assert.match(html, /not accepted .*the beta terms/);
   assert.match(html, /\/customers\/acme\/terms\?t=/);
   assert.match(html, /ask Claude/);
-  assert.doesNotMatch(html, /<form[^>]*action="\/(?!signout|waitlist\/sites)/, 'its only change is the waitlist\'s site addresses');
+  assert.doesNotMatch(html, /<form/, 'Home changes nothing');
+});
+
+test('the page is three tabs at paths of their own, with a tab bar that marks the one shown', async () => {
+  const { get } = await server();
+  for (const [path, label] of [['/', 'Home'], ['/waitlist', 'Waitlist'], ['/account', 'Account']]) {
+    const html = await (await get(path, session('ada-token'))).text();
+    assert.match(html, /<nav class="tabs" aria-label="Account"><a href="\/"[^>]*>Home<\/a><a href="\/waitlist"[^>]*>Waitlist<\/a><a href="\/account"[^>]*>Account<\/a><\/nav>/);
+    assert.match(html, new RegExp(`aria-current="page">${label}<`), path);
+    assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1, path);
+  }
+  assert.doesNotMatch(await (await get('/', session('new-token'))).text(), /class="tabs"/, 'no tabs before there is a brand');
 });
 
 test('without a valid session, the page and the export send the person to sign in', async () => {
   const { get } = await server();
   for (const cookie of [undefined, session('forged'), session('other-audience')]) {
-    for (const path of ['/', '/export']) {
+    for (const path of ['/', '/waitlist', '/account', '/export']) {
       const response = await get(path, cookie);
       assert.equal(response.status, 302, `${path} ${cookie}`);
       assert.equal(response.headers.get('location'), '/signin');
@@ -151,20 +162,20 @@ test('signing out clears the session, and other paths at the account origin fall
 
 test('any user of a brand adds another, from the account page\'s own form only', async () => {
   const { get, post, added } = await server({ brands: true });
-  const page = await (await get('/', session('ada-token'))).text();
+  const page = await (await get('/account', session('ada-token'))).text();
   assert.match(page, /<form method="post" action="\/brands">/);
   // Under no-referrer, Safari sends the form's Origin as "null" and every change would be refused.
   assert.match(page, /<meta name="referrer" content="same-origin">/);
   const made = await post('/brands', { name: 'CFO Kit' }, session('ada-token'));
   assert.equal(made.status, 303);
-  assert.equal(made.headers.get('location'), '/?brand=added');
+  assert.equal(made.headers.get('location'), '/account?brand=added');
   assert.deepEqual(added, [['ada', 'CFO Kit']]);
-  assert.match(await (await get('/?brand=added', session('ada-token'))).text(), /Your new brand is ready/);
+  assert.match(await (await get('/account?brand=added', session('ada-token'))).text(), /Your new brand is ready/);
   const refused = await post('/brands', { name: 'CFO Kit' }, session('ada-token'), 'https://evil.example');
   assert.equal(refused.status, 403);
   assert.match(refused.headers.get('content-type') ?? '', /^text\/plain/, 'a refusal is shown, not offered as a download');
   assert.match(await refused.text(), /account page/);
-  assert.equal((await post('/brands', { name: '<script>' }, session('ada-token'))).headers.get('location'), '/?brand=invalid');
+  assert.equal((await post('/brands', { name: '<script>' }, session('ada-token'))).headers.get('location'), '/account?brand=invalid');
   assert.equal((await post('/brands', { name: 'CFO Kit' }, session('bob-token'))).status, 403, 'not a user of this brand');
   assert.equal((await post('/brands', { name: 'CFO Kit' }, session('new-token'))).status, 404, 'no brand yet, so nothing to add from');
   assert.equal(added.length, 1);
@@ -172,15 +183,15 @@ test('any user of a brand adds another, from the account page\'s own form only',
 
 test('a brand\'s users list its sites, get the form to paste, and activate people from its ranked waitlist', async () => {
   const { get, post, handle, acme } = await server();
-  let html = await (await get('/', session('ada-token'))).text();
-  assert.match(html, /<h2>Waitlist<\/h2>/);
+  let html = await (await get('/waitlist', session('ada-token'))).text();
+  assert.match(html, /<h1>Waitlist<\/h1>/);
   assert.match(html, /Add your site's address first/);
   assert.doesNotMatch(html, /lets them sign in and use CMOkit/, 'only CMOkit\'s own brand grants CMOkit');
 
   const saved = await post('/waitlist/sites', { sites: 'brand.example\nhttps://www.brand.example' }, session('ada-token'));
-  assert.equal(saved.headers.get('location'), '/?sites=saved');
+  assert.equal(saved.headers.get('location'), '/waitlist?sites=saved');
   assert.deepEqual(await acme.waitlistSites(), ['https://brand.example', 'https://www.brand.example']);
-  assert.equal((await post('/waitlist/sites', { sites: 'http://brand.example' }, session('ada-token'))).headers.get('location'), '/?sites=invalid');
+  assert.equal((await post('/waitlist/sites', { sites: 'http://brand.example' }, session('ada-token'))).headers.get('location'), '/waitlist?sites=invalid');
   assert.equal((await post('/waitlist/sites', { sites: 'evil.example' }, session('ada-token'), 'https://evil.example')).status, 403);
 
   const joined = await handle(new Request(`${APP}/join/acme`, {
@@ -188,27 +199,27 @@ test('a brand\'s users list its sites, get the form to paste, and activate peopl
     headers: { origin: 'https://brand.example', accept: 'application/json' },
   }));
   assert.equal(joined.status, 200);
-  html = await (await get('/', session('ada-token'))).text();
+  html = await (await get('/waitlist', session('ada-token'))).text();
   assert.match(html, /action=&#34;https:\/\/app\.example\/join\/acme&#34;/, 'the snippet names this brand\'s join address');
-  assert.match(html, /cy@example\.com, joined \d{4}-\d{2}-\d{2}, 0 referrals, came from utm_content=reel-1: <form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
+  assert.match(html, /<ul class="rows"><li><span class="row-main"><strong>cy@example\.com<\/strong><span class="note">joined \d{4}-\d{2}-\d{2}, 0 referrals, came from utm_content=reel-1<\/span><\/span><form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
 
   const done = await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'));
   assert.equal(done.status, 303);
-  assert.equal(done.headers.get('location'), '/?activated=done');
+  assert.equal(done.headers.get('location'), '/waitlist?activated=done');
   assert.ok((await acme.waitlistList())[0].activated);
-  assert.match(await (await get('/?activated=done', session('ada-token'))).text(), /CMOkit sends no email yet/);
-  assert.equal((await post('/waitlist/activate', { email: 'zed@example.com' }, session('ada-token'))).headers.get('location'), '/?activated=missing');
+  assert.match(await (await get('/waitlist?activated=done', session('ada-token'))).text(), /CMOkit sends no email yet/);
+  assert.equal((await post('/waitlist/activate', { email: 'zed@example.com' }, session('ada-token'))).headers.get('location'), '/waitlist?activated=missing');
   assert.equal((await post('/waitlist/activate', { email: 'cy@example.com' }, session('bob-token'))).status, 403, 'not a user of this brand');
 });
 
 test('on CMOkit\'s own brand, the page says activating someone lets them use CMOkit', async () => {
   const { get } = await server({ cmokit: 'acme' });
-  assert.match(await (await get('/', session('ada-token'))).text(), /Activating someone here lets them sign in and use CMOkit/);
+  assert.match(await (await get('/waitlist', session('ada-token'))).text(), /Activating someone here lets them sign in and use CMOkit/);
 });
 
 test('the account page lists every brand of the person by name, and a sign-in that chose none signs in again to choose', async () => {
   const { get, post, renamed } = await server({ brands: true, brandsOf: { ada: ['acme', 'cfo-kit-0a1b2c'], new: ['acme', 'cfo-kit-0a1b2c'] } });
-  const page = await (await get('/?brand=added', session('ada-token'))).text();
+  const page = await (await get('/account?brand=added', session('ada-token'))).text();
   assert.match(page, /<p>Brand: Unnamed brand\.<\/p>/, 'a brand never named, such as the first one made at activation');
   assert.match(page, /<li>Unnamed brand \(shown on this page\)<\/li><li>CFO Kit<\/li>/);
   assert.doesNotMatch(page, /cfo-kit-0a1b2c/, 'brands are shown by name, not by code');
@@ -217,10 +228,10 @@ test('the account page lists every brand of the person by name, and a sign-in th
   // Naming the brand the page shows.
   assert.match(page, /<form method="post" action="\/brands\/name">/);
   const named = await post('/brands/name', { name: 'CMO Kit' }, session('ada-token'));
-  assert.equal(named.headers.get('location'), '/?brand=renamed');
+  assert.equal(named.headers.get('location'), '/account?brand=renamed');
   assert.deepEqual(renamed, [['ada', 'acme', 'CMO Kit']]);
-  assert.match(await (await get('/?brand=renamed', session('ada-token'))).text(), /<p>Brand: CMO Kit\.<\/p>/);
-  assert.equal((await post('/brands/name', { name: '<b>' }, session('ada-token'))).headers.get('location'), '/?brand=invalid');
+  assert.match(await (await get('/account?brand=renamed', session('ada-token'))).text(), /<p>Brand: CMO Kit\.<\/p>/);
+  assert.equal((await post('/brands/name', { name: '<b>' }, session('ada-token'))).headers.get('location'), '/account?brand=invalid');
   assert.equal((await post('/brands/name', { name: 'CMO Kit' }, session('ada-token'), 'https://evil.example')).status, 403);
   assert.equal(renamed.length, 1);
   // A session from before the second brand names no brand: the page asks again rather than refusing.

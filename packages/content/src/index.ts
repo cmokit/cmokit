@@ -339,7 +339,7 @@ async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: 
   const customer = customerOf(state[1]);
   const start = await customer.instagramTake(state[2]);
   if (!start) return gonePage();
-  const back = (outcome: string) => new Response(null, { status: 303, headers: { location: `${origin}/?instagram=${outcome}` } });
+  const back = (outcome: string) => new Response(null, { status: 303, headers: { location: `${origin}/waitlist?instagram=${outcome}` } });
   const code = url.searchParams.get('code');
   if (!code) return back('failed');
   try {

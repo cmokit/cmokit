@@ -1,7 +1,8 @@
 // CMOkit's own look (ADR-0046): the one stylesheet of the sign-in pages and the content server's
 // pages, built from CMO Kit's design system, and the two fonts each Worker serves from its own origin.
 // A page puts `LOOK` in its <style> and `HEADER` at the top of its <body>; nothing else in a page sets
-// a color, a font or a size.
+// a color, a font or a size. Beside plain markup it styles three pieces: a bottom tab bar (`nav.tabs`,
+// the current tab marked `aria-current`), stacked list rows (`ul.rows`) and a status badge (`.badge`).
 
 /** The fonts a Worker serves at `/fonts/<name>.woff2`, as its adapter hands them over. Without them, pages fall back to the system font. */
 export interface Fonts {
@@ -100,4 +101,14 @@ li button{width:auto;min-height:2.75rem;display:inline-flex}
 [role=status] strong,[role=alert] strong{font-weight:600}
 pre{padding:var(--space-3) var(--space-4);background:var(--sunk);border-radius:var(--radius-md);white-space:pre-wrap;overflow-wrap:anywhere;font-size:var(--text-xs)}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+ul.rows{list-style:none;padding:0;border-top:1px solid var(--line)}
+.rows li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-4);margin:0;padding:var(--space-3) 0;border-bottom:1px solid var(--line)}
+.rows form{margin:0}
+.row-main{flex:1 1 14rem;min-width:0;display:flex;flex-direction:column;overflow-wrap:anywhere}
+.badge{display:inline-flex;align-items:center;min-height:2rem;padding:0 var(--space-3);border-radius:var(--pill);background:var(--sunk);color:var(--muted);font-size:var(--text-xs);font-weight:600}
+body:has(.tabs){padding-bottom:calc(5.5rem + env(safe-area-inset-bottom,0px))}
+.tabs{position:fixed;left:0;right:0;bottom:0;max-width:none;margin:0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+background:var(--surface);border-top:1px solid var(--line);padding:0 max(var(--gutter),calc((100% - 32rem)/2)) env(safe-area-inset-bottom,0px)}
+.tabs a{display:flex;align-items:center;justify-content:center;min-height:3.5rem;color:var(--muted);font-size:var(--text-sm);font-weight:600;text-decoration:none;border-top:2px solid transparent;margin-top:-1px}
+.tabs a[aria-current=page]{color:var(--accent);border-top-color:var(--accent)}
 `;
