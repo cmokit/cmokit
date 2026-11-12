@@ -13,6 +13,7 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { OAuthAuthorizationServer, authorizationErrorRedirect, type AuthRequest as LibraryRequest } from '@cloudflare/workers-oauth-provider';
 import { Identity as IdentityLogic, Person as PersonLogic } from './accounts.ts';
+import { fontResponse, type Fonts } from './look.ts';
 import { allowedRedirect, createSignIn, type Accounts, type Brand, type Grant, type IdentityRecords, type PersonRecords, type SignInOAuth } from './index.ts';
 import { github, google, meta, type Provider } from './providers.ts';
 import { sendgridCodes } from './sendgrid.ts';
@@ -172,9 +173,12 @@ export interface ValidatedToken {
   userId: string;
 }
 
-export function createIssuerWorker(): { Issuer: IssuerEntrypoint; Identity: ObjectClass; Person: ObjectClass } {
+/** `fonts` are the sign-in pages' two fonts, served at `/fonts/`; without them the pages use the system font (ADR-0046). */
+export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: IssuerEntrypoint; Identity: ObjectClass; Person: ObjectClass } {
   class Issuer extends WorkerEntrypoint<IssuerEnv> {
     async fetch(request: Request): Promise<Response> {
+      const font = fontResponse(request, options.fonts);
+      if (font) return font;
       return (await signInFor(this.env)(request)) ?? authorizationServer(this.env).fetch(request, this.env, this.ctx);
     }
 

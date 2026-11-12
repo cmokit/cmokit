@@ -28,6 +28,9 @@
     "dist",
     "src"
   ],
+  "dependencies": {
+    "@cmokit/issuer": "^0.1.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json"
   },

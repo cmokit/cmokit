@@ -231,3 +231,13 @@ test('a new brand\'s slug comes from its name, with a random end, and is always 
   assert.notEqual(brandSlug('CFO Kit'), brandSlug('CFO Kit'));
   assert.match(brandSlug('a'.repeat(60)), /^[a-z0-9][a-z0-9-]{0,62}$/);
 });
+
+test('the Worker serves the look\'s fonts from its own origin, ahead of every other route (ADR-0046)', async () => {
+  const fonts = { display: new Uint8Array([1]).buffer, body: new Uint8Array([2]).buffer };
+  const { worker } = createContentWorker({ tokens: () => ({ check: async () => undefined }), fonts });
+  const response = await worker.fetch(new Request('https://app.example/fonts/body.woff2'), {} as ContentEnv);
+  assert.equal(response.headers.get('content-type'), 'font/woff2');
+  assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [2]);
+  const bare = createContentWorker({ tokens: () => ({ check: async () => undefined }) });
+  assert.equal((await bare.worker.fetch(new Request('https://app.example/fonts/body.woff2'), {} as ContentEnv)).status, 404);
+});
