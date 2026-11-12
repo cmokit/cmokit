@@ -6,12 +6,13 @@
 // everything held for the customer (HST-13). Changes are made in Claude. A user adds another brand
 // here, each a customer of its own (ADR-0042), and runs the brand's own waitlist: the site addresses
 // allowed to join it, the form to paste into them, and activating people one by one (ADR-0043). It
-// uses the web-standard Request and Response only (ADR-0003).
+// uses the web-standard Request and Response only (ADR-0003). On a phone it is three tabs, Home,
+// Waitlist and Account, each at a path of its own, and a change returns to the tab it was made on.
 
 import { Refusal } from './customer.ts';
 import { InstagramError, type InstagramApp } from './instagram.ts';
 import { joinSnippet } from './join.ts';
-import { accountPage, signedOutPage, type AccountView } from './pages.ts';
+import { accountPage, signedOutPage, type AccountTab, type AccountView } from './pages.ts';
 import type { Billing, CustomerPages, Terms, Tokens } from './index.ts';
 import type { CustomerCalls } from './tools.ts';
 
@@ -52,7 +53,7 @@ export interface AccountContext {
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count']);
+const PATHS = new Set(['/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -109,7 +110,8 @@ export async function handleAccount(request: Request, url: URL, account: Account
   }
 
   const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count'].includes(route);
-  if (route !== 'GET /' && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
+  const tab = ({ 'GET /': 'home', 'GET /waitlist': 'waitlist', 'GET /account': 'account' } as Record<string, AccountTab>)[route];
+  if (!tab && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
   // pages' referrer policy is same-origin, because under no-referrer Safari sends a form's Origin as
   // "null", which refused every change made from an iPhone.
@@ -129,24 +131,24 @@ export async function handleAccount(request: Request, url: URL, account: Account
   if (route === 'POST /brands') {
     if (!customer || !account.addBrand) return new Response('Not found', { status: 404 });
     const name = String((await request.formData()).get('name') ?? '').trim();
-    if (!BRAND_NAME.test(name)) return seeOther('/?brand=invalid');
+    if (!BRAND_NAME.test(name)) return seeOther('/account?brand=invalid');
     await account.addBrand(checked.person, name);
-    return seeOther('/?brand=added');
+    return seeOther('/account?brand=added');
   }
 
   if (route === 'POST /brands/name') {
     if (!customer || slug === undefined || !account.renameBrand) return new Response('Not found', { status: 404 });
     const name = String((await request.formData()).get('name') ?? '').trim();
-    if (!BRAND_NAME.test(name)) return seeOther('/?brand=invalid');
+    if (!BRAND_NAME.test(name)) return seeOther('/account?brand=invalid');
     await account.renameBrand(checked.person, slug, name);
-    return seeOther('/?brand=renamed');
+    return seeOther('/account?brand=renamed');
   }
 
   if (route === 'POST /waitlist/activate') {
     if (!customer) return new Response('Not found', { status: 404 });
     const email = String((await request.formData()).get('email') ?? '').trim();
     const { found } = await customer.waitlistActivate(email);
-    return seeOther(`/?activated=${found ? 'done' : 'missing'}`);
+    return seeOther(`/waitlist?activated=${found ? 'done' : 'missing'}`);
   }
 
   if (route === 'POST /waitlist/sites') {
@@ -156,7 +158,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
       if (error instanceof Refusal) return false;
       throw error;
     });
-    return seeOther(`/?sites=${saved ? 'saved' : 'invalid'}`);
+    return seeOther(`/waitlist?sites=${saved ? 'saved' : 'invalid'}`);
   }
 
   if (route === 'POST /instagram/connect') {
@@ -172,7 +174,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
       if (error instanceof Refusal || error instanceof InstagramError || (error as Error).name === 'Refusal') return false;
       throw error;
     });
-    return seeOther(`/?instagram=${counted ? 'counted' : 'failed'}`);
+    return seeOther(`/waitlist?instagram=${counted ? 'counted' : 'failed'}`);
   }
 
   if (route === 'GET /export') {
@@ -218,7 +220,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     const held = billing ? await customer.billing() : undefined;
     if (billing && held) view.customer.manage = await billing.portal(held, `${account.origin}/`).catch(() => undefined);
   }
-  return accountPage(view);
+  return accountPage(view, tab);
 }
 
 /** The line the page shows after a change, from the address its form sent the person back to. */

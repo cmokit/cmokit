@@ -51,24 +51,24 @@ function setup(withApp = true) {
 test('the brand connects its Instagram through Meta\'s login, and its account and token are kept', async () => {
   const { post, back, customer, read } = setup();
   await customer.addUser('ada');
-  assert.equal((await post('/instagram/count')).headers.get('location'), '/?instagram=failed', 'nothing to count before the brand connects');
+  assert.equal((await post('/instagram/count')).headers.get('location'), '/waitlist?instagram=failed', 'nothing to count before the brand connects');
   const started = await post('/instagram/connect');
   assert.equal(started.status, 303);
   const login = new URL(started.headers.get('location')!);
   assert.equal(`${login.origin}${login.pathname}`, 'https://www.facebook.com/dialog/oauth');
   assert.match(login.searchParams.get('state')!, /^acme\.[A-Za-z0-9_-]{32}$/);
-  assert.equal((await back(login.toString(), 'brand-code')).headers.get('location'), `${APP}/?instagram=connected`);
+  assert.equal((await back(login.toString(), 'brand-code')).headers.get('location'), `${APP}/waitlist?instagram=connected`);
   assert.equal((await back(login.toString(), 'brand-code')).status, 410, 'a start is used once');
   assert.equal((await customer.instagramAccount())!.username, 'acmebrand');
-  assert.equal((await post('/instagram/count')).headers.get('location'), '/?instagram=counted');
+  assert.equal((await post('/instagram/count')).headers.get('location'), '/waitlist?instagram=counted');
   assert.deepEqual(read, ['portfolio-token 999'], 'the brand\'s own account is read with the kept token');
 });
 
 test('Meta saying no sends the brand back to its account page, and an unknown start is gone', async () => {
   const { post, back, customer } = setup();
   await customer.addUser('ada');
-  assert.equal((await back((await post('/instagram/connect')).headers.get('location')!, null)).headers.get('location'), `${APP}/?instagram=failed`);
-  assert.equal((await back((await post('/instagram/connect')).headers.get('location')!, 'not-a-code')).headers.get('location'), `${APP}/?instagram=failed`);
+  assert.equal((await back((await post('/instagram/connect')).headers.get('location')!, null)).headers.get('location'), `${APP}/waitlist?instagram=failed`);
+  assert.equal((await back((await post('/instagram/connect')).headers.get('location')!, 'not-a-code')).headers.get('location'), `${APP}/waitlist?instagram=failed`);
   assert.equal((await back('https://www.facebook.com/dialog/oauth?state=acme.' + 'x'.repeat(32), 'brand-code')).status, 410);
   assert.equal(await customer.instagramAccount(), null);
 });
@@ -104,7 +104,7 @@ test('commenting a code proves the handle, and each Reel that handle commented o
     { reel: 'r2', username: 'cy.makes', text: 'Love this' },
     { reel: 'r1', username: 'stranger', text: 'nice' },
   );
-  assert.equal((await post('/instagram/count')).headers.get('location'), '/?instagram=counted');
+  assert.equal((await post('/instagram/count')).headers.get('location'), '/waitlist?instagram=counted');
   assert.deepEqual((await customer.waitlistList()).map((p) => [p.email, p.instagram, p.engaged]), [['cy@example.com', 'cy.makes', 2], ['di@example.com', null, 0]]);
   assert.deepEqual((await customer.instagramAccount())!.counted, { at: new Date(T0 + 1000).toISOString(), reels: 3, people: 1 });
   assert.equal((await join({ email: 'cy@example.com' })).place, 1, 'commenting on two Reels moved them ahead');

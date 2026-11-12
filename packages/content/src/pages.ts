@@ -101,15 +101,40 @@ export const UNNAMED_BRAND = 'Unnamed brand';
 
 const brandName = (name: string | null): string => name ?? UNNAMED_BRAND;
 
-/** A signed-in person's account (ADR-0041). Its brand context and settings are changed in Claude; brands and the waitlist here. */
-export function accountPage(view: AccountView): Response {
-  const who = `${view.notice ? `<p role="status"><strong>${escape(view.notice)}</strong></p>` : ''}<p>Signed in${view.email ? ` as ${escape(view.email)}` : ''}.</p>`;
+/** The account page's three tabs, each at a path of its own, with the bottom tab bar between them. */
+export type AccountTab = 'home' | 'waitlist' | 'account';
+
+const TABS: { tab: AccountTab; path: string; label: string }[] = [
+  { tab: 'home', path: '/', label: 'Home' },
+  { tab: 'waitlist', path: '/waitlist', label: 'Waitlist' },
+  { tab: 'account', path: '/account', label: 'Account' },
+];
+
+/**
+ * A signed-in person's account (ADR-0041), as three tabs: Home is the brand, its access, terms,
+ * connections and brand context; Waitlist is the brand's waitlist; Account is the person, their
+ * brands, the export and signing out. Brand context and settings are changed in Claude.
+ */
+export function accountPage(view: AccountView, tab: AccountTab = 'home'): Response {
+  const notice = view.notice ? `<p role="status">${escape(view.notice)}</p>` : '';
+  const signedIn = `<p>Signed in${view.email ? ` as <strong>${escape(view.email)}</strong>` : ''}.</p>`;
   const signOut = '<form method="post" action="/signout"><button type="submit">Sign out</button></form>';
   const c = view.customer;
   if (!c) {
-    return html(`<h1>Your CMOkit account</h1>${who}
+    return html(`<h1>Your CMOkit account</h1>${notice}${signedIn}
 <p>This account has no CMOkit subscription yet. Ask Claude to set CMOkit up, and come back here afterwards.</p>${signOut}`, 200);
   }
+  const name = brandName(c.brands.find((b) => b.slug === c.slug)?.name ?? null);
+  const tabs = TABS.filter((t) => t.tab !== 'waitlist' || c.waitlist);
+  const shown = tabs.some((t) => t.tab === tab) ? tab : 'home';
+  const body = shown === 'waitlist' ? waitlistTab(c.waitlist!) : shown === 'account' ? accountTab(c, name, signedIn, signOut) : homeTab(c, name);
+  const bar = `<nav class="tabs" aria-label="Account">${tabs.map((t) => `<a href="${t.path}"${t.tab === shown ? ' aria-current="page"' : ''}>${t.label}</a>`).join('')}</nav>`;
+  return html(`${notice}${body}\n${bar}`, 200);
+}
+
+type Customer = NonNullable<AccountView['customer']>;
+
+function homeTab(c: Customer, name: string): string {
   const terms = c.terms ? `<h2>Beta terms</h2>
 <p>${c.terms.accepted
     ? `You accepted <a href="${escape(c.terms.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a>, version ${escape(c.terms.version)}.`
@@ -122,7 +147,37 @@ export function accountPage(view: AccountView): Response {
   const brand = version === 0
     ? '<p>No brand context yet. Ask Claude to build it with you.</p>'
     : `<p>Version ${version}${at ? `, approved ${escape(at.slice(0, 10))}` : ''}.</p>${sections.join('\n')}${offers.length ? `<h3>Offers</h3><ul>${offers.join('')}</ul>` : ''}`;
-  const name = brandName(c.brands.find((b) => b.slug === c.slug)?.name ?? null);
+  return `<h1>${escape(name)}</h1>
+<p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>
+${terms}
+<h2>Connections</h2>
+${connected.length ? `<ul>${connected.join('')}</ul>` : '<p>Nothing connected yet.</p>'}
+${missing.length ? `<p>Not connected yet:</p><ul>${missing.join('')}</ul>` : ''}
+<h2>Brand context</h2>
+${brand}
+<p>To change your brand context or settings, ask Claude.</p>`;
+}
+
+function waitlistTab(w: NonNullable<Customer['waitlist']>): string {
+  const person = (p: WaitlistEntry) => `<li><span class="row-main"><strong>${escape(p.email)}</strong><span class="note">${p.instagram ? `Instagram @${escape(p.instagram)}, commented on ${p.engaged} Reel${p.engaged === 1 ? '' : 's'}, ` : ''}joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}</span></span>${p.activated
+    ? `<span class="badge">Activated ${escape(p.activated.slice(0, 10))}</span>`
+    : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`;
+  return `<h1>Waitlist</h1>
+<p>People join from a form on your site. Joining gives no access until you activate them.${w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>
+${w.people.length ? `<p>${w.people.length} on the waitlist, ranked by referrals plus Reels commented on, then who joined first.</p>
+<ul class="rows">${w.people.map(person).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}
+${w.instagram !== undefined ? `<h2>Instagram</h2>\n${instagramSection(w.instagram)}` : ''}
+<h2>Your site</h2>
+<form method="post" action="/waitlist/sites">
+  <label for="waitlist-sites">Your site addresses, one per line</label>
+  <textarea id="waitlist-sites" name="sites" rows="3">${escape(w.sites.join('\n'))}</textarea>
+  <button type="submit">Save site addresses</button>
+</form>
+${w.sites.length ? `<p>Paste this into a page on ${w.sites.length === 1 ? 'that site' : 'those sites'}:</p>
+<pre><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}`;
+}
+
+function accountTab(c: Customer, name: string, signedIn: string, signOut: string): string {
   const others = c.brands.filter((b) => b.slug !== c.slug);
   const listed = `<ul><li>${escape(name)} (shown on this page)</li>${others.map((b) => `<li>${escape(brandName(b.name))}</li>`).join('')}</ul>`
     + (others.length ? '<p><a href="/signin">Switch brand</a>: sign in again and choose the brand to show.</p>' : '')
@@ -139,35 +194,13 @@ ${c.addBrand ? `<form method="post" action="/brands">
   <input id="brand-name" name="name" maxlength="60" required>
   <button type="submit">Add a brand</button>
 </form>` : ''}` : '';
-  const w = c.waitlist;
-  const waitlist = w ? `<h2>Waitlist</h2>
-<p>People join from a form on your site. Joining gives no access until you activate them.${w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>
-<form method="post" action="/waitlist/sites">
-  <label for="waitlist-sites">Your site addresses, one per line</label>
-  <textarea id="waitlist-sites" name="sites" rows="3">${escape(w.sites.join('\n'))}</textarea>
-  <button type="submit">Save site addresses</button>
-</form>
-${w.sites.length ? `<p>Paste this into a page on ${w.sites.length === 1 ? 'that site' : 'those sites'}:</p>
-<pre><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}
-${w.instagram !== undefined ? instagramSection(w.instagram) : ''}
-${w.people.length ? `<p>${w.people.length} on the waitlist, ranked by referrals plus Reels commented on, then who joined first.</p>
-<ul>${w.people.map((p) => `<li>${escape(p.email)}${p.instagram ? `, Instagram @${escape(p.instagram)}, commented on ${p.engaged} Reel${p.engaged === 1 ? '' : 's'}` : ''}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}: ${p.activated
-    ? `activated ${escape(p.activated.slice(0, 10))}`
-    : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`).join('')}</ul>` : '<p>Nobody is on the waitlist yet.</p>'}` : '';
-  return html(`<h1>Your CMOkit account</h1>${who}
+  return `<h1>Account</h1>
+${signedIn}
 <p>Brand: ${escape(name)}.</p>
-<p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>
-${terms}
-<h2>Connections</h2>
-${connected.length ? `<ul>${connected.join('')}</ul>` : '<p>Nothing connected yet.</p>'}
-${missing.length ? `<p>Not connected yet:</p><ul>${missing.join('')}</ul>` : ''}
-<h2>Brand context</h2>
-${brand}
-<p>To change your brand context or settings, ask Claude.</p>
-<p><a href="/export">Download everything CMOkit holds for this brand</a></p>
 ${brands}
-${waitlist}
-${signOut}`, 200);
+<h2>Your data</h2>
+<p><a href="/export">Download everything CMOkit holds for this brand</a></p>
+${signOut}`;
 }
 
 export function signedOutPage(): Response {
