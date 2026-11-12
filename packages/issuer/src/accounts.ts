@@ -2,13 +2,13 @@
 // against the SQL interface, so the logic runs on Node's SQLite in tests.
 //
 // A sign-in identity's object is named by a provider and its stable subject id (`google:<sub>`,
-// `github:<id>`, `meta:<id>`) or by `email:` and an address. It holds the person it belongs to and,
+// `github:<id>`, `meta:<id>`, `instagram:<Instagram account ID>`) or by `email:` and an address. It holds the person it belongs to and,
 // for an address, its pending code: hashed, with its expiry and the attempts left, and deleted when
 // used, expired or out of attempts. An object named `network:` and an address counts the codes sent
 // from that network, and holds nothing else.
 //
 // A person's object, named by the person's id, holds their sign-in identities, their proven email
-// address and the customers they belong to. The customer's own object is the authority on who its
+// address, the Instagram handle they last signed in with, if any, and the customers they belong to. The customer's own object is the authority on who its
 // users are; this list is an index of it, written in the same step (ADR-0030).
 
 import type { Sql } from './sql.ts';
@@ -103,6 +103,12 @@ export interface Brand {
   name: string | null;
 }
 
+/** An Instagram account a person signed in with: its ID, and its handle without the @. */
+export interface InstagramAccount {
+  id: string;
+  handle: string;
+}
+
 export class Person {
   readonly #sql: Sql;
 
@@ -111,6 +117,7 @@ export class Person {
     sql.all('CREATE TABLE IF NOT EXISTS identities (name TEXT PRIMARY KEY, added_at INTEGER NOT NULL)');
     sql.all('CREATE TABLE IF NOT EXISTS email (one INTEGER PRIMARY KEY CHECK (one = 1), address TEXT NOT NULL)');
     sql.all('CREATE TABLE IF NOT EXISTS customers (slug TEXT PRIMARY KEY, added_at INTEGER NOT NULL, name TEXT)');
+    sql.all('CREATE TABLE IF NOT EXISTS instagram (one INTEGER PRIMARY KEY CHECK (one = 1), id TEXT NOT NULL, handle TEXT NOT NULL)');
     // Records made before brands had names have no name column.
     try {
       sql.all('ALTER TABLE customers ADD COLUMN name TEXT');
@@ -119,10 +126,20 @@ export class Person {
     }
   }
 
-  /** Records a sign-in identity of this person's, and the email address it proved, if any. */
-  async addIdentity(name: string, email: string | null, now: number): Promise<void> {
+  /**
+   * Records a sign-in identity of this person's, the email address it proved, if any, and, for an
+   * Instagram sign-in, the account's ID and its handle now, since a handle can change (ADR-0048).
+   */
+  async addIdentity(name: string, email: string | null, now: number, instagram?: InstagramAccount): Promise<void> {
     this.#sql.all('INSERT OR IGNORE INTO identities (name, added_at) VALUES (?, ?)', name, now);
     if (email) this.#sql.all('INSERT OR IGNORE INTO email (one, address) VALUES (1, ?)', email);
+    if (instagram) this.#sql.all('INSERT OR REPLACE INTO instagram (one, id, handle) VALUES (1, ?, ?)', instagram.id, instagram.handle);
+  }
+
+  /** The Instagram account this person last signed in with, if any. */
+  async instagram(): Promise<InstagramAccount | null> {
+    const row = this.#sql.all('SELECT id, handle FROM instagram')[0];
+    return row ? { id: String(row.id), handle: String(row.handle) } : null;
   }
 
   async identities(): Promise<string[]> {

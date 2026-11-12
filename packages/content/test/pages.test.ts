@@ -24,3 +24,12 @@ test('the one step a page asks for is its primary button', async () => {
   assert.match(await keyPage({ label: 'Luma', help: 'h', token: 't' }).text(), /<button type="submit" class="primary">Connect<\/button>/);
   assert.match(await termsPage({ url: 'https://example.com/terms', version: '1', token: 't' }).text(), /<button type="submit" class="primary">Accept<\/button>/);
 });
+
+test('a person signed in with Instagram who is not activated is shown their handle and how to be let in with it', async () => {
+  const page = await accountPage({ email: null, handle: 'cy.makes', join: 'https://cmokit.example/' }).text();
+  assert.match(page, /<h1>You're not activated yet<\/h1>/);
+  assert.match(page, /Signed in as <strong>@cy\.makes<\/strong>/);
+  assert.match(page, /comment your waitlist code on one of CMO Kit's Reels from @cy\.makes/);
+  const byEmail = await accountPage({ email: 'ada@example.com', join: null }).text();
+  assert.doesNotMatch(byEmail, /Reels/);
+});

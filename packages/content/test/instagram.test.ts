@@ -159,3 +159,21 @@ test('the Instagram client logs in with the configuration, trades the code on th
   });
   await assert.rejects(app.reelComments('portfolio', 'nobody'), { name: 'InstagramError' });
 });
+
+test('an activated person who proved their handle is let in by the Instagram account that signs in with it, which keeps their place by its ID', async () => {
+  const { customer, connectBrand, comments } = setup();
+  await customer.addUser('ada');
+  await connectBrand();
+  const cy = await customer.waitlistJoin('cy@example.com');
+  const di = await customer.waitlistJoin('di@example.com');
+  comments.push({ reel: 'r1', username: 'cy.makes', text: cy.code }, { reel: 'r1', username: 'di.draws', text: di.code });
+  await customer.instagramCount();
+  assert.equal(await customer.waitlistActivatedInstagram('ig-cy', 'cy.makes'), false, 'proved, but not activated yet');
+  await customer.waitlistActivate('cy@example.com');
+
+  assert.equal(await customer.waitlistActivatedInstagram('ig-cy', '@Cy.Makes'), true);
+  assert.equal(await customer.waitlistActivatedInstagram('ig-cy', 'cy.renamed'), true, 'a changed handle is found by the account ID');
+  assert.equal(await customer.waitlistActivatedInstagram('ig-other', 'cy.makes'), false, 'another account that takes the handle later is not let in');
+  assert.equal(await customer.waitlistActivatedInstagram('ig-di', 'di.draws'), false, 'Di proved her handle but nobody activated her');
+  assert.equal(await customer.waitlistActivatedInstagram('ig-x', 'nobody'), false);
+});

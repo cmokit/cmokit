@@ -179,6 +179,28 @@ code on one of your Reels. Each of your recent Reels their handle comments on mo
 Your own brand needs no App Review, since you have a role on the app. Before another brand connects,
 Meta verifies your business portfolio and grants Advanced Access through App Review.
 
+### Sign in with Instagram
+
+Creators sign in with their Instagram account, through the same Meta app (ADR-0048). A creator's
+account must be a business or creator account in a business portfolio, as your brand's is.
+
+1. Under **Use cases > Customize > API setup with Unified login**, choose **Create new
+   configuration** again, then **Create from template**. Under **Redirect URL**, register this
+   address and choose **Save**:
+
+   ```
+   https://auth.cmokit.ai/callback
+   ```
+
+2. Save its **Configuration ID** as the variable `INSTAGRAM_SIGN_IN_CONFIG_ID`, and deploy again.
+   The sign-in screen then leads with **Continue with Instagram**.
+3. Until App Review passes, add each creator as a tester under **App roles > Roles** before they sign in, since
+   only people with a role on the app can.
+
+Activate creators from your waitlist as before. A creator is let in when they sign in with the
+Instagram account whose handle they proved by commenting their code, and that account keeps their
+place even if they change their handle.
+
 ## 8. Deploy
 
 Every merge to `main` deploys: GitHub runs **deploy-hosted**, which deploys the issuer, then the

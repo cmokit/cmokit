@@ -34,6 +34,8 @@ export interface ClientFacts {
 
 export function signInPage(options: {
   client: ClientFacts;
+  /** Whether the client is this deployment's own account page, which needs no introduction. */
+  own?: boolean;
   handle: string;
   ways: { name: string; label: string }[];
   email: boolean;
@@ -44,16 +46,20 @@ export function signInPage(options: {
 }): Response {
   const { client, handle } = options;
   const who = client.clientDomain
-    ? `${escape(client.clientName)}, from <strong>${escape(client.clientDomain)}</strong>,`
-    : `${escape(client.clientName)} (this app named itself, so its name isn't verified)`;
+    ? `<strong>${escape(client.clientName)}</strong>, from ${escape(client.clientDomain)},`
+    : `<strong>${escape(client.clientName)}</strong> (this app named itself, so its name isn't verified)`;
+  const intro = options.own
+    ? '<p>Sign in to see your CMO Kit account.</p>'
+    : `<p>Sign in to connect ${who} to your CMO Kit account. Access goes to <strong>${escape(client.redirectHost)}</strong>.</p>`;
   // A required box: no way in goes on without it, though Cancel still does.
   const terms = options.terms ? `<label><input type="checkbox" name="terms" value="yes" required> I accept the <a href="${escape(options.terms.url)}" target="_blank" rel="noopener noreferrer">CMO Kit beta terms</a> (version ${escape(options.terms.version)}).</label>\n` : '';
-  const ways = options.ways.map((w) => `<button name="way" value="${escape(w.name)}">Continue with ${escape(w.label)}</button>`).join('\n');
+  // Instagram, creators' own way in, is the one primary button (ADR-0048).
+  const ways = options.ways.map((w) => `<button name="way" value="${escape(w.name)}"${w.name === 'instagram' ? ' class="primary"' : ''}>Continue with ${escape(w.label)}</button>`).join('\n');
   const email = options.email ? `<label for="address">Or get a code by email</label>
-<input id="address" name="address" type="email" autocomplete="email" placeholder="you@example.com">
-<button name="way" value="email" class="primary">Email me a code</button>` : '';
-  return page('Sign in to CMOkit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
-<p>${who} is asking to use CMOkit as you. Access goes to <strong>${escape(client.redirectHost)}</strong>.</p>
+<input id="address" name="address" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+<button name="way" value="email"${options.ways.some((w) => w.name === 'instagram') ? '' : ' class="primary"'}>Email me a code</button>` : '';
+  return page('Sign in to CMO Kit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
+${intro}
 ${client.redirectIsLoopback ? '<p><strong>This sends access to an app on your computer.</strong> Continue only if you just started connecting from it.</p>' : ''}
 <form method="post" action="/authorize">
 <input type="hidden" name="handle" value="${escape(handle)}">
@@ -61,7 +67,7 @@ ${terms}${ways}
 ${email}
 <button name="way" value="cancel" formnovalidate>Cancel</button>
 </form>
-<p class="note">${options.terms ? 'Signing in tells CMOkit who you are and that you accepted the beta terms, and nothing else.' : 'Signing in tells CMOkit who you are and nothing else.'} CMOkit keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
+<p class="note">CMO Kit keeps only who you are${options.terms ? ' and that you accepted the beta terms' : ''}. It keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
 }
 
 export function codePage(options: { address: string; state: string; problem?: string; headers: Headers }): Response {

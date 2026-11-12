@@ -242,6 +242,9 @@ Verification is required to get Advanced Access", which people without a role on
 also that "All newly created Consumer apps are automatically approved for Advanced Access for the
 email and public_profile permissions", without saying whether that approval needs verification.
 
+ADR-0048 adds Instagram, through a Unified Login configuration, for creators, and narrows this
+record's rule that sign-in grants nothing beyond identity for that way in alone.
+
 **Reversal cost.** Moderate. The content server only checks tokens, so another issuer replaces this
 one without changing it (ADR-0029); accounts and their sign-in identities would move.
 

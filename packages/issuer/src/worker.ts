@@ -7,15 +7,15 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOkit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), and `email` for activation without a checkout (CUS-03). Every variable and secret it reads is in
+// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), and `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { OAuthAuthorizationServer, authorizationErrorRedirect, type AuthRequest as LibraryRequest } from '@cloudflare/workers-oauth-provider';
 import { Identity as IdentityLogic, Person as PersonLogic } from './accounts.ts';
 import { fontResponse, type Fonts } from './look.ts';
-import { allowedRedirect, createSignIn, type Accounts, type Brand, type Grant, type IdentityRecords, type PersonRecords, type SignInOAuth } from './index.ts';
-import { github, google, meta, type Provider } from './providers.ts';
+import { allowedRedirect, createSignIn, type Accounts, type Brand, type Grant, type IdentityRecords, type InstagramAccount, type PersonRecords, type SignInOAuth } from './index.ts';
+import { github, google, instagram, meta, type Provider } from './providers.ts';
 import { sendgridCodes } from './sendgrid.ts';
 import type { Sql } from './sql.ts';
 
@@ -37,6 +37,13 @@ export interface IssuerEnv {
   GITHUB_CLIENT_SECRET?: string;
   META_APP_ID?: string;
   META_APP_SECRET?: string;
+  /**
+   * The content server's Meta app, and a Unified Login configuration of the sign-in's own, whose
+   * redirect is `<ISSUER_URL>/callback`; with all three, creators sign in with Instagram (ADR-0048).
+   */
+  INSTAGRAM_APP_ID?: string;
+  INSTAGRAM_APP_SECRET?: string;
+  INSTAGRAM_CONFIG_ID?: string;
   /** Where the content server serves the account page, as https://app.cmokit.ai (ADR-0041). A variable. */
   APP_URL?: string;
   /** Where the beta terms every person accepts at sign-in are published (ADR-0047). A variable. */
@@ -69,11 +76,12 @@ export interface IssuerEntrypoint {
     addCustomer(person: string, customer: string, name?: string): Promise<void>;
     nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
     email(person: string): Promise<string | null>;
+    instagram(person: string): Promise<InstagramAccount | null>;
   };
 }
 
 const IDENTITY_CALLS = ['person', 'claim', 'allow', 'issueCode', 'checkCode'] as const;
-const PERSON_CALLS = ['addIdentity', 'identities', 'email', 'customers', 'brands', 'addCustomer', 'nameCustomer'] as const;
+const PERSON_CALLS = ['addIdentity', 'identities', 'email', 'instagram', 'customers', 'brands', 'addCustomer', 'nameCustomer'] as const;
 
 /** A Durable Object class that runs one logic class's calls, each a POST of its arguments as JSON. */
 function objectClass<L>(Logic: new (sql: Sql) => L, calls: readonly string[]): ObjectClass {
@@ -105,6 +113,8 @@ function stub<T>(namespace: DurableObjectNamespace, name: string, calls: readonl
 
 function providersFor(env: IssuerEnv): Provider[] {
   const providers: Provider[] = [];
+  const ig = { id: env.INSTAGRAM_APP_ID?.trim(), secret: env.INSTAGRAM_APP_SECRET?.trim(), config: env.INSTAGRAM_CONFIG_ID?.trim() };
+  if (ig.id && ig.secret && ig.config) providers.push(instagram({ id: ig.id, secret: ig.secret, config: ig.config }));
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) providers.push(google({ id: env.GOOGLE_CLIENT_ID, secret: env.GOOGLE_CLIENT_SECRET }));
   if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) providers.push(github({ id: env.GITHUB_CLIENT_ID, secret: env.GITHUB_CLIENT_SECRET }));
   if (env.META_APP_ID && env.META_APP_SECRET) providers.push(meta({ id: env.META_APP_ID, secret: env.META_APP_SECRET }));
@@ -215,6 +225,11 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
     /** The email address a person proved when signing in, for activation without a checkout (CUS-03). */
     email(person: string): Promise<string | null> {
       return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).email();
+    }
+
+    /** The Instagram account a person last signed in with, for activation by a proven handle (ADR-0048). */
+    instagram(person: string): Promise<InstagramAccount | null> {
+      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).instagram();
     }
   }
 

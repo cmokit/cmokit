@@ -224,6 +224,69 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
   assert.deepEqual(theirs.dee, [await activatedSlug('dee')]);
 });
 
+test('a person who signs in with Instagram becomes CMOkit\'s customer once the handle they proved on CMOkit\'s waitlist is activated', async () => {
+  const instagram: Record<string, { id: string; handle: string }> = { cy: { id: 'ig-cy', handle: 'cy.makes' }, eve: { id: 'ig-eve', handle: 'cy.makes' } };
+  const { worker, Customer } = createContentWorker({
+    tokens: () => ({ check: async (token) => (token in instagram ? { person: token, audience: 'aud' } : undefined) }),
+  });
+  const objects = new Map<string, InstanceType<typeof Customer>>();
+  const dbs = new Map<string, DatabaseSync>();
+  const theirs: Record<string, string[]> = {};
+  const env = {
+    ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY,
+    WAITLIST_CUSTOMER: 'cmokit-own',
+    ISSUER: {
+      validateToken: async () => null,
+      customers: async (person: string) => theirs[person] ?? [],
+      brands: async (person: string) => (theirs[person] ?? []).map((slug) => ({ slug, name: null })),
+      addCustomer: async (person: string, customer: string) => {
+        theirs[person] = [...new Set([...(theirs[person] ?? []), customer])];
+      },
+      nameCustomer: async () => true,
+      email: async () => null,
+      instagram: async (person: string) => instagram[person] ?? null,
+    },
+    CUSTOMERS: {
+      idFromName: (name: string) => name,
+      get: (id: unknown) => ({
+        fetch: (input: string, init?: RequestInit) => {
+          let object = objects.get(id as string);
+          if (!object) {
+            const db = new DatabaseSync(':memory:');
+            dbs.set(id as string, db);
+            const ctx: DurableObjectState = { storage: { sql: { exec: (q, ...p) => ({ toArray: () => db.prepare(q).all(...(p as never[])) as never }) } } };
+            object = new Customer(ctx, env);
+            objects.set(id as string, object);
+          }
+          return object.fetch(new Request(input, init));
+        },
+      }),
+    },
+  } satisfies ContentEnv;
+  const tools = async (token: string) => {
+    const response = await worker.fetch(new Request('https://content.example/mcp', {
+      method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    }), env);
+    return ((await response.json()) as { result: { tools: { name: string }[] } }).result.tools.map((t) => t.name);
+  };
+  const own = (call: string, ...args: unknown[]) => env.CUSTOMERS.get('cmokit-own').fetch(`https://customer/${call}`, { method: 'POST', body: JSON.stringify(args) });
+
+  // Cy joined by email; until she proves @cy.makes and is activated, signing in with it gets her nowhere.
+  await own('waitlistJoin', 'cy@example.com');
+  assert.deepEqual(await tools('cy'), ['account_status']);
+  // Counting her comment ties the handle to her, as instagramCount writes it (ADR-0045).
+  dbs.get('cmokit-own')!.prepare('UPDATE waitlist SET instagram = ?, instagram_id = ? WHERE email = ?').run('cy.makes', 'cy.makes', 'cy@example.com');
+  assert.deepEqual(await tools('cy'), ['account_status'], 'proved, but not activated');
+  await own('waitlistActivate', 'cy@example.com');
+
+  assert.ok((await tools('cy')).length > 1);
+  assert.deepEqual(theirs.cy, [await activatedSlug('cy')]);
+  // Eve's account now has the handle Cy proved, but Cy's account keeps her place.
+  assert.deepEqual(await tools('eve'), ['account_status']);
+  assert.equal(theirs.eve, undefined);
+});
+
 test('a new brand\'s slug comes from its name, with a random end, and is always a valid slug', () => {
   assert.match(brandSlug('CFO Kit'), /^cfo-kit-[0-9a-f]{6}$/);
   assert.match(brandSlug('Café & Co.'), /^cafe-co-[0-9a-f]{6}$/);

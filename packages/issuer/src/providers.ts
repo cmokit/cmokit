@@ -1,9 +1,10 @@
-// The three providers a person can sign in with besides an email code (ADR-0018), each asking for
-// identity alone: Google by OpenID Connect (`openid`, `email`, `profile`), GitHub by OAuth
-// (`read:user`, `user:email`) and Meta by Facebook Login (`public_profile`, `email`). Each is offered
-// only when its client is configured. An identity is the provider and its stable subject id; an email
-// address comes with it only when the provider says it is verified, and it never joins one account
-// to another.
+// The providers a person can sign in with besides an email code (ADR-0018). Google by OpenID Connect
+// (`openid`, `email`, `profile`), GitHub by OAuth (`read:user`, `user:email`) and Meta by Facebook
+// Login (`public_profile`, `email`) each ask for identity alone. Instagram, the creators' own way in,
+// goes through the Meta app's Unified Login configuration, which decides what it asks for; the issuer
+// reads the Instagram account's ID and handle and keeps no token (ADR-0048). Each is offered only when
+// its client is configured. An identity is the provider and its stable subject id; an email address
+// comes with it only when the provider says it is verified, and it never joins one account to another.
 
 export interface ProviderClient {
   id: string;
@@ -15,10 +16,12 @@ export interface Signed {
   subject: string;
   /** An address the provider says is verified, or null. */
   email: string | null;
+  /** The Instagram handle, without its @ and in lower case, for an Instagram sign-in (ADR-0048). */
+  handle?: string;
 }
 
 export interface Provider {
-  name: 'google' | 'github' | 'meta';
+  name: 'google' | 'github' | 'meta' | 'instagram';
   label: string;
   scopes: string[];
   /** Where to send the browser, with the state and, where the provider takes one, a PKCE challenge. */
@@ -100,6 +103,38 @@ export function meta(client: ProviderClient, send: Fetch = fetch): Provider {
       }), 'Facebook user');
       if (typeof user.id !== 'string' || !user.id) throw new Error('Facebook sent no user id');
       return { subject: user.id, email: null };
+    },
+  };
+}
+
+/** The Graph API version CMOkit calls, as the content server's Instagram connection does (ADR-0045). */
+const GRAPH = 'https://graph.facebook.com/v27.0';
+
+/**
+ * Instagram through the Meta app's Facebook Login for Business configuration made under API setup
+ * with Unified login (ADR-0048): the configuration, not a scope list, says what Meta asks for. The
+ * person's Instagram account's ID names the identity, and its handle comes with it; the token is used
+ * for that one read and kept nowhere.
+ */
+export function instagram(client: ProviderClient & { config: string }, send: Fetch = fetch): Provider {
+  return {
+    name: 'instagram', label: 'Instagram', scopes: [],
+    authorizeUrl: ({ state, redirectUri }) => `https://www.facebook.com/dialog/oauth?${new URLSearchParams({
+      client_id: client.id, config_id: client.config, redirect_uri: redirectUri, response_type: 'code', state,
+    })}`,
+    async identify({ code, redirectUri }) {
+      const token = await json(await send(`${GRAPH}/oauth/access_token?${new URLSearchParams({
+        client_id: client.id, client_secret: client.secret, redirect_uri: redirectUri, code,
+      })}`), 'Instagram token');
+      if (typeof token.access_token !== 'string') throw new Error('Instagram sent no token');
+      const accounts = await json(await send(`${GRAPH}/me/assigned_instagram_accounts?fields=id,username`, {
+        headers: { authorization: `Bearer ${token.access_token}` },
+      }), 'Instagram accounts');
+      const account = ((accounts.data ?? []) as { id?: unknown; username?: unknown }[])[0];
+      if (!account || (typeof account.id !== 'string' && typeof account.id !== 'number') || typeof account.username !== 'string' || !account.username) {
+        throw new Error('No Instagram account was shared');
+      }
+      return { subject: String(account.id), email: null, handle: account.username.replace(/^@/, '').toLowerCase() };
     },
   };
 }

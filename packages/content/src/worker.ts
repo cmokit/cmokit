@@ -11,7 +11,8 @@
 // reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
 // issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
 // binding. A person whose proven email address is in ACTIVATED_EMAILS, or whom a user of the brand
-// WAITLIST_CUSTOMER names, CMOkit's own, activated on that brand's waitlist, becomes CMOkit's customer
+// WAITLIST_CUSTOMER names, CMOkit's own, activated on that brand's waitlist, by that address or by the
+// Instagram handle they proved and then signed in with (ADR-0048), becomes CMOkit's customer
 // at their first call, with no checkout: the server makes their first brand, with them as its first
 // user (CUS-03, ADR-0043). On the account page they add more brands (ADR-0042), and each brand runs a
 // waitlist of its own that any page on its sites joins (ADR-0043); the JOINS rate limit, when bound,
@@ -81,6 +82,8 @@ export interface IssuerBinding {
   nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
   /** The email address a person proved when signing in, if any. */
   email(person: string): Promise<string | null>;
+  /** The Instagram account a person last signed in with, if any (ADR-0048). */
+  instagram?(person: string): Promise<{ id: string; handle: string } | null>;
 }
 
 // The lifecycle's own routes, as @cmokit/cli names them; the content server does not depend on it.
@@ -168,7 +171,7 @@ export interface CustomerClass {
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
   'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsRecord', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
   'claudeSeen', 'claudeConnected',
-  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated',
+  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated', 'waitlistActivatedInstagram',
   'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount'] as const;
 type Call = (typeof CALLS)[number];
 
@@ -191,6 +194,7 @@ export function accountFor(env: ContentEnv): AccountOptions | undefined {
       return { access_token: body.access_token, ...(typeof body.expires_in === 'number' ? { expires_in: body.expires_in } : {}) };
     },
     email: (person) => issuer.email(person),
+    ...(issuer.instagram ? { handle: async (person: string) => (await issuer.instagram!(person))?.handle ?? null } : {}),
   };
 }
 
@@ -219,7 +223,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
     }
   }
 
-  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser' | 'waitlistActivated'>;
+  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser' | 'waitlistActivated' | 'waitlistActivatedInstagram'>;
   const customerFor = (env: ContentEnv, slug: string): CustomerCalls & CustomerPages & CustomerAdmin => {
     const stub = env.CUSTOMERS.get(env.CUSTOMERS.idFromName(slug));
     const call = async (name: Call, ...args: unknown[]) => {
@@ -250,7 +254,8 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
 
   /**
    * Makes a customer for a person whose proven address is activated, in ACTIVATED_EMAILS or on the
-   * waitlist of the brand WAITLIST_CUSTOMER names, with them as its first user.
+   * waitlist of the brand WAITLIST_CUSTOMER names, or who signed in with the Instagram account whose
+   * handle a person activated on that waitlist proved (ADR-0048), with them as its first user.
    */
   const activation = (env: ContentEnv) => {
     const issuer = env.ISSUER;
@@ -259,8 +264,11 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
     if (!issuer || (activated.size === 0 && !owner)) return undefined;
     return async (person: string): Promise<string | undefined> => {
       const email = await issuer.email(person);
-      if (!email) return undefined;
-      if (!activated.has(email.toLowerCase()) && !(owner && await customerFor(env, owner).waitlistActivated(email))) return undefined;
+      const byEmail = Boolean(email) && (activated.has(email!.toLowerCase()) || Boolean(owner && await customerFor(env, owner).waitlistActivated(email!)));
+      if (!byEmail) {
+        const instagram = owner && issuer.instagram ? await issuer.instagram(person) : null;
+        if (!instagram || !(await customerFor(env, owner!).waitlistActivatedInstagram(instagram.id, instagram.handle))) return undefined;
+      }
       const slug = await activatedSlug(person);
       await customerFor(env, slug).addUser(person);
       await issuer.addCustomer(person, slug);

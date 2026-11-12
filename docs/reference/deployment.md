@@ -84,6 +84,8 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | A Google OAuth client. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Variable, secret | For GitHub | A GitHub OAuth app. |
 | `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | A Meta app with Facebook Login. |
+| `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Instagram | The content server's of the same names. |
+| `INSTAGRAM_CONFIG_ID` | Variable | For Instagram | The ID of a Facebook Login for Business configuration of that app's, made for sign-in, whose redirect URL is `<ISSUER_URL>/callback`. With it and the two above, the sign-in screen leads with Continue with Instagram (ADR-0048). Until App Review passes, only people with a role on the Meta app can sign in this way. |
 | `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | The content server's of the same names. When both are set, the sign-in screen has a box to accept that version of the beta terms, which must be ticked to sign in, and the grant carries the version accepted (ADR-0047). |
 
 ## The deploy
@@ -118,7 +120,8 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `TERMS_URL`, `TERMS_VERSION` | Variables | For the closed beta | Deployed as the issuer's and the content server's variables of the same names. |
 | `WAITLIST_CUSTOMER` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
-| `INSTAGRAM_APP_ID`, `INSTAGRAM_CONFIG_ID`, `INSTAGRAM_APP_SECRET` | Variables, secret | For Connect Instagram | Deployed as the content server's of the same names. |
+| `INSTAGRAM_APP_ID`, `INSTAGRAM_CONFIG_ID`, `INSTAGRAM_APP_SECRET` | Variables, secret | For Connect Instagram | Deployed as the content server's of the same names; the app ID and secret also as the issuer's. |
+| `INSTAGRAM_SIGN_IN_CONFIG_ID` | Variable | For Sign in with Instagram | Deployed as the issuer's `INSTAGRAM_CONFIG_ID`. |
 | `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |

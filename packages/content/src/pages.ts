@@ -62,6 +62,8 @@ export function subscriptionPage(state: string): Response {
 /** What the account page shows. Absent `customer` means the person is no customer's user yet. */
 export interface AccountView {
   email: string | null;
+  /** The Instagram handle they signed in with, for a person who proved no address (ADR-0048). */
+  handle?: string;
   /** The line shown after a change made on the page. */
   notice?: string;
   /**
@@ -124,7 +126,8 @@ const TABS: { tab: AccountTab; path: string; label: string }[] = [
  */
 export function accountPage(view: AccountView, tab: AccountTab = 'home'): Response {
   const notice = view.notice ? `<p role="status">${escape(view.notice)}</p>` : '';
-  const signedIn = `<p>Signed in${view.email ? ` as <strong>${escape(view.email)}</strong>` : ''}.</p>`;
+  const as = view.email ?? (view.handle ? `@${view.handle}` : null);
+  const signedIn = `<p>Signed in${as ? ` as <strong>${escape(as)}</strong>` : ''}.</p>`;
   const signOut = '<form method="post" action="/signout"><button type="submit">Sign out</button></form>';
   const c = view.customer;
   if (!c && view.join !== undefined) {
@@ -132,7 +135,7 @@ export function accountPage(view: AccountView, tab: AccountTab = 'home'): Respon
     return html(`<h1>You're not activated yet</h1>${notice}
 <p>CMO Kit is in a closed beta, and you can use it once you're activated from its waitlist.</p>
 ${join}${signedIn}
-<p>If you joined with another account, sign out and sign in with that one.</p>${signOut}`, 200);
+${view.handle ? `<p>To use CMO Kit with Instagram, comment your waitlist code on one of CMO Kit's Reels from @${escape(view.handle)}. Once you're activated, signing in with Instagram lets you in.</p>\n` : ''}<p>If you joined with another account, sign out and sign in with that one.</p>${signOut}`, 200);
   }
   if (!c) {
     return html(`<h1>Your CMOkit account</h1>${notice}${signedIn}

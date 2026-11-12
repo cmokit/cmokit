@@ -128,7 +128,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS claude (person TEXT PRIMARY KEY, first_at INTEGER NOT NULL)',
 ];
 /** Columns added to the waitlist after it was first made; each is added to an older brand's records. */
-const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER'];
+const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER', 'instagram_user TEXT'];
 const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist', 'instagram_starts', 'claude'];
 /** The most site addresses a brand's waitlist accepts joins from. */
 const MAX_SITES = 10;
@@ -663,6 +663,19 @@ export class Customer {
     if (this.#sql.all('SELECT 1 FROM waitlist WHERE email = ?', key).length === 0) return { found: false };
     this.#sql.all('UPDATE waitlist SET activated_at = ? WHERE email = ? AND activated_at IS NULL', this.#now(), key);
     return { found: true };
+  }
+
+  /**
+   * Whether a user of the brand activated a person on its waitlist who proved this Instagram handle,
+   * for the Instagram account with this ID (ADR-0048). The first account to sign in with a proved
+   * handle keeps that person's place, by its ID, so a handle given up later and taken by someone else
+   * activates nobody new, and the person is still found after changing their handle.
+   */
+  async waitlistActivatedInstagram(id: string, handle: string): Promise<boolean> {
+    if (this.#sql.all('SELECT 1 FROM waitlist WHERE instagram_user = ? AND activated_at IS NOT NULL', id).length > 0) return true;
+    return this.#sql.all(`UPDATE waitlist SET instagram_user = ? WHERE rowid = (SELECT rowid FROM waitlist WHERE instagram = ?
+        AND instagram_id IS NOT NULL AND instagram_user IS NULL AND activated_at IS NOT NULL LIMIT 1) RETURNING 1`,
+      id, handle.replace(/^@/, '').toLowerCase()).length > 0;
   }
 
   /** Whether a user of the brand activated this address on its waitlist. */
