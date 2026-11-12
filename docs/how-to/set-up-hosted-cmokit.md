@@ -184,17 +184,20 @@ Meta verifies your business portfolio and grants Advanced Access through App Rev
 Creators sign in with their Instagram account, through the same Meta app (ADR-0048). A creator's
 account must be a business or creator account in a business portfolio, as your brand's is.
 
-1. Under **Use cases > Customize > API setup with Unified login**, choose **Create new
-   configuration** again, then **Create from template**. Under **Redirect URL**, register this
-   address and choose **Save**:
+1. Under **Facebook Login for Business > Configurations**, choose **Create configuration**. Name it
+   (for example "Sign in to CMO Kit"), keep the **General** login variation, choose a **System-user
+   access token** that expires in 60 days, require **Instagram accounts** as the asset, and choose
+   only the permission `instagram_basic`. A configuration has no redirect address of its own.
+2. Under **Facebook Login for Business > Settings**, add this to **Valid OAuth Redirect URIs**, beside
+   the account page's, and choose **Save Changes**, since Meta allows redirects for the whole app:
 
    ```
    https://auth.cmokit.ai/callback
    ```
 
-2. Save its **Configuration ID** as the variable `INSTAGRAM_SIGN_IN_CONFIG_ID`, and deploy again.
+3. Save the configuration's **Configuration ID** as the variable `INSTAGRAM_SIGN_IN_CONFIG_ID`, and deploy again.
    The sign-in screen then leads with **Continue with Instagram**.
-3. Until App Review passes, add each creator as a tester under **App roles > Roles** before they sign in, since
+4. Until App Review passes, add each creator as a tester under **App roles > Roles** before they sign in, since
    only people with a role on the app can.
 
 Activate creators from your waitlist as before. A creator is let in when they sign in with the

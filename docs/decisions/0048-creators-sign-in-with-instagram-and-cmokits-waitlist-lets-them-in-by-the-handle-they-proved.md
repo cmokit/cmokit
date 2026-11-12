@@ -22,7 +22,8 @@ proves no email address is matched to a person activated on the waitlist.
 
 Meta does not offer Instagram Login to new apps; CMOkit's app has API setup with Unified login, built
 on Facebook Login for Business (ADR-0045). Its login is shaped by a configuration made in the app,
-not by a list of scopes, and comes back to the redirect URL the configuration names.
+not by a list of scopes, and comes back to a redirect address the app allows, which Meta sets for
+the whole app rather than for each configuration.
 
 ## Decision Drivers
 
@@ -48,8 +49,8 @@ activation by the proved handle, kept by the Instagram account's ID", because it
 that signs a creator in with the account the waitlist already proved.
 
 > The issuer offers Instagram when it has the Meta app's ID and secret and the ID of a Facebook Login
-> for Business configuration made for sign-in, whose redirect URL is the issuer's own callback; it is
-> a configuration apart from the brand connection's, whose redirect is the account page's. Instagram
+> for Business configuration made for sign-in, apart from the brand connection's, and the app allows
+> the issuer's own callback as a redirect beside the account page's. Instagram
 > is the sign-in screen's first and primary button, and the other ways in follow as plain buttons.
 > The issuer trades the code for a token, reads the Instagram account the person shared, by its ID
 > and handle, and keeps the token nowhere. The identity is named by the account's ID, so a person who
