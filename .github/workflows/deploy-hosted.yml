@@ -52,7 +52,7 @@ jobs:
         run: |
           secrets="$RUNNER_TEMP/issuer-secrets.json"
           node -e '
-            const names = ["SENDGRID_API_KEY", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_SECRET", "META_APP_SECRET"];
+            const names = ["SENDGRID_API_KEY", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_SECRET", "META_APP_SECRET", "INSTAGRAM_APP_SECRET"];
             const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
             require("fs").writeFileSync(process.argv[1], JSON.stringify(set));
           ' "$secrets"
@@ -60,6 +60,9 @@ jobs:
           for name in GOOGLE_CLIENT_ID GITHUB_CLIENT_ID META_APP_ID; do
             [ -n "${!name}" ] && vars+=(--var "$name:${!name}")
           done
+          # Creators sign in with Instagram through the content server's Meta app, with a configuration of
+          # the sign-in's own, whose redirect is the issuer's callback (ADR-0048).
+          { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && [ -n "$INSTAGRAM_CONFIG_ID" ]; } && vars+=(--var "INSTAGRAM_APP_ID:$INSTAGRAM_APP_ID" --var "INSTAGRAM_CONFIG_ID:$INSTAGRAM_CONFIG_ID")
           # The sign-in screen asks for the beta terms (ADR-0047), as the content server does.
           [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] && vars+=(--var "TERMS_URL:$TERMS_URL" --var "TERMS_VERSION:$TERMS_VERSION")
           npx wrangler deploy --config hosted/issuer/wrangler.jsonc --secrets-file "$secrets" "${vars[@]}"
@@ -68,6 +71,7 @@ jobs:
           { [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; } || echo "::notice::Sign-in with Google is off; set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."
           { [ -n "$GITHUB_CLIENT_ID" ] && [ -n "$GITHUB_CLIENT_SECRET" ]; } || echo "::notice::Sign-in with GitHub is off; set GH_CLIENT_ID and GH_CLIENT_SECRET."
           { [ -n "$META_APP_ID" ] && [ -n "$META_APP_SECRET" ]; } || echo "::notice::Sign-in with Facebook is off; set META_APP_ID and META_APP_SECRET."
+          { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && [ -n "$INSTAGRAM_CONFIG_ID" ]; } || echo "::notice::Sign-in with Instagram is off; set INSTAGRAM_APP_ID, INSTAGRAM_SIGN_IN_CONFIG_ID and INSTAGRAM_APP_SECRET."
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
@@ -77,6 +81,10 @@ jobs:
           GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
           META_APP_ID: ${{ vars.META_APP_ID }}
           META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+          INSTAGRAM_APP_ID: ${{ vars.INSTAGRAM_APP_ID }}
+          # The sign-in's own Unified Login configuration, deployed as the issuer's INSTAGRAM_CONFIG_ID.
+          INSTAGRAM_CONFIG_ID: ${{ vars.INSTAGRAM_SIGN_IN_CONFIG_ID }}
+          INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
           TERMS_URL: ${{ vars.TERMS_URL }}
           TERMS_VERSION: ${{ vars.TERMS_VERSION }}
 

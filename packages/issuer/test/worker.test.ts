@@ -463,7 +463,7 @@ test('without terms, the sign-in screen has no box and the grant names no versio
   const { body: client } = await register(worker, [CLAUDE]);
   const signIn = await (await browser(worker)(await authorizeUrl(client.client_id!, CLAUDE, 'v'.repeat(64)))).text();
   assert.doesNotMatch(signIn, /name="terms"/);
-  assert.match(signIn, /who you are and nothing else/);
+  assert.match(signIn, /keeps only who you are\. It keeps no password/);
 });
 
 test('a person with two brands who ticked the terms keeps the version through choosing a brand', async () => {
@@ -480,5 +480,66 @@ test('a person with two brands who ticked the terms keeps the version through ch
     assert.deepEqual((await worker.validateToken(AUDIENCE, token))!.props, { person, customer: 'globex', terms: '2026-11-11' });
   } finally {
     net.restore();
+  }
+});
+
+const META_APP = { INSTAGRAM_APP_ID: 'ig-app', INSTAGRAM_APP_SECRET: 'ig-secret', INSTAGRAM_CONFIG_ID: 'ig-config' };
+
+/** Signs in with Instagram from Claude's first request, with Meta answering for the given account. */
+async function instagramSignIn(worker: any, account: { id: string; username: string }) {
+  const net = outside({
+    'https://graph.facebook.com/v27.0/oauth/access_token': { access_token: 'ig-access' },
+    'https://graph.facebook.com/v27.0/me/assigned_instagram_accounts': { data: [account] },
+  });
+  try {
+    const verifier = 'v'.repeat(64);
+    const { body: client } = await register(worker, [CLAUDE]);
+    const go = browser(worker);
+    const signIn = await (await go(await authorizeUrl(client.client_id!, CLAUDE, verifier))).text();
+    const away = await go('/authorize', { form: { handle: hidden(signIn, 'handle'), way: 'instagram' } });
+    const location = new URL(away.headers.get('location')!);
+    const back = await go(`/callback?${new URLSearchParams({ state: location.searchParams.get('state')!, code: 'ig-code' })}`);
+    assert.equal(back.status, 302);
+    const token = await tokenFor(worker, back.headers.get('location')!, client.client_id!, verifier);
+    return { signIn, location, token, calls: net.calls };
+  } finally {
+    net.restore();
+  }
+}
+
+test('Instagram leads the sign-in screen, goes through the Unified Login configuration, and names the person by their Instagram account', async () => {
+  const { worker } = setup({ ...META_APP, GITHUB_CLIENT_ID: 'h-id', GITHUB_CLIENT_SECRET: 'h-secret' });
+  const first = await instagramSignIn(worker, { id: '17841400000000001', username: 'Ada.Makes' });
+  assert.ok(first.signIn.indexOf('value="instagram" class="primary"') < first.signIn.indexOf('value="github"'), 'Instagram is the first, primary button');
+  assert.match(first.signIn, /<button name="way" value="github">Continue with GitHub<\/button>/);
+  assert.equal(first.location.origin + first.location.pathname, 'https://www.facebook.com/dialog/oauth');
+  assert.equal(first.location.searchParams.get('config_id'), 'ig-config');
+  assert.equal(first.location.searchParams.get('client_id'), 'ig-app');
+  assert.equal(first.location.searchParams.get('redirect_uri'), `${ISSUER}/callback`);
+  assert.equal(first.location.searchParams.get('scope'), null, 'the configuration, not a scope list, says what Meta asks for');
+  const exchange = new URL(first.calls.find((c) => c.url.startsWith('https://graph.facebook.com/v27.0/oauth/access_token'))!.url);
+  assert.equal(exchange.searchParams.get('code'), 'ig-code');
+
+  const { props } = (await worker.validateToken(AUDIENCE, first.token))!;
+  assert.deepEqual(await worker.instagram(props.person), { id: '17841400000000001', handle: 'ada.makes' });
+  assert.ok(!(await worker.email(props.person)), "Instagram proves no email address");
+
+  // A changed handle is the same person, found by the account's ID, with the handle they have now.
+  const again = await instagramSignIn(worker, { id: '17841400000000001', username: 'ada_creates' });
+  const later = (await worker.validateToken(AUDIENCE, again.token))!.props;
+  assert.equal(later.person, props.person);
+  assert.deepEqual(await worker.instagram(props.person), { id: '17841400000000001', handle: 'ada_creates' });
+});
+
+test("Google is not offered in Instagram's or Facebook's in-app browser, where it refuses to sign anyone in", async () => {
+  const { worker } = setup({ ...META_APP, GOOGLE_CLIENT_ID: 'g-id', GOOGLE_CLIENT_SECRET: 'g-secret' });
+  const { body: client } = await register(worker, [CLAUDE]);
+  const url = await authorizeUrl(client.client_id!, CLAUDE, 'v'.repeat(64));
+  const safari = await (await browser(worker)(url)).text();
+  assert.match(safari, /Continue with Google/);
+  for (const agent of ['Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Mobile/15E148 Instagram 312.0.0.0', 'Mozilla/5.0 (iPhone) Mobile/15E148 [FBAN/FBIOS;FBAV/450.0]']) {
+    const inApp = await (await browser(worker)(url, { headers: { 'user-agent': agent } })).text();
+    assert.doesNotMatch(inApp, /Continue with Google/);
+    assert.match(inApp, /Continue with Instagram/);
   }
 });

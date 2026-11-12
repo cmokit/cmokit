@@ -1,5 +1,5 @@
 // CMOkit's issuer (ADR-0018): the sign-in a person's Claude sends them to when it connects to the
-// content server. It signs a person in with an email code, Google, GitHub or Meta, keeps no password,
+// content server. It signs a person in with Instagram, an email code, Google, GitHub or Meta, keeps no password,
 // and finishes the authorization with a grant that names the person and the customer the connection
 // serves, chosen here: the content plugin declares one hosted address, and signing in routes the
 // person to their customer's records (ADR-0029). A person who is no customer's user yet is still
@@ -12,10 +12,10 @@
 
 import { choosePage, codePage, problemPage, signInPage, type ClientFacts } from './pages.ts';
 import type { Provider } from './providers.ts';
-import { SENDS_PER_NETWORK, type Brand, type CodeCheck } from './accounts.ts';
+import { SENDS_PER_NETWORK, type Brand, type CodeCheck, type InstagramAccount } from './accounts.ts';
 
-export { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS, SENDS_PER_NETWORK, type Brand, type CodeCheck } from './accounts.ts';
-export { github, google, meta, type Provider, type ProviderClient, type Signed } from './providers.ts';
+export { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS, SENDS_PER_NETWORK, type Brand, type CodeCheck, type InstagramAccount } from './accounts.ts';
+export { github, google, instagram, meta, type Provider, type ProviderClient, type Signed } from './providers.ts';
 export type { Row, Sql } from './sql.ts';
 
 /** The authorization request as the OAuth library parsed it; this handler reads only these fields. */
@@ -69,8 +69,9 @@ export interface IdentityRecords {
 }
 
 export interface PersonRecords {
-  addIdentity(name: string, email: string | null, now: number): Promise<void>;
+  addIdentity(name: string, email: string | null, now: number, instagram?: InstagramAccount): Promise<void>;
   email(): Promise<string | null>;
+  instagram(): Promise<InstagramAccount | null>;
   customers(): Promise<string[]>;
   brands(): Promise<Brand[]>;
   addCustomer(slug: string, now: number, name?: string): Promise<void>;
@@ -126,9 +127,17 @@ const ADDRESS = /^[^\s@<>()",;:\\[\]]+@[^\s@<>()",;:\\[\]]+\.[^\s@<>()",;:\\[\]]
 
 /** Each step of a sign-in carries the version of the terms the person ticked, if any were asked for. */
 type Upstream = { terms?: string } & (
-  | { way: 'google' | 'github' | 'meta'; verifier: string }
+  | { way: 'google' | 'github' | 'meta' | 'instagram'; verifier: string }
   | { way: 'email'; address: string }
   | { way: 'choose'; person: string; customers: string[] });
+
+/**
+ * Whether a request comes from Instagram's or Facebook's in-app browser, where Google refuses to
+ * sign anyone in, so its button is not shown there.
+ */
+export function inAppBrowser(request: Request): boolean {
+  return /\b(Instagram|FBAN|FBAV|FB_IAB)\b/.test(request.headers.get('user-agent') ?? '');
+}
 
 function base64url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -159,12 +168,16 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
   const { oauth, accounts } = options;
   const now = options.now ?? Date.now;
   const callback = `${options.issuer.replace(/\/$/, '')}/callback`;
-  const ways = options.providers.map((p) => ({ name: p.name, label: p.label }));
+  // Instagram leads, since it is how creators sign in (ADR-0048); the others follow in their order.
+  const providers = [...options.providers].sort((a, b) => Number(b.name === 'instagram') - Number(a.name === 'instagram'));
 
-  async function signIn(request: R, headers: Headers, problem?: string): Promise<Response> {
+  /** The sign-in screen; `from` is the browser's own request, which says whether Google can work there. */
+  async function signIn(from: Request, request: R, headers: Headers, problem?: string): Promise<Response> {
     const client = await oauth.describeConsent(request);
     const consent = await oauth.beginConsent(request);
-    return signInPage({ client, handle: consent.handle, ways, email: Boolean(options.mail), terms: options.terms, problem, headers: merge(headers, consent.headers) });
+    const ways = providers.filter((p) => !(p.name === 'google' && inAppBrowser(from))).map((p) => ({ name: p.name, label: p.label }));
+    const own = (options.redirects ?? []).includes(request.redirectUri);
+    return signInPage({ client, own, handle: consent.handle, ways, email: Boolean(options.mail), terms: options.terms, problem, headers: merge(headers, consent.headers) });
   }
 
   async function start(request: Request): Promise<Response> {
@@ -173,7 +186,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     if (!client || !client.redirectUris.every((uri) => allowedRedirect(uri, options.redirects))) {
       return problemPage('This app sends sign-ins somewhere CMOkit does not allow, so it cannot connect.');
     }
-    return signIn(parsed, new Headers());
+    return signIn(request, parsed, new Headers());
   }
 
   async function chooseWay(request: Request): Promise<Response> {
@@ -185,7 +198,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
 
     // While terms are asked for, no way in goes on until the box is ticked (ADR-0047).
     const { terms } = options;
-    if (terms && form.get('terms') !== 'yes') return signIn(approved.request, approved.headers, 'Tick the box to accept the beta terms, then sign in.');
+    if (terms && form.get('terms') !== 'yes') return signIn(request, approved.request, approved.headers, 'Tick the box to accept the beta terms, then sign in.');
     const accepted = terms ? { terms: terms.version } : {};
 
     const provider = options.providers.find((p) => p.name === way);
@@ -197,17 +210,17 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
 
     if (way === 'email' && options.mail) {
       const address = String(form.get('address') ?? '').trim().toLowerCase();
-      if (!ADDRESS.test(address) || address.length > 254) return signIn(approved.request, approved.headers, 'That email address does not look right.');
+      if (!ADDRESS.test(address) || address.length > 254) return signIn(request, approved.request, approved.headers, 'That email address does not look right.');
       const at = now();
       const allowed = await accounts.identity(`network:${options.network(request)}`).allow(SENDS_PER_NETWORK, at);
       const code = allowed ? await accounts.identity(`email:${address}`).issueCode(at) : undefined;
-      if (!code) return signIn(approved.request, approved.headers, 'Too many codes were sent. Try again in an hour, or use another way in.');
+      if (!code) return signIn(request, approved.request, approved.headers, 'Too many codes were sent. Try again in an hour, or use another way in.');
       await options.mail.sendCode(address, code);
       const upstream = await oauth.beginUpstream(approved.request, { data: { way: 'email', address, ...accepted } satisfies Upstream, headers: approved.headers });
       return codePage({ address, state: upstream.state, headers: upstream.headers });
     }
 
-    return signIn(approved.request, approved.headers, 'Choose a way to sign in.');
+    return signIn(request, approved.request, approved.headers, 'Choose a way to sign in.');
   }
 
   async function enterCode(request: Request): Promise<Response> {
@@ -221,7 +234,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
       const again = await oauth.beginUpstream(resumed.request, { data: resumed.data, headers: resumed.headers });
       return codePage({ address, state: again.state, problem: "That code doesn't match. Check it and try again.", headers: again.headers });
     }
-    return signIn(resumed.request, resumed.headers, 'That code expired or was tried too many times. Ask for a new one.');
+    return signIn(request, resumed.request, resumed.headers, 'That code expired or was tried too many times. Ask for a new one.');
   }
 
   async function returned(request: Request): Promise<Response> {
@@ -237,14 +250,15 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     } catch {
       return problemPage(`Signing in with ${provider.label} didn't work.`, 502, resumed.headers);
     }
-    return signedIn(resumed.request, `${provider.name}:${signed.subject}`, signed.email, resumed.headers, resumed.data.terms);
+    const account = signed.handle ? { id: signed.subject, handle: signed.handle } : undefined;
+    return signedIn(resumed.request, `${provider.name}:${signed.subject}`, signed.email, resumed.headers, resumed.data.terms, account);
   }
 
   /** Finds or makes the person an identity belongs to, then routes them to their customer. */
-  async function signedIn(request: R, identity: string, email: string | null, headers: Headers, terms?: string): Promise<Response> {
+  async function signedIn(request: R, identity: string, email: string | null, headers: Headers, terms?: string, instagram?: InstagramAccount): Promise<Response> {
     const person = await accounts.identity(identity).claim(crypto.randomUUID());
     const records = accounts.person(person);
-    await records.addIdentity(identity, email, now());
+    await records.addIdentity(identity, email, now(), instagram);
     const brands = await records.brands();
     const customers = brands.map((b) => b.slug);
     if (customers.length === 0) return complete(request, person, null, headers, terms);

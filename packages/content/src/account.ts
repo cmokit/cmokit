@@ -26,6 +26,8 @@ export interface AccountOptions {
   exchange(form: URLSearchParams): Promise<{ access_token: string; expires_in?: number } | undefined>;
   /** The email address a person proved when signing in, if any. */
   email(person: string): Promise<string | null>;
+  /** The Instagram handle a person last signed in with, if any, shown when they proved no address (ADR-0048). */
+  handle?(person: string): Promise<string | null>;
   /**
    * Makes another brand, a customer of its own with the person as its first user, and returns its
    * slug (ADR-0042). Absent when users cannot add brands here.
@@ -195,7 +197,9 @@ export async function handleAccount(request: Request, url: URL, account: Account
     });
   }
 
-  const view: AccountView = { email: await account.email(checked.person), notice: notice(url) };
+  const email = await account.email(checked.person);
+  const handle = email || !account.handle ? null : await account.handle(checked.person);
+  const view: AccountView = { email, ...(handle ? { handle } : {}), notice: notice(url) };
   if (!customer && !context.billing) {
     // Nobody activated this person: CMO Kit's own waitlist is where they can be (ADR-0043).
     const sites = account.cmokitWaitlist ? await context.customer(account.cmokitWaitlist).waitlistSites() : [];
