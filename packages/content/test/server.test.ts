@@ -260,3 +260,39 @@ test('without terms, the terms page does not exist', async () => {
   const { handle } = await server();
   assert.equal((await handle(new Request(`${ORIGIN}/customers/acme/terms?t=x`))).status, 404);
 });
+
+test('terms ticked at sign-in are kept with the customer at the first call, and an older version still asks', async () => {
+  const acme = await readyCustomer();
+  const terms = { url: 'https://cmokit.example/beta-terms', version: '2026-11-11' };
+  const signedIn: Tokens = {
+    async check(token) {
+      if (token === 'ticked') return { person: 'ada', audience: ORIGIN, terms: '2026-11-11' };
+      if (token === 'ticked-before') return { person: 'ada', audience: ORIGIN, terms: '2026-10-01' };
+      return undefined;
+    },
+  };
+  const handle = createContentServer({ issuer: 'https://auth.example', audience: ORIGIN, tokens: signedIn, customer: () => acme.customer, terms });
+  const list = async (token: string) => {
+    const response = await handle(new Request(`${ORIGIN}/customers/acme/mcp`, {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    }));
+    return ((await response.json()) as { result: { tools: unknown[] } }).result.tools.length;
+  };
+  assert.equal(await list('ticked-before'), 1, 'a sign-in that ticked another version accepts nothing');
+  assert.equal(await acme.customer.termsAccepted('ada', '2026-11-11'), false);
+  assert.equal(await list('ticked'), TOOLS.length);
+  assert.equal(await acme.customer.termsAccepted('ada', '2026-11-11'), true);
+  const kept = JSON.parse((await acme.customer.exportAll()).json).terms;
+  assert.deepEqual(kept.map((t: { person: string; version: string }) => [t.person, t.version]), [['ada', '2026-11-11']]);
+});
+
+test("the first time a user's Claude connects is noted, and nothing else is", async () => {
+  const { rpc, acme } = await server();
+  assert.equal(await acme.customer.claudeConnected('ada'), false);
+  await rpc('acme', 'ada-token', 'tools/list');
+  assert.equal(await acme.customer.claudeConnected('ada'), false, 'only initializing counts');
+  await rpc('acme', 'ada-token', 'initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude', version: '1' } });
+  assert.equal(await acme.customer.claudeConnected('ada'), true);
+  assert.equal(JSON.parse((await acme.customer.exportAll()).json).claude.length, 1);
+});

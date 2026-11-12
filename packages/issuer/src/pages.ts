@@ -37,6 +37,8 @@ export function signInPage(options: {
   handle: string;
   ways: { name: string; label: string }[];
   email: boolean;
+  /** The beta terms to accept before signing in, when the deployment asks for them (ADR-0047). */
+  terms?: { url: string; version: string };
   problem?: string;
   headers: Headers;
 }): Response {
@@ -44,6 +46,8 @@ export function signInPage(options: {
   const who = client.clientDomain
     ? `${escape(client.clientName)}, from <strong>${escape(client.clientDomain)}</strong>,`
     : `${escape(client.clientName)} (this app named itself, so its name isn't verified)`;
+  // A required box: no way in goes on without it, though Cancel still does.
+  const terms = options.terms ? `<label><input type="checkbox" name="terms" value="yes" required> I accept the <a href="${escape(options.terms.url)}" target="_blank" rel="noopener noreferrer">CMO Kit beta terms</a> (version ${escape(options.terms.version)}).</label>\n` : '';
   const ways = options.ways.map((w) => `<button name="way" value="${escape(w.name)}">Continue with ${escape(w.label)}</button>`).join('\n');
   const email = options.email ? `<label for="address">Or get a code by email</label>
 <input id="address" name="address" type="email" autocomplete="email" placeholder="you@example.com">
@@ -53,11 +57,11 @@ export function signInPage(options: {
 ${client.redirectIsLoopback ? '<p><strong>This sends access to an app on your computer.</strong> Continue only if you just started connecting from it.</p>' : ''}
 <form method="post" action="/authorize">
 <input type="hidden" name="handle" value="${escape(handle)}">
-${ways}
+${terms}${ways}
 ${email}
-<button name="way" value="cancel">Cancel</button>
+<button name="way" value="cancel" formnovalidate>Cancel</button>
 </form>
-<p class="note">Signing in tells CMOkit who you are and nothing else. CMOkit keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
+<p class="note">${options.terms ? 'Signing in tells CMOkit who you are and that you accepted the beta terms, and nothing else.' : 'Signing in tells CMOkit who you are and nothing else.'} CMOkit keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
 }
 
 export function codePage(options: { address: string; state: string; problem?: string; headers: Headers }): Response {

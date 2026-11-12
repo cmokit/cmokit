@@ -64,6 +64,11 @@ export interface AccountView {
   email: string | null;
   /** The line shown after a change made on the page. */
   notice?: string;
+  /**
+   * For a person nobody activated, where CMO Kit's waitlist is joined, or null when no site of its
+   * is known; absent where a person subscribes instead.
+   */
+  join?: string | null;
   customer?: {
     /** The brand's slug, the name it goes by when signing in and in settings. */
     slug: string;
@@ -91,6 +96,8 @@ export interface AccountView {
     brand: { version: number; context: BrandContext; at: string | null };
     terms?: { accepted: boolean; version: string; url: string; link?: string };
     manage?: string;
+    /** What the brand's setup shows as done beyond the brand context: Claude connected, a first piece planned. */
+    setup?: { claude: boolean; planned: boolean; home: string };
   };
 }
 
@@ -120,6 +127,13 @@ export function accountPage(view: AccountView, tab: AccountTab = 'home'): Respon
   const signedIn = `<p>Signed in${view.email ? ` as <strong>${escape(view.email)}</strong>` : ''}.</p>`;
   const signOut = '<form method="post" action="/signout"><button type="submit">Sign out</button></form>';
   const c = view.customer;
+  if (!c && view.join !== undefined) {
+    const join = view.join ? `<p><a href="${escape(view.join)}">Join the waitlist</a></p>` : '';
+    return html(`<h1>You're not activated yet</h1>${notice}
+<p>CMO Kit is in a closed beta, and you can use it once you're activated from its waitlist.</p>
+${join}${signedIn}
+<p>If you joined with another account, sign out and sign in with that one.</p>${signOut}`, 200);
+  }
   if (!c) {
     return html(`<h1>Your CMOkit account</h1>${notice}${signedIn}
 <p>This account has no CMOkit subscription yet. Ask Claude to set CMOkit up, and come back here afterwards.</p>${signOut}`, 200);
@@ -127,14 +141,64 @@ export function accountPage(view: AccountView, tab: AccountTab = 'home'): Respon
   const name = brandName(c.brands.find((b) => b.slug === c.slug)?.name ?? null);
   const tabs = TABS.filter((t) => t.tab !== 'waitlist' || c.waitlist);
   const shown = tabs.some((t) => t.tab === tab) ? tab : 'home';
-  const body = shown === 'waitlist' ? waitlistTab(c.waitlist!) : shown === 'account' ? accountTab(c, name, signedIn, signOut) : homeTab(c, name);
+  const body = shown === 'waitlist' ? waitlistTab(c.waitlist!) : shown === 'account' ? accountTab(c, name, signedIn, signOut) : homeTab(c, name, view.email);
   const bar = `<nav class="tabs" aria-label="Account">${tabs.map((t) => `<a href="${t.path}"${t.tab === shown ? ' aria-current="page"' : ''}>${t.label}</a>`).join('')}</nav>`;
   return html(`${notice}${body}\n${bar}`, 200);
 }
 
 type Customer = NonNullable<AccountView['customer']>;
 
-function homeTab(c: Customer, name: string): string {
+/** A new creator's setup: two steps here, the rest in Claude Desktop (ADR-0024, ADR-0029). */
+const SETUP = ['Sign in', 'Name your brand', 'Add CMO Kit to Claude Desktop', 'Sign in from Claude', 'Set up your brand', 'Plan your first Reel'];
+
+const CLAUDE_STEPS = [
+  'Open Claude Desktop and go to Customize, then Plugins. It needs Claude Pro or higher.',
+  'Add CMO Kit\'s marketplace, cmokit/cmokit on GitHub, then add the cmokit-content plugin.',
+  'Turn on "Code execution and file creation" in Claude\'s settings.',
+  'Ask Claude to set up your brand with CMO Kit. Sign in when it asks, the same way you signed in here.',
+];
+
+/** Where the brand's setup stands, from what the server holds, and the one step to take next; empty once it is done. */
+function setupSection(c: Customer, named: boolean, email: string | null): string {
+  const setup = c.setup ?? { claude: true, planned: true, home: '' };
+  const done = [true, named, setup.claude, setup.claude, c.brand.version > 0, setup.planned];
+  const next = done.indexOf(false);
+  if (next === -1) return '';
+  const rows = SETUP.map((label, i) => `<li><span class="row-main">${i + 1}. ${label}</span>${done[i]
+    ? '<span class="badge">Done</span>'
+    : i === next || (i === 3 && next === 2) ? '<span class="badge next">Next</span>' : '<span class="badge">Later</span>'}</li>`);
+  let step: string;
+  if (next === 1) {
+    step = `<h2>Name your brand</h2>
+<p>It's the name you'll see here and in Claude.</p>
+<form method="post" action="/brands/name">
+  <input type="hidden" name="from" value="home">
+  <label for="brand-first">Brand name</label>
+  <input id="brand-first" name="name" maxlength="60" required autocomplete="organization">
+  <button type="submit" class="primary">Save name</button>
+</form>`;
+  } else if (next <= 3) {
+    const body = `${CLAUDE_STEPS.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nYour CMO Kit account: ${setup.home}`;
+    const mail = `mailto:${email ? encodeURIComponent(email) : ''}?subject=${encodeURIComponent('Set up CMO Kit in Claude Desktop')}&body=${encodeURIComponent(body)}`;
+    step = `<h2>Finish setup on a computer</h2>
+<p>The rest of setup happens in Claude Desktop.</p>
+<ol>${CLAUDE_STEPS.map((s) => `<li>${escape(s)}</li>`).join('')}</ol>
+<p><a href="${escape(mail)}">Email these steps to myself</a></p>
+<p class="note">This step is marked done once your Claude connects.</p>`;
+  } else if (next === 4) {
+    step = `<h2>Set up your brand in Claude</h2>
+<p>In Claude Desktop, ask Claude to set up your brand with CMO Kit. It asks about your brand, and saves its context here once you approve it.</p>`;
+  } else {
+    step = `<h2>Plan your first Reel</h2>
+<p>In Claude Desktop, ask Claude to plan this week's content with CMO Kit. It writes your first Reel's brief.</p>`;
+  }
+  return `<p class="note">Setup: step ${next + 1} of ${SETUP.length}</p>
+${step}
+<ul class="rows" aria-label="Setup">${rows.join('')}</ul>`;
+}
+
+function homeTab(c: Customer, name: string, email: string | null): string {
+  const named = !c.rename || c.brands.find((b) => b.slug === c.slug)?.name != null;
   const terms = c.terms ? `<h2>Beta terms</h2>
 <p>${c.terms.accepted
     ? `You accepted <a href="${escape(c.terms.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a>, version ${escape(c.terms.version)}.`
@@ -148,6 +212,7 @@ function homeTab(c: Customer, name: string): string {
     ? '<p>No brand context yet. Ask Claude to build it with you.</p>'
     : `<p>Version ${version}${at ? `, approved ${escape(at.slice(0, 10))}` : ''}.</p>${sections.join('\n')}${offers.length ? `<h3>Offers</h3><ul>${offers.join('')}</ul>` : ''}`;
   return `<h1>${escape(name)}</h1>
+${setupSection(c, named, email)}
 <p>Access: ${escape(ACCESS[c.access] ?? c.access)}.${c.manage ? ` <a href="${escape(c.manage)}">Manage your subscription</a>.` : ''}</p>
 ${terms}
 <h2>Connections</h2>

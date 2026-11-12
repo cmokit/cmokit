@@ -134,13 +134,51 @@ test('without a valid session, the page and the export send the person to sign i
   }
 });
 
-test('a person who is not a user of the customer is refused, and one with no customer sees an empty account', async () => {
-  const { get } = await server();
+test('a person who is not a user of the customer is refused, and one nobody activated is told so, with the way to the waitlist', async () => {
+  const { get, acme } = await server({ cmokit: 'acme' });
   assert.equal((await get('/', session('bob-token'))).status, 403);
   assert.equal((await get('/export', session('bob-token'))).status, 403);
   const empty = await get('/', session('new-token'));
   assert.equal(empty.status, 200);
+  const before = await empty.text();
+  assert.match(before, /<h1>You're not activated yet<\/h1>/);
+  assert.doesNotMatch(before, />Join the waitlist</, 'no link while CMO Kit lists no site');
+  await acme.waitlistSetSites(['https://cmokit.example']);
+  assert.match(await (await get('/', session('new-token'))).text(), /<a href="https:\/\/cmokit\.example">Join the waitlist<\/a>/);
   assert.equal((await get('/export', session('new-token'))).status, 404);
+});
+
+test('Home leads a new brand through setup, marking each step done from what the server holds', async () => {
+  const { get, post, acme } = await server({ brands: true });
+  const step = async () => (await (await get('/', session('ada-token'))).text());
+
+  // An unnamed brand is named first, on Home, and naming it returns there.
+  let html = await step();
+  assert.match(html, /Setup: step 2 of 6/);
+  assert.match(html, /<form method="post" action="\/brands\/name">\s*<input type="hidden" name="from" value="home">/);
+  assert.match(html, /1\. Sign in<\/span><span class="badge">Done/);
+  assert.match(html, /2\. Name your brand<\/span><span class="badge next">Next/);
+  const named = await post('/brands/name', { name: 'Acme Breakfasts', from: 'home' }, session('ada-token'));
+  assert.equal(named.status, 303);
+  assert.equal(named.headers.get('location'), '/?brand=named');
+  assert.equal((await post('/brands/name', { name: '!', from: 'home' }, session('ada-token'))).headers.get('location'), '/?brand=invalid');
+
+  // Then Claude Desktop, with the steps to email to oneself, until the person's Claude connects.
+  html = await step();
+  assert.match(html, /Setup: step 3 of 6/);
+  assert.match(html, /Finish setup on a computer/);
+  assert.match(html, /href="mailto:ada%40example\.com\?subject=Set%20up%20CMO%20Kit/);
+  assert.match(html, /3\. Add CMO Kit to Claude Desktop<\/span><span class="badge next">Next.*4\. Sign in from Claude<\/span><span class="badge next">Next/s);
+  await acme.claudeSeen('ada');
+
+  // The brand context is already approved, so the first Reel is next, and setup ends once one is planned.
+  html = await step();
+  assert.match(html, /Setup: step 6 of 6/);
+  assert.match(html, /Plan your first Reel<\/h2>/);
+  await acme.pieceSave('ada', { signal: 'planned', week: '2026-W47', offer: 'table', format: 'teaser', kind: 'reel', destination: 'https://luma.com/table-nov' });
+  html = await step();
+  assert.doesNotMatch(html, /Setup: step/);
+  assert.doesNotMatch(html, /<form/, 'a set-up Home changes nothing');
 });
 
 test('the export downloads everything held for the customer', async () => {

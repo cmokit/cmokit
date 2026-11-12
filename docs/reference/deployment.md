@@ -54,7 +54,7 @@ from `@cmokit/content`.
 | `LIFECYCLE` | Service binding | To sell a subscription | The lifecycle Worker that makes checkout and portal links. Without it, a person with no customer is told to ask whoever runs it to add them. |
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
 | `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or who was activated on the waitlist of the brand `WAITLIST_CUSTOMER` names, becomes CMOkit's customer at their first call, with a first brand made for them. |
-| `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version. When both are set, a user who has not accepted that version is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
+| `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version, the same as the issuer's. When both are set, a person who ticked the box for that version at sign-in is recorded as accepting it at their first call (ADR-0047). A user who has not accepted it, such as one whose connection is older than the box, is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
 | `WAITLIST_CUSTOMER` | Worker variable | No | The slug of CMOkit's own brand, shown on its account page as "Brand". A person a user of that brand activates on its waitlist becomes CMOkit's customer at their first call (ADR-0043). Every brand has a waitlist of its own; only this one's lets people use CMOkit. |
 | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Connect Instagram | The app ID and app secret, from App settings > Basic, of a Meta app with the Instagram product's API setup with Unified login (ADR-0045). |
 | `INSTAGRAM_CONFIG_ID` | Variable | For Connect Instagram | The ID of that app's Facebook Login for Business configuration, whose redirect URL is `<APP_URL>/instagram/callback`. Without it and the two above, no brand is offered Connect Instagram and the waitlist form has no Instagram step. |
@@ -84,6 +84,7 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | A Google OAuth client. |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Variable, secret | For GitHub | A GitHub OAuth app. |
 | `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | A Meta app with Facebook Login. |
+| `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | The content server's of the same names. When both are set, the sign-in screen has a box to accept that version of the beta terms, which must be ticked to sign in, and the grant carries the version accepted (ADR-0047). |
 
 ## The deploy
 
@@ -115,7 +116,7 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone. |
 | `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
-| `TERMS_URL`, `TERMS_VERSION` | Variables | For the closed beta | Deployed as the content server's variables of the same names. |
+| `TERMS_URL`, `TERMS_VERSION` | Variables | For the closed beta | Deployed as the issuer's and the content server's variables of the same names. |
 | `WAITLIST_CUSTOMER` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `INSTAGRAM_APP_ID`, `INSTAGRAM_CONFIG_ID`, `INSTAGRAM_APP_SECRET` | Variables, secret | For Connect Instagram | Deployed as the content server's of the same names. |
 | `SENDGRID_API_KEY` | Secret | For email codes | Deployed as the issuer's secret of the same name. |

@@ -46,7 +46,7 @@ export interface ContentEnv {
    * call, with a first brand made for them. A variable.
    */
   ACTIVATED_EMAILS?: string;
-  /** Where the terms every user accepts are published, as a closed beta's (ADR-0039). A variable. */
+  /** Where the terms every user accepts are published, as a closed beta's (ADR-0047). The issuer reads the same variable. A variable. */
   TERMS_URL?: string;
   /** The terms' current version; a user accepts each new version. A variable. */
   TERMS_VERSION?: string;
@@ -71,7 +71,7 @@ export interface ContentEnv {
 export interface IssuerBinding {
   /** The issuer's own routes, as its token endpoint, which the account page signs in through. */
   fetch?(input: string, init?: RequestInit): Promise<Response>;
-  validateToken(resource: string, token: string): Promise<{ userId: string; audience: string; props: { person: string; customer: string | null } } | null>;
+  validateToken(resource: string, token: string): Promise<{ userId: string; audience: string; props: { person: string; customer: string | null; terms?: string } } | null>;
   /** The customers a person is a user of. */
   customers(person: string): Promise<string[]>;
   /** The customers a person is a user of, each with the name the person gave it, if any. */
@@ -137,7 +137,8 @@ export function issuerTokens(env: ContentEnv): Tokens {
       if (!env.ISSUER) throw new Error('The ISSUER service binding is not set');
       const valid = await env.ISSUER.validateToken(env.AUDIENCE, token);
       if (!valid) return undefined;
-      return { person: valid.userId, audience: valid.audience, customer: valid.props?.customer ?? undefined };
+      const terms = valid.props?.terms;
+      return { person: valid.userId, audience: valid.audience, customer: valid.props?.customer ?? undefined, ...(terms ? { terms } : {}) };
     },
   };
 }
@@ -165,7 +166,8 @@ export interface CustomerClass {
 
 /** The calls the Worker may make on a customer's object. */
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
-  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
+  'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsRecord', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
+  'claudeSeen', 'claudeConnected',
   'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated',
   'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount'] as const;
 type Call = (typeof CALLS)[number];

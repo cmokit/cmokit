@@ -143,8 +143,11 @@ button for each. Activating someone lets them sign in and use CMOkit. CMOkit sen
 tell them yourself.
 
 To ask every user to accept the beta terms first, publish them, then save the variable `TERMS_URL`
-with their address and `TERMS_VERSION` with their version, such as the date they were published.
-When you change the terms, change the version, and everyone accepts again.
+with their address and `TERMS_VERSION` with their version, such as the date they were published,
+and deploy again. The sign-in screen then has a box to accept them, which must be ticked to sign
+in. Anyone whose Claude connected before the box existed is asked once, by a link in the
+conversation, or can reconnect and tick it. When you change the terms, change the version, and
+everyone accepts again.
 
 ### Instagram on the waitlist
 

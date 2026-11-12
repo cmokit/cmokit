@@ -125,10 +125,11 @@ const SCHEMA = [
     code TEXT NOT NULL UNIQUE, referred_by TEXT, activated_at INTEGER)`,
   `CREATE TABLE IF NOT EXISTS instagram_starts (hash TEXT PRIMARY KEY, kind TEXT NOT NULL, subject TEXT NOT NULL,
     back TEXT, expires_at INTEGER NOT NULL)`,
+  'CREATE TABLE IF NOT EXISTS claude (person TEXT PRIMARY KEY, first_at INTEGER NOT NULL)',
 ];
 /** Columns added to the waitlist after it was first made; each is added to an older brand's records. */
 const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER'];
-const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist', 'instagram_starts'];
+const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist', 'instagram_starts', 'claude'];
 /** The most site addresses a brand's waitlist accepts joins from. */
 const MAX_SITES = 10;
 
@@ -202,6 +203,16 @@ export class Customer {
 
   async isUser(person: string): Promise<boolean> {
     return this.#sql.all('SELECT 1 FROM users WHERE person = ?', person).length > 0;
+  }
+
+  /** Notes the first time the person's Claude connected to this brand, which the account page's setup shows. */
+  async claudeSeen(person: string): Promise<void> {
+    this.#sql.all('INSERT OR IGNORE INTO claude (person, first_at) VALUES (?, ?)', person, this.#now());
+  }
+
+  /** Whether the person's Claude has connected to this brand. */
+  async claudeConnected(person: string): Promise<boolean> {
+    return this.#sql.all('SELECT 1 FROM claude WHERE person = ?', person).length > 0;
   }
 
   /** Access as the lifecycle last set it (ADR-0017); a self-hosted customer with none set has access. */
@@ -287,11 +298,17 @@ export class Customer {
     return { ok: true, calendar: calendar.name };
   }
 
-  // The server's terms, as a closed beta's (ADR-0039).
+  // The server's terms, as a closed beta's: accepted with the box on the sign-in screen, or, for a
+  // sign-in made before the box, on the one-time page (ADR-0047).
 
   /** Whether the person accepted this version of the terms. */
   async termsAccepted(person: string, version: string): Promise<boolean> {
     return this.#sql.all('SELECT 1 FROM terms WHERE person = ? AND version = ?', person, version).length > 0;
+  }
+
+  /** Records that the person accepted this version of the terms, as their sign-in's grant says they did. */
+  async termsRecord(person: string, version: string): Promise<void> {
+    this.#sql.all('INSERT OR IGNORE INTO terms (person, version, at) VALUES (?, ?, ?)', person, version, this.#now());
   }
 
   /** A one-time link token for the person to accept the terms, and when it expires. */
@@ -739,6 +756,7 @@ export class Customer {
         .map((r) => ({ vendor: r.vendor, calendar: r.identifier, name: r.name, connected: iso(r.connected_at as number) })),
       brand: await this.brandHistory(),
       terms: this.#sql.all('SELECT person, version, at FROM terms').map((r) => ({ person: r.person, version: r.version, accepted: iso(r.at as number) })),
+      claude: this.#sql.all('SELECT person, first_at FROM claude').map((r) => ({ person: r.person, connected: iso(r.first_at as number) })),
       waitlist: { sites: await this.waitlistSites(), people: await this.waitlistList() },
       pieces: await Promise.all(pieces.map(async (p) => ({ ...p, signals: await this.signals(p.id) }))),
     };
