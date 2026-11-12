@@ -2,7 +2,7 @@
 // pages, built from CMO Kit's design system, and the two fonts each Worker serves from its own origin.
 // A page puts `LOOK` in its <style> and `HEADER` at the top of its <body>; nothing else in a page sets
 // a color, a font or a size. Beside plain markup it styles three pieces: a bottom tab bar (`nav.tabs`,
-// the current tab marked `aria-current`), stacked list rows (`ul.rows`) and a status badge (`.badge`).
+// the current tab marked `aria-current`), stacked list rows (`ul.rows`) and a status badge (`.badge`, `.badge.next` for the step to take next).
 
 /** The fonts a Worker serves at `/fonts/<name>.woff2`, as its adapter hands them over. Without them, pages fall back to the system font. */
 export interface Fonts {
@@ -106,6 +106,8 @@ ul.rows{list-style:none;padding:0;border-top:1px solid var(--line)}
 .rows form{margin:0}
 .row-main{flex:1 1 14rem;min-width:0;display:flex;flex-direction:column;overflow-wrap:anywhere}
 .badge{display:inline-flex;align-items:center;min-height:2rem;padding:0 var(--space-3);border-radius:var(--pill);background:var(--sunk);color:var(--muted);font-size:var(--text-xs);font-weight:600}
+.badge.next{background:var(--accent);color:var(--on-accent)}
+ol{padding-left:var(--space-5);margin-top:0;margin-bottom:var(--space-4)}
 body:has(.tabs){padding-bottom:calc(5.5rem + env(safe-area-inset-bottom,0px))}
 .tabs{position:fixed;left:0;right:0;bottom:0;max-width:none;margin:0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
 background:var(--surface);border-top:1px solid var(--line);padding:0 max(var(--gutter),calc((100% - 32rem)/2)) env(safe-area-inset-bottom,0px)}

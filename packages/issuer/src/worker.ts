@@ -39,6 +39,10 @@ export interface IssuerEnv {
   META_APP_SECRET?: string;
   /** Where the content server serves the account page, as https://app.cmokit.ai (ADR-0041). A variable. */
   APP_URL?: string;
+  /** Where the beta terms every person accepts at sign-in are published (ADR-0047). A variable. */
+  TERMS_URL?: string;
+  /** The terms' current version; with TERMS_URL, the sign-in screen asks for it. A variable. */
+  TERMS_VERSION?: string;
 }
 
 export interface DurableObjectNamespace {
@@ -164,6 +168,7 @@ function signInFor(env: IssuerEnv) {
     providers: providersFor(env),
     network: (request) => request.headers.get('cf-connecting-ip') ?? 'unknown',
     redirects: appRedirects(env),
+    ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
   });
 }
 

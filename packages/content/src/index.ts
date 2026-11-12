@@ -8,9 +8,11 @@
 // a person with none is offered only account_status, whose link starts a subscription (ADR-0017),
 // unless they were activated without a checkout, as in a closed beta: then their first call makes
 // their customer, with them as its first user (CUS-03). A customer whose access has lapsed keeps
-// account_status and nothing else. When the server has terms, as a closed beta's, a user who has not
-// accepted their current version is offered account_status alone too, whose link opens the page to
-// accept them (ADR-0039). Any page on a site a brand's users listed adds people to that brand's
+// account_status and nothing else. When the server has terms, as a closed beta's, a person accepts
+// them with a box on the issuer's sign-in screen, and their grant's version is kept with the customer
+// at their first call; a user whose sign-in carried no acceptance of the current version is offered
+// account_status alone, whose link opens the page to accept them (ADR-0047). The first time a user's
+// Claude connects to a customer is noted, for the account page's setup. Any page on a site a brand's users listed adds people to that brand's
 // waitlist at /join/<slug>, with no Worker of the site's own (ADR-0043). Handlers use the web-standard Request and Response only (ADR-0003); the Worker that
 // wires the customer's Durable Object, the vault and the event platform's adapter is worker.ts.
 
@@ -37,7 +39,7 @@ export interface Tokens {
    * The person the token names, the audience it was issued for and the customer chosen when signing
    * in, or undefined when it is not valid.
    */
-  check(token: string): Promise<{ person: string; audience: string; customer?: string } | undefined>;
+  check(token: string): Promise<{ person: string; audience: string; customer?: string; terms?: string } | undefined>;
 }
 
 /** What the one-time pages call on a customer's records. */
@@ -45,11 +47,15 @@ export interface CustomerPages {
   linkFor(token: string): Promise<{ vendor: string; label: string; help: string } | undefined>;
   connect(token: string, key: string): Promise<{ ok: true; calendar: string } | { ok: false; problem: string }>;
   termsAccepted(person: string, version: string): Promise<boolean>;
+  termsRecord(person: string, version: string): Promise<void>;
   termsLink(person: string): Promise<{ token: string; expires: string }>;
   termsFor(token: string): Promise<boolean>;
   acceptTerms(token: string, version: string): Promise<boolean>;
   /** Everything held for the customer, for the person to download (HST-13). */
   exportAll(): Promise<{ json: string; markdown: string }>;
+  /** The first time each user's Claude connected, for the account page's setup. */
+  claudeSeen(person: string): Promise<void>;
+  claudeConnected(person: string): Promise<boolean>;
   /** The brand's waitlist and the site addresses allowed to join it (ADR-0043). */
   waitlistSites(): Promise<string[]>;
   waitlistSetSites(sites: string[]): Promise<string[]>;
@@ -64,7 +70,7 @@ export interface CustomerPages {
   instagramCount(): Promise<{ reels: number; people: number }>;
 }
 
-/** Terms every user accepts before using the server, as a closed beta's (ADR-0039). */
+/** Terms every user accepts before using the server, as a closed beta's (ADR-0047). */
 export interface Terms {
   /** Where the terms are published. */
   url: string;
@@ -235,9 +241,10 @@ export function createContentServer(options: ContentServerOptions) {
         const held = await customer.billing();
         return held ? billing.portal(held, back('managed')) : undefined;
       } : undefined;
+      if (message.method === 'initialize') await customer.claudeSeen(checked.person);
       const base = `${url.origin}/customers/${chosen}`;
       const { terms } = options;
-      const unaccepted = terms && !(await customer.termsAccepted(checked.person, terms.version)) ? async () => {
+      const unaccepted = terms && !(await accepted(customer, checked, terms)) ? async () => {
         const { token, expires } = await customer.termsLink(checked.person);
         return { what: 'terms', label: 'CMOkit beta terms', terms: terms.url, link: `${base}/terms?t=${token}`, expires };
       } : undefined;
@@ -247,6 +254,17 @@ export function createContentServer(options: ContentServerOptions) {
 
     return new Response('Not found', { status: 404 });
   };
+}
+
+/**
+ * Whether the person accepted the current terms: on record, or ticked at the sign-in this token came
+ * from, which is then recorded with the customer (ADR-0047).
+ */
+export async function accepted(customer: CustomerPages, checked: { person: string; terms?: string }, terms: Terms): Promise<boolean> {
+  if (await customer.termsAccepted(checked.person, terms.version)) return true;
+  if (checked.terms !== terms.version) return false;
+  await customer.termsRecord(checked.person, terms.version);
+  return true;
 }
 
 function metadata(request: Request, resource: string, issuer: string): Response {

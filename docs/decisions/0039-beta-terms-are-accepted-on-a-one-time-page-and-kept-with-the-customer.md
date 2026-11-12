@@ -1,5 +1,5 @@
 ---
-status: "proposed"
+status: "superseded by ADR-0047"
 kind: "requirement-driven"
 date: 2026-11-10
 decision-makers: [Geoff]

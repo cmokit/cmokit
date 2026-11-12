@@ -149,14 +149,14 @@ async function authorizeUrl(clientId: string, redirect: string, verifier: string
 }
 
 /** Signs in by email code from Claude's first request to the page that follows the right code. */
-async function emailSignIn(worker: any, address: string, mail: any[]) {
+async function emailSignIn(worker: any, address: string, mail: any[], extra: Record<string, string> = {}) {
   const verifier = 'v'.repeat(64);
   const { body: client } = await register(worker, [CLAUDE]);
   const go = browser(worker);
   const page = await go(await authorizeUrl(client.client_id!, CLAUDE, verifier));
   assert.equal(page.status, 200);
   const signIn = await page.text();
-  const codePage = await go('/authorize', { form: { handle: hidden(signIn, 'handle'), way: 'email', address } });
+  const codePage = await go('/authorize', { form: { handle: hidden(signIn, 'handle'), way: 'email', address, ...extra } });
   const html = await codePage.text();
   const sent = mail.at(-1);
   const code = sent.subject.slice(0, 6);
@@ -426,4 +426,59 @@ test("the account page's callback is allowed only where the deployment names it"
   assert.equal(allowedRedirect('https://app.cmokit.ai/callback'), false);
   assert.equal(allowedRedirect('https://app.cmokit.ai/elsewhere', extra), false);
   assert.deepEqual(appRedirects({} as Parameters<typeof appRedirects>[0]), []);
+});
+
+test('while terms are asked for, no way in goes on until the box is ticked, and the grant carries the version ticked', async () => {
+  const { worker, identities } = setup({ TERMS_URL: 'https://cmokit.example/beta-terms/', TERMS_VERSION: '2026-11-11' });
+  const net = outside();
+  try {
+    const { body: client } = await register(worker, [CLAUDE]);
+    const go = browser(worker);
+    const verifier = 'v'.repeat(64);
+    const signIn = await (await go(await authorizeUrl(client.client_id!, CLAUDE, verifier))).text();
+    assert.match(signIn, /<input type="checkbox" name="terms" value="yes" required>/);
+    assert.match(signIn, /href="https:\/\/cmokit\.example\/beta-terms\/"/);
+    assert.match(signIn, /version 2026-11-11/);
+    assert.match(signIn, /value="cancel" formnovalidate/, 'Cancel needs no tick');
+
+    // Without the tick, nothing is sent and the screen asks again.
+    const refused = await go('/authorize', { form: { handle: hidden(signIn, 'handle'), way: 'email', address: 'ada@example.com' } });
+    assert.equal(refused.status, 400);
+    const again = await refused.text();
+    assert.match(again, /Tick the box to accept the beta terms/);
+    assert.equal(net.mail.length, 0);
+
+    const codePage = await (await go('/authorize', { form: { handle: hidden(again, 'handle'), way: 'email', address: 'ada@example.com', terms: 'yes' } })).text();
+    const done = await go(`/code?state=${encodeURIComponent(stateIn(codePage))}`, { form: { code: net.mail.at(-1).subject.slice(0, 6) } });
+    const token = await tokenFor(worker, done.headers.get('location')!, client.client_id!, verifier);
+    const person = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string }).result;
+    assert.deepEqual((await worker.validateToken(AUDIENCE, token))!.props, { person, customer: null, terms: '2026-11-11' });
+  } finally {
+    net.restore();
+  }
+});
+
+test('without terms, the sign-in screen has no box and the grant names no version', async () => {
+  const { worker } = setup();
+  const { body: client } = await register(worker, [CLAUDE]);
+  const signIn = await (await browser(worker)(await authorizeUrl(client.client_id!, CLAUDE, 'v'.repeat(64)))).text();
+  assert.doesNotMatch(signIn, /name="terms"/);
+  assert.match(signIn, /who you are and nothing else/);
+});
+
+test('a person with two brands who ticked the terms keeps the version through choosing a brand', async () => {
+  const { worker, identities, addCustomer } = setup({ TERMS_URL: 'https://cmokit.example/beta-terms/', TERMS_VERSION: '2026-11-11' });
+  const net = outside();
+  try {
+    await emailSignIn(worker, 'ada@example.com', net.mail, { terms: 'yes' });
+    const person = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string }).result;
+    await addCustomer(person, 'acme');
+    await addCustomer(person, 'globex');
+    const again = await emailSignIn(worker, 'ada@example.com', net.mail, { terms: 'yes' });
+    const chosen = await again.go(`/choose?state=${encodeURIComponent(stateIn(await again.done.text()))}`, { form: { customer: 'globex' } });
+    const token = await tokenFor(worker, chosen.headers.get('location')!, again.clientId, again.verifier);
+    assert.deepEqual((await worker.validateToken(AUDIENCE, token))!.props, { person, customer: 'globex', terms: '2026-11-11' });
+  } finally {
+    net.restore();
+  }
 });

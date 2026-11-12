@@ -8,12 +8,15 @@
 // allowed to join it, the form to paste into them, and activating people one by one (ADR-0043). It
 // uses the web-standard Request and Response only (ADR-0003). On a phone it is three tabs, Home,
 // Waitlist and Account, each at a path of its own, and a change returns to the tab it was made on.
+// Until a new creator's setup is done, Home leads them through it: naming the brand here, then the
+// steps in Claude Desktop, each marked done from what the server holds. A person nobody activated is
+// told so, with the way to CMO Kit's waitlist.
 
 import { Refusal } from './customer.ts';
 import { InstagramError, type InstagramApp } from './instagram.ts';
 import { joinSnippet } from './join.ts';
 import { accountPage, signedOutPage, type AccountTab, type AccountView } from './pages.ts';
-import type { Billing, CustomerPages, Terms, Tokens } from './index.ts';
+import { accepted, type Billing, type CustomerPages, type Terms, type Tokens } from './index.ts';
 import type { CustomerCalls } from './tools.ts';
 
 export interface AccountOptions {
@@ -138,10 +141,13 @@ export async function handleAccount(request: Request, url: URL, account: Account
 
   if (route === 'POST /brands/name') {
     if (!customer || slug === undefined || !account.renameBrand) return new Response('Not found', { status: 404 });
-    const name = String((await request.formData()).get('name') ?? '').trim();
-    if (!BRAND_NAME.test(name)) return seeOther('/account?brand=invalid');
+    const form = await request.formData();
+    const name = String(form.get('name') ?? '').trim();
+    // Naming a new brand is a step of its setup, on Home; renaming one is on Account.
+    const home = form.get('from') === 'home';
+    if (!BRAND_NAME.test(name)) return seeOther(home ? '/?brand=invalid' : '/account?brand=invalid');
     await account.renameBrand(checked.person, slug, name);
-    return seeOther('/account?brand=renamed');
+    return seeOther(home ? '/?brand=named' : '/account?brand=renamed');
   }
 
   if (route === 'POST /waitlist/activate') {
@@ -190,6 +196,11 @@ export async function handleAccount(request: Request, url: URL, account: Account
   }
 
   const view: AccountView = { email: await account.email(checked.person), notice: notice(url) };
+  if (!customer && !context.billing) {
+    // Nobody activated this person: CMO Kit's own waitlist is where they can be (ADR-0043).
+    const sites = account.cmokitWaitlist ? await context.customer(account.cmokitWaitlist).waitlistSites() : [];
+    view.join = sites[0] ?? null;
+  }
   if (customer && slug !== undefined) {
     const base = `${account.origin}/customers/${slug}`;
     const status = await customer.status(checked.person, base);
@@ -210,10 +221,14 @@ export async function handleAccount(request: Request, url: URL, account: Account
       grantsCmokit: slug === account.cmokitWaitlist,
       ...(context.instagram ? { instagram: await customer.instagramAccount() } : {}),
     };
+    view.customer.setup = {
+      claude: await customer.claudeConnected(checked.person),
+      planned: (await customer.piecesList()).length > 0,
+      home: account.origin,
+    };
     const { terms, billing } = context;
     if (terms) {
-      const accepted = await customer.termsAccepted(checked.person, terms.version);
-      view.customer.terms = accepted
+      view.customer.terms = await accepted(customer, checked, terms)
         ? { accepted: true, version: terms.version, url: terms.url }
         : { accepted: false, version: terms.version, url: terms.url, link: `${base}/terms?t=${(await customer.termsLink(checked.person)).token}` };
     }
@@ -227,6 +242,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
 function notice(url: URL): string | undefined {
   const brand = url.searchParams.get('brand');
   if (brand === 'renamed') return 'Brand renamed.';
+  if (brand === 'named') return 'Brand named.';
   if (brand === 'added') return 'Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOkit in Claude and choose it.';
   if (brand === 'invalid') return 'A brand name is 1 to 60 letters, numbers, spaces and . & \' -.';
   const activated = url.searchParams.get('activated');

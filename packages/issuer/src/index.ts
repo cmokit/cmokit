@@ -3,7 +3,9 @@
 // and finishes the authorization with a grant that names the person and the customer the connection
 // serves, chosen here: the content plugin declares one hosted address, and signing in routes the
 // person to their customer's records (ADR-0029). A person who is no customer's user yet is still
-// signed in, with a grant that names no customer, so they can start a subscription (ADR-0017). The
+// signed in, with a grant that names no customer, so they can start a subscription (ADR-0017). While
+// a deployment asks for beta terms, the sign-in screen has a box to tick before any way in, and the
+// grant carries the version ticked, which the content server keeps with the customer (ADR-0047). The
 // protocol itself (client registration, PKCE,
 // codes, tokens, their storage) is the OAuth library's, wired in worker.ts (ADR-0035); this handler
 // owns only the sign-in pages and uses the web-standard Request and Response alone (ADR-0003).
@@ -43,6 +45,19 @@ export interface Grant {
   person: string;
   /** The slug of the customer this connection serves, or null for a person who had none at sign-in. */
   customer: string | null;
+  /**
+   * The version of the beta terms the person accepted at this sign-in, present only when the issuer
+   * asks for terms; the content server keeps the acceptance with the customer (ADR-0047).
+   */
+  terms?: string;
+}
+
+/** Terms every person accepts at sign-in, as a closed beta's (ADR-0047). */
+export interface SignInTerms {
+  /** Where the terms are published. */
+  url: string;
+  /** Their current version, carried in the grant. */
+  version: string;
 }
 
 export interface IdentityRecords {
@@ -86,6 +101,8 @@ export interface SignInOptions<R extends AuthRequest> {
   now?(): number;
   /** Redirects allowed beside Claude's callback and loopback, as the account page's callback (ADR-0041). */
   redirects?: readonly string[];
+  /** Absent when nobody accepts terms at sign-in, as when the server is self-hosted (ADR-0047). */
+  terms?: SignInTerms;
 }
 
 /**
@@ -107,10 +124,11 @@ export function allowedRedirect(uri: string, extra: readonly string[] = []): boo
 
 const ADDRESS = /^[^\s@<>()",;:\\[\]]+@[^\s@<>()",;:\\[\]]+\.[^\s@<>()",;:\\[\]]+$/;
 
-type Upstream =
+/** Each step of a sign-in carries the version of the terms the person ticked, if any were asked for. */
+type Upstream = { terms?: string } & (
   | { way: 'google' | 'github' | 'meta'; verifier: string }
   | { way: 'email'; address: string }
-  | { way: 'choose'; person: string; customers: string[] };
+  | { way: 'choose'; person: string; customers: string[] });
 
 function base64url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -146,7 +164,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
   async function signIn(request: R, headers: Headers, problem?: string): Promise<Response> {
     const client = await oauth.describeConsent(request);
     const consent = await oauth.beginConsent(request);
-    return signInPage({ client, handle: consent.handle, ways, email: Boolean(options.mail), problem, headers: merge(headers, consent.headers) });
+    return signInPage({ client, handle: consent.handle, ways, email: Boolean(options.mail), terms: options.terms, problem, headers: merge(headers, consent.headers) });
   }
 
   async function start(request: Request): Promise<Response> {
@@ -165,10 +183,15 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     if (way === 'cancel') return new Response(null, { status: 302, headers: (await oauth.denyConsent(request, handle)).headers });
     const approved = await oauth.approveConsent(request, handle);
 
+    // While terms are asked for, no way in goes on until the box is ticked (ADR-0047).
+    const { terms } = options;
+    if (terms && form.get('terms') !== 'yes') return signIn(approved.request, approved.headers, 'Tick the box to accept the beta terms, then sign in.');
+    const accepted = terms ? { terms: terms.version } : {};
+
     const provider = options.providers.find((p) => p.name === way);
     if (provider) {
       const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
-      const upstream = await oauth.beginUpstream(approved.request, { data: { way: provider.name, verifier } satisfies Upstream, headers: approved.headers });
+      const upstream = await oauth.beginUpstream(approved.request, { data: { way: provider.name, verifier, ...accepted } satisfies Upstream, headers: approved.headers });
       return redirect(provider.authorizeUrl({ state: upstream.state, challenge: await challengeFor(verifier), redirectUri: callback }), upstream.headers);
     }
 
@@ -180,7 +203,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
       const code = allowed ? await accounts.identity(`email:${address}`).issueCode(at) : undefined;
       if (!code) return signIn(approved.request, approved.headers, 'Too many codes were sent. Try again in an hour, or use another way in.');
       await options.mail.sendCode(address, code);
-      const upstream = await oauth.beginUpstream(approved.request, { data: { way: 'email', address } satisfies Upstream, headers: approved.headers });
+      const upstream = await oauth.beginUpstream(approved.request, { data: { way: 'email', address, ...accepted } satisfies Upstream, headers: approved.headers });
       return codePage({ address, state: upstream.state, headers: upstream.headers });
     }
 
@@ -193,7 +216,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     const { address } = resumed.data;
     const code = String((await request.formData()).get('code') ?? '');
     const checked = await accounts.identity(`email:${address}`).checkCode(code, now());
-    if (checked === 'ok') return signedIn(resumed.request, `email:${address}`, address, resumed.headers);
+    if (checked === 'ok') return signedIn(resumed.request, `email:${address}`, address, resumed.headers, resumed.data.terms);
     if (checked === 'wrong') {
       const again = await oauth.beginUpstream(resumed.request, { data: resumed.data, headers: resumed.headers });
       return codePage({ address, state: again.state, problem: "That code doesn't match. Check it and try again.", headers: again.headers });
@@ -214,19 +237,19 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     } catch {
       return problemPage(`Signing in with ${provider.label} didn't work.`, 502, resumed.headers);
     }
-    return signedIn(resumed.request, `${provider.name}:${signed.subject}`, signed.email, resumed.headers);
+    return signedIn(resumed.request, `${provider.name}:${signed.subject}`, signed.email, resumed.headers, resumed.data.terms);
   }
 
   /** Finds or makes the person an identity belongs to, then routes them to their customer. */
-  async function signedIn(request: R, identity: string, email: string | null, headers: Headers): Promise<Response> {
+  async function signedIn(request: R, identity: string, email: string | null, headers: Headers, terms?: string): Promise<Response> {
     const person = await accounts.identity(identity).claim(crypto.randomUUID());
     const records = accounts.person(person);
     await records.addIdentity(identity, email, now());
     const brands = await records.brands();
     const customers = brands.map((b) => b.slug);
-    if (customers.length === 0) return complete(request, person, null, headers);
-    if (customers.length === 1) return complete(request, person, customers[0], headers);
-    const upstream = await oauth.beginUpstream(request, { data: { way: 'choose', person, customers } satisfies Upstream, headers });
+    if (customers.length === 0) return complete(request, person, null, headers, terms);
+    if (customers.length === 1) return complete(request, person, customers[0], headers, terms);
+    const upstream = await oauth.beginUpstream(request, { data: { way: 'choose', person, customers, ...(terms ? { terms } : {}) } satisfies Upstream, headers });
     return choosePage({ brands, state: upstream.state, headers: upstream.headers });
   }
 
@@ -235,11 +258,12 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     if (resumed.data.way !== 'choose') return problemPage('This page expired.');
     const customer = String((await request.formData()).get('customer') ?? '');
     if (!resumed.data.customers.includes(customer)) return problemPage('That customer is not one of yours.');
-    return complete(resumed.request, resumed.data.person, customer, resumed.headers);
+    return complete(resumed.request, resumed.data.person, customer, resumed.headers, resumed.data.terms);
   }
 
-  async function complete(request: R, person: string, customer: string | null, headers: Headers): Promise<Response> {
-    const { redirectTo } = await oauth.completeAuthorization({ request, userId: person, metadata: {}, scope: request.scope, props: { person, customer } });
+  async function complete(request: R, person: string, customer: string | null, headers: Headers, terms?: string): Promise<Response> {
+    const props: Grant = { person, customer, ...(terms ? { terms } : {}) };
+    const { redirectTo } = await oauth.completeAuthorization({ request, userId: person, metadata: {}, scope: request.scope, props });
     return redirect(redirectTo, headers);
   }
 
