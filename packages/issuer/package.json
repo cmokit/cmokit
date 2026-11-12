@@ -22,6 +22,11 @@
       "cmokit-source": "./src/worker.ts",
       "types": "./dist/worker.d.ts",
       "default": "./dist/worker.js"
+    },
+    "./look": {
+      "cmokit-source": "./src/look.ts",
+      "types": "./dist/look.d.ts",
+      "default": "./dist/look.js"
     }
   },
   "files": [

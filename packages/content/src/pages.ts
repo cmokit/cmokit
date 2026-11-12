@@ -1,8 +1,10 @@
 // The one-time pages: on one a person enters a key for a vendor that only issues keys (ADR-0019), and
 // the key travels from the person's browser to the content server, never through a conversation; on
 // another a user accepts the server's terms (ADR-0039). The account page shows a signed-in person their
-// account (ADR-0041), where they add a brand (ADR-0042) and run the brand's waitlist (ADR-0043).
+// account (ADR-0041), where they add a brand (ADR-0042) and run the brand's waitlist (ADR-0043). Every
+// page wears CMOkit's own look, shared with the sign-in pages (ADR-0046).
 
+import { HEADER, LOOK } from '@cmokit/issuer/look';
 import { SECTIONS, type BrandContext, type InstagramAccount, type WaitlistEntry } from './customer.ts';
 
 export type { WaitlistEntry } from './customer.ts';
@@ -15,7 +17,7 @@ ${page.problem ? `<p role="alert"><strong>${escape(page.problem)}</strong></p>` 
   <input type="hidden" name="t" value="${escape(page.token)}">
   <label for="key">${escape(page.label)} API key</label>
   <input id="key" name="key" type="password" autocomplete="off" required>
-  <button type="submit">Connect</button>
+  <button type="submit" class="primary">Connect</button>
 </form>
 <p>CMOkit checks the key with ${escape(page.label)}, keeps it encrypted for this account alone, and never shows it again.</p>`, page.problem ? 400 : 200);
 }
@@ -36,8 +38,8 @@ export function termsPage(page: { url: string; version: string; token: string; p
 ${page.problem ? `<p role="alert"><strong>${escape(page.problem)}</strong></p>` : ''}
 <form method="post">
   <input type="hidden" name="t" value="${escape(page.token)}">
-  <label><input type="checkbox" name="accept" value="yes" required style="display:inline;width:auto"> I have read and accept the beta terms.</label>
-  <button type="submit">Accept</button>
+  <label><input type="checkbox" name="accept" value="yes" required> I have read and accept the beta terms.</label>
+  <button type="submit" class="primary">Accept</button>
 </form>`, page.problem ? 400 : 200);
 }
 
@@ -142,11 +144,11 @@ ${c.addBrand ? `<form method="post" action="/brands">
 <p>People join from a form on your site. Joining gives no access until you activate them.${w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>
 <form method="post" action="/waitlist/sites">
   <label for="waitlist-sites">Your site addresses, one per line</label>
-  <textarea id="waitlist-sites" name="sites" rows="3" style="display:block;width:100%;box-sizing:border-box;font:inherit">${escape(w.sites.join('\n'))}</textarea>
+  <textarea id="waitlist-sites" name="sites" rows="3">${escape(w.sites.join('\n'))}</textarea>
   <button type="submit">Save site addresses</button>
 </form>
 ${w.sites.length ? `<p>Paste this into a page on ${w.sites.length === 1 ? 'that site' : 'those sites'}:</p>
-<pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem"><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}
+<pre><code>${escape(w.snippet)}</code></pre>` : '<p>Add your site\'s address first, and the form to paste into it shows here.</p>'}
 ${w.instagram !== undefined ? instagramSection(w.instagram) : ''}
 ${w.people.length ? `<p>${w.people.length} on the waitlist, ranked by referrals plus Reels commented on, then who joined first.</p>
 <ul>${w.people.map((p) => `<li>${escape(p.email)}${p.instagram ? `, Instagram @${escape(p.instagram)}, commented on ${p.engaged} Reel${p.engaged === 1 ? '' : 's'}` : ''}, joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}: ${p.activated
@@ -176,14 +178,16 @@ function html(body: string, status: number): Response {
   return new Response(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="same-origin"><title>CMOkit</title>
-<style>body{font:16px/1.5 system-ui,sans-serif;max-width:32rem;margin:2rem auto;padding:0 1rem}
-input,button{font:inherit;display:block;width:100%;margin:.5rem 0;padding:.5rem;box-sizing:border-box}</style>
-</head><body>${body}</body></html>`, {
+<style>${LOOK}</style>
+</head><body>
+${HEADER}
+${body}
+</body></html>`, {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; frame-ancestors 'none'",
     },
   });
 }

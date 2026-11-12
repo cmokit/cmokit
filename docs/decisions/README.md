@@ -50,3 +50,4 @@ from [adr-template.md](adr-template.md).
 | [0043](0043-each-brands-waitlist-is-kept-by-the-content-server-and-any-page-on-its-sites-joins-it.md) | Each brand's waitlist is kept by the content server, and any page on the brand's sites joins it | Proposed |
 | [0044](0044-a-brands-people-move-through-one-funnel-and-the-waitlist-is-its-first-stage.md) | A brand's people move through one funnel, and the waitlist is its first stage | Proposed |
 | [0045](0045-a-brand-connects-instagram-through-unified-login-and-people-prove-their-handle-by-commenting-their-code.md) | A brand connects Instagram through Unified Login, and people prove their handle by commenting their code on its Reels | Proposed |
+| [0046](0046-cmokits-own-pages-share-one-stylesheet-from-its-design-system-and-serve-their-fonts-themselves.md) | CMOkit's own pages share one stylesheet from its design system, and serve their fonts themselves | Proposed |

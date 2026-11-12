@@ -3,6 +3,8 @@
   "name": "cmokit-issuer",
   "main": "worker.ts",
   "compatibility_date": "2026-10-01",
+  // The fonts of CMOkit's own look, bundled as bytes (ADR-0046).
+  "rules": [{ "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }],
   // The OAuth library fetches a client's metadata document, and needs this flag to do so.
   "compatibility_flags": ["global_fetch_strictly_public"],
   // A Worker custom domain: the deploy creates the DNS record and the certificate.

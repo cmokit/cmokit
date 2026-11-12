@@ -19,6 +19,7 @@
 // brand connects its Instagram, and people on its waitlist comment their code on its Reels (ADR-0045). The only host-specific code in the content server lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
+import { fontResponse, type Fonts } from '@cmokit/issuer/look';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
 import { createContentServer, type AccountOptions, type Billing, type CustomerPages, type Tokens } from './index.ts';
 import { instagramApp, type InstagramApp } from './instagram.ts';
@@ -191,7 +192,8 @@ export function accountFor(env: ContentEnv): AccountOptions | undefined {
   };
 }
 
-export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }) {
+/** `fonts` are the pages' two fonts, served at `/fonts/`; without them the pages use the system font (ADR-0046). */
+export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; fonts?: Fonts }) {
   class Customer {
     readonly #logic: CustomerLogic;
 
@@ -287,6 +289,8 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens }
 
   const worker = {
     async fetch(request: Request, env: ContentEnv): Promise<Response> {
+      const font = fontResponse(request, options.fonts);
+      if (font) return font;
       const handle = createContentServer({
         issuer: env.ISSUER_URL,
         audience: env.AUDIENCE,
