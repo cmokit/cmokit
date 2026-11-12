@@ -58,7 +58,7 @@ export interface AccountContext {
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count']);
+const PATHS = new Set(['/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -114,7 +114,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return response;
   }
 
-  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count'].includes(route);
+  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count', 'POST /instagram/disconnect'].includes(route);
   const tab = ({ 'GET /': 'home', 'GET /waitlist': 'waitlist', 'GET /account': 'account' } as Record<string, AccountTab>)[route];
   if (!tab && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
@@ -183,6 +183,12 @@ export async function handleAccount(request: Request, url: URL, account: Account
       throw error;
     });
     return seeOther(`/waitlist?instagram=${counted ? 'counted' : 'failed'}`);
+  }
+
+  if (route === 'POST /instagram/disconnect') {
+    if (!customer || !context.instagram) return new Response('Not found', { status: 404 });
+    await customer.instagramDisconnect();
+    return seeOther('/waitlist?instagram=disconnected');
   }
 
   if (route === 'GET /export') {

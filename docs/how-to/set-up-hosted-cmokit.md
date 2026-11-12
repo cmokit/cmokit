@@ -173,8 +173,9 @@ code on one of your Reels. Each of your recent Reels their handle comments on mo
    accept the invite in Instagram under **Settings > Website permissions > Apps and websites >
    Tester invites**.
 5. Deploy again. On your account page, under Waitlist, choose **Connect Instagram**, log in, and pick
-   the portfolio with your brand's account. Choose **Count comments on your Reels** whenever you want
-   the list updated.
+   the portfolio with your brand's account. The Waitlist tab then shows the account as connected.
+   Choose **Count comments on your Reels** whenever you want the list updated, and **Disconnect
+   Instagram** to forget the account and its token; handles people already proved stay theirs.
 
 Your own brand needs no App Review, since you have a role on the app. Before another brand connects,
 Meta verifies your business portfolio and grants Advanced Access through App Review.

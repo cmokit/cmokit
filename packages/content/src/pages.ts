@@ -288,7 +288,9 @@ ${body}
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; frame-ancestors 'none'",
+      // Connect Instagram posts to this origin, which answers with a redirect to Facebook's login, and a
+      // browser holds a form's redirects to form-action too: without Facebook here, Chrome stops there.
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self' https://www.facebook.com; frame-ancestors 'none'",
     },
   });
 }
@@ -303,7 +305,7 @@ function cameFrom(source: Record<string, string>): string {
   return tags.length ? `, came from ${tags.map(([name, value]) => `${escape(name)}=${escape(value)}`).join(' ')}` : '';
 }
 
-/** The brand's Instagram account on its account page: connect it, then count comments on its Reels. */
+/** The brand's Instagram account on its account page: connect it, count comments on its Reels, or disconnect it. */
 function instagramSection(account: InstagramAccount | null): string {
   if (!account) {
     return `<p>Connect your brand's Instagram business or creator account. People on your waitlist then comment their code on your Reels, and each Reel they comment on moves them up.</p>
@@ -312,6 +314,7 @@ function instagramSection(account: InstagramAccount | null): string {
   const counted = account.counted
     ? `Last counted ${escape(account.counted.at.slice(0, 16).replace('T', ' '))} UTC: ${account.counted.people} ${account.counted.people === 1 ? 'person' : 'people'} on your waitlist commented on your last ${account.counted.reels} Reel${account.counted.reels === 1 ? '' : 's'}.`
     : 'Not counted yet.';
-  return `<p>Instagram: @${escape(account.username)}. ${counted}</p>
-<form method="post" action="/instagram/count"><button type="submit">Count comments on your Reels</button></form>`;
+  return `<p>Connected: @${escape(account.username)}. ${counted}</p>
+<form method="post" action="/instagram/count"><button type="submit">Count comments on your Reels</button></form>
+<form method="post" action="/instagram/disconnect"><button type="submit">Disconnect Instagram</button></form>`;
 }
