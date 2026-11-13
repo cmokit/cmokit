@@ -1,7 +1,8 @@
 // Shared test fixtures: a customer's records on Node's SQLite, with a stand-in for the event platform.
 
 import { DatabaseSync } from 'node:sqlite';
-import { Customer, aesGcmVault, tally, type EventSummary, type Events, type GuestFacts, type Sql } from '../src/index.ts';
+import { Customer, aesGcmVault, tally, type EventSummary, type Events, type GuestFacts, type Portal, type Sql } from '../src/index.ts';
+import { renderPortal } from '../apps/portal/render.tsx';
 
 export const KEY = btoa(String.fromCharCode(...new Uint8Array(32).map((_, i) => i)));
 export const CALENDAR_KEY = 'secret-calendar-key-123';
@@ -65,3 +66,6 @@ export async function readyCustomer(guests: Record<string, GuestFacts[]> = {}) {
 
 export const guest = (content: string | null, revenue = 0, checkedIn = false): GuestFacts =>
   ({ registered: true, checkedIn, content, revenue, currency: revenue ? 'usd' : null });
+
+/** The account page as the build makes it (ADR-0051), with its React renderer from source and a stand-in script. */
+export const portal: Portal = { render: renderPortal, script: 'export {};', style: '' };

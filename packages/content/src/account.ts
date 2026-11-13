@@ -12,10 +12,10 @@
 // steps in Claude Desktop, each marked done from what the server holds. A person nobody activated is
 // told so, with the way to CMO Kit's waitlist.
 
-import { Refusal } from './customer.ts';
+import { Refusal, SECTIONS } from './customer.ts';
 import { InstagramError, type InstagramApp } from './instagram.ts';
 import { joinSnippet } from './join.ts';
-import { accountPage, signedOutPage, type AccountTab, type AccountView } from './pages.ts';
+import { portalPage, portalScript, signedOutPage, type AccountTab, type AccountView, type Portal } from './pages.ts';
 import { accepted, type Billing, type CustomerPages, type Terms, type Tokens } from './index.ts';
 import type { CustomerCalls } from './tools.ts';
 
@@ -53,12 +53,14 @@ export interface AccountContext {
   terms?: Terms;
   /** The Instagram app and the slug-carrying value Meta hands back, when one is set up (ADR-0045). */
   instagram?: { app: InstagramApp; state(slug: string, token: string): string };
+  /** The account page the package's build makes (ADR-0051); without it, the page is not served. */
+  portal?: Portal;
 }
 
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect']);
+const PATHS = new Set(['/portal.js', '/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -80,6 +82,14 @@ export async function handleAccount(request: Request, url: URL, account: Account
       grant_types: ['authorization_code'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
+    });
+  }
+
+  if (route === 'GET /portal.js') {
+    // The page's script names its own version in its address, so it is cached for good.
+    if (!context.portal) return new Response('Not found', { status: 404 });
+    return new Response(context.portal.script, {
+      headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': url.search === portalScript(context.portal).slice('/portal.js'.length) ? 'public, max-age=31536000, immutable' : 'no-cache', 'x-content-type-options': 'nosniff' },
     });
   }
 
@@ -208,7 +218,8 @@ export async function handleAccount(request: Request, url: URL, account: Account
 
   const email = await account.email(checked.person);
   const handle = email || !account.handle ? null : await account.handle(checked.person);
-  const view: AccountView = { email, ...(handle ? { handle } : {}), notice: notice(url) };
+  const shown = notice(url);
+  const view: AccountView = { email, ...(handle ? { handle } : {}), ...(shown ? { notice: shown } : {}) };
   if (!customer && !context.billing) {
     // Nobody activated this person: CMO Kit's own waitlist is where they can be (ADR-0043).
     const sites = account.cmokitWaitlist ? await context.customer(account.cmokitWaitlist).waitlistSites() : [];
@@ -217,58 +228,70 @@ export async function handleAccount(request: Request, url: URL, account: Account
   if (customer && slug !== undefined) {
     const base = `${account.origin}/customers/${slug}`;
     const status = await customer.status(checked.person, base);
-    view.customer = {
+    const brand = await customer.brandRead();
+    const today = new Date().toISOString().slice(0, 10);
+    const customerView: NonNullable<AccountView['customer']> = {
       access: status.access,
       connections: status.connections.map((c) => ({ vendor: c.vendor, name: c.calendar })),
       missing: (status.missing as { label: string; link: string; optional?: boolean }[]).map((m) => ({ label: m.label, link: m.link, optional: m.optional === true })),
-      brand: await customer.brandRead(),
+      brand: {
+        version: brand.version,
+        at: brand.at,
+        sections: SECTIONS.filter((s) => brand.context.sections[s]).map((s) => ({ title: s.replace('_', ' '), text: brand.context.sections[s] ?? '' })),
+        offers: brand.context.offers.map((o) => o.name),
+      },
       slug,
       addBrand: account.addBrand !== undefined,
       brands: account.brands ? await account.brands(checked.person) : [{ slug, name: null }],
       rename: account.renameBrand !== undefined,
     };
-    view.customer.waitlist = {
+    view.customer = customerView;
+    customerView.waitlist = {
       people: await customer.waitlistList(),
       sites: await customer.waitlistSites(),
       snippet: joinSnippet(`${account.origin}/join/${slug}`),
       grantsCmokit: slug === account.cmokitWaitlist,
       ...(context.instagram ? { instagram: await customer.instagramAccount() } : {}),
     };
-    view.customer.setup = {
+    customerView.setup = {
       claude: await customer.claudeConnected(checked.person),
+      measured: (await customer.funnelRead({ from: today, to: today })).counting_since !== null,
       planned: (await customer.piecesList()).length > 0,
       home: account.origin,
     };
     const { terms, billing } = context;
     if (terms) {
-      view.customer.terms = await accepted(customer, checked, terms)
+      customerView.terms = await accepted(customer, checked, terms)
         ? { accepted: true, version: terms.version, url: terms.url }
         : { accepted: false, version: terms.version, url: terms.url, link: `${base}/terms?t=${(await customer.termsLink(checked.person)).token}` };
     }
     const held = billing ? await customer.billing() : undefined;
-    if (billing && held) view.customer.manage = await billing.portal(held, `${account.origin}/`).catch(() => undefined);
+    if (billing && held) customerView.manage = await billing.portal(held, `${account.origin}/`).catch(() => undefined);
   }
-  return accountPage(view, tab);
+  if (!context.portal) return new Response('This deployment has no account page built. Run the content package\'s build and hand the server its portal.', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  return portalPage(context.portal, view, tab);
 }
 
 /** The line the page shows after a change, from the address its form sent the person back to. */
-function notice(url: URL): string | undefined {
+function notice(url: URL): AccountView['notice'] {
+  const info = (text: string) => ({ text, tone: 'info' as const });
+  const error = (text: string) => ({ text, tone: 'error' as const });
   const brand = url.searchParams.get('brand');
-  if (brand === 'renamed') return 'Brand renamed.';
-  if (brand === 'named') return 'Brand named.';
-  if (brand === 'added') return 'Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOkit in Claude and choose it.';
-  if (brand === 'invalid') return 'A brand name is 1 to 60 letters, numbers, spaces and . & \' -.';
+  if (brand === 'renamed') return info('Brand renamed.');
+  if (brand === 'named') return info('Brand named.');
+  if (brand === 'added') return info('Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOkit in Claude and choose it.');
+  if (brand === 'invalid') return error('A brand name is 1 to 60 letters, numbers, spaces and . & \' -.');
   const activated = url.searchParams.get('activated');
-  if (activated === 'done') return 'Activated. CMOkit sends no email yet, so tell them yourself.';
-  if (activated === 'missing') return 'That address is not on the waitlist.';
-  if (activated === 'declined') return 'That person was declined. Restore them in Claude before activating them.';
+  if (activated === 'done') return info('Activated. CMOkit sends no email yet, so tell them yourself.');
+  if (activated === 'missing') return error('That address is not on the waitlist.');
+  if (activated === 'declined') return error('That person was declined. Restore them in Claude before activating them.');
   const instagram = url.searchParams.get('instagram');
-  if (instagram === 'connected') return 'Instagram connected. Count comments on your Reels whenever you like.';
-  if (instagram === 'counted') return 'Comments counted, and the waitlist is ranked again.';
-  if (instagram === 'failed') return 'Instagram could not be read. Connect your Instagram account again, then count again.';
+  if (instagram === 'connected') return info('Instagram connected. Count comments on your Reels whenever you like.');
+  if (instagram === 'counted') return info('Comments counted, and the waitlist is ranked again.');
+  if (instagram === 'failed') return error('Instagram could not be read. Connect your Instagram account again, then count again.');
   const sites = url.searchParams.get('sites');
-  if (sites === 'saved') return 'Site addresses saved.';
-  if (sites === 'invalid') return 'Each site address must be an https address, such as https://example.com, and there can be at most 10.';
+  if (sites === 'saved') return info('Site addresses saved.');
+  if (sites === 'invalid') return error('Each site address must be an https address, such as https://example.com, and there can be at most 10.');
   return undefined;
 }
 

@@ -25,6 +25,10 @@
     },
     "./apps/waitlist.html": {
       "default": "./dist/apps/waitlist.html"
+    },
+    "./apps/portal.js": {
+      "cmokit-source": "./apps/portal/server.ts",
+      "default": "./dist/apps/portal.js"
     }
   },
   "files": [
@@ -36,7 +40,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && npm run build:apps",
-    "build:apps": "vite build -c apps/vite.config.ts --logLevel warn"
+    "build:apps": "vite build -c apps/vite.config.ts --logLevel warn && PORTAL=client vite build -c apps/portal/vite.config.ts --logLevel warn && PORTAL=server vite build -c apps/portal/vite.config.ts --logLevel warn"
   },
   "publishConfig": {
     "access": "public"

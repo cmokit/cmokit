@@ -55,3 +55,4 @@ from [adr-template.md](adr-template.md).
 | [0048](0048-creators-sign-in-with-instagram-and-cmokits-waitlist-lets-them-in-by-the-handle-they-proved.md) | Creators sign in with Instagram, and CMOkit's waitlist lets them in by the handle they proved | Proposed |
 | [0049](0049-the-cards-claude-shows-are-mcp-apps-written-in-react-and-built-into-one-page-each.md) | The cards Claude shows are MCP Apps, written in React and built into one page each | Proposed |
 | [0050](0050-a-brands-funnel-counts-visits-from-its-waitlist-form-as-daily-counts-behind-a-store-interface.md) | A brand's funnel counts visits from its waitlist form, as daily counts behind a store interface | Proposed |
+| [0051](0051-the-account-page-is-react-rendered-on-the-server-and-hydrated-in-the-browser.md) | The account page is React, rendered on the server and hydrated in the browser | Proposed |

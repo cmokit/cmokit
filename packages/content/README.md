@@ -14,6 +14,9 @@ person's own Claude.
   waitlist tools show the waitlist as an MCP Apps card in Claude: the five most engaged waiting
   people to activate together, and the whole list full screen to filter, search, sort and activate
   or decline one by one (ADR-0049). Without them the tools answer in text.
+- **Account page:** with the renderer the build writes to `dist/apps/portal.js` passed in as
+  `portal`, the account page is React rendered on the server and hydrated by `/portal.js`, its forms
+  posting to the server's routes (ADR-0051). Without it the account page answers 503.
 - **Sign-in:** it checks bearer tokens issued for its own audience by CMOkit's issuer, which it
   names in its Protected Resource Metadata, and issues none. A person must be a user of the customer
   the path names, or, at `/mcp`, of the customer their sign-in chose.

@@ -20,10 +20,11 @@ import { handleAccount, isAccountPath, type AccountOptions } from './account.ts'
 import { Refusal, type InstagramAccount, type InstagramStart, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
 import type { InstagramApp } from './instagram.ts';
 import { handleJoin, type JoinOptions } from './join.ts';
-import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage } from './pages.ts';
+import { acceptedPage, donePage, gonePage, keyPage, subscriptionPage, termsPage, type Portal } from './pages.ts';
 import { INSTRUCTIONS, TOOLS, type CustomerCalls, type Tool } from './tools.ts';
 
 export type { AccountOptions } from './account.ts';
+export type { AccountTab, AccountView, Portal } from './pages.ts';
 export { Customer, Refusal, SECTIONS, type BrandContext, type CustomerDeps, type Offer, type Piece, type InstagramAccount, type InstagramStart, type WaitlistDetails, type WaitlistEntry, type WaitlistJoined } from './customer.ts';
 export { instagramApp, InstagramError, type InstagramApp, type InstagramOptions, type ReelComment } from './instagram.ts';
 export { joinSnippet, type JoinOptions } from './join.ts';
@@ -121,6 +122,8 @@ export interface ContentServerOptions {
   instagram?: InstagramApp;
   /** The built cards Claude shows beside tools' results; absent, tools answer in text alone (ADR-0049). */
   apps?: Apps;
+  /** The built account page, in React (ADR-0051); absent, the account origin serves no page. */
+  portal?: Portal;
 }
 
 /** Each card as one self-contained HTML page, as the build makes it. */
@@ -178,6 +181,7 @@ export function createContentServer(options: ContentServerOptions) {
         return await handleAccount(request, url, account, {
           issuer: options.issuer, audience: options.audience, tokens: options.tokens, billing: options.billing, terms: options.terms,
           customer: options.customer,
+          ...(options.portal ? { portal: options.portal } : {}),
           ...(instagram ? { instagram: { app: instagram, state: instagramState } } : {}),
           served: async (checked) => {
             const slug = await served(checked);
