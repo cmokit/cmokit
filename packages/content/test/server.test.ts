@@ -153,7 +153,10 @@ test('MCP over Streamable HTTP, statelessly: initialize, notifications, tools', 
   const listed = await (await rpc('acme', 'ada-token', 'tools/list')).json() as any;
   assert.deepEqual(listed.result.tools.map((t: { name: string }) => t.name), [
     'account_status', 'brand_read', 'brand_change', 'brand_history', 'offers_list', 'piece_save', 'pieces_list', 'results_read', 'waitlist_list',
+    'waitlist_activate', 'waitlist_decline',
   ]);
+  assert.equal(listed.result.tools.find((t: { name: string }) => t.name === 'waitlist_list')._meta, undefined, 'no card without a built card');
+  assert.deepEqual(init.result.capabilities, { tools: {} });
 });
 
 test('every tool has a title and read-only and destructive hints, and no input takes a credential', () => {
@@ -192,6 +195,52 @@ test('waitlist_list reads its own customer\'s waitlist, ranked as the account pa
   const listed = (await call('acme', 'ada-token', 'waitlist_list')).structuredContent.people;
   assert.deepEqual(listed.map((p: { email: string; referrals: number }) => [p.email, p.referrals]), [['di@example.com', 1], ['cy@example.com', 0]]);
   assert.deepEqual((await call('globex', 'bob-token', 'waitlist_list')).structuredContent.people, []);
+});
+
+test('waitlist_activate and waitlist_decline change one person and answer the whole waitlist', async () => {
+  const { call, acme } = await server();
+  await acme.customer.waitlistJoin('di@example.com');
+  await acme.customer.waitlistJoin('cy@example.com');
+  const declined = await call('acme', 'ada-token', 'waitlist_decline', { email: 'cy@example.com' });
+  assert.deepEqual(declined.structuredContent.people.map((p: { email: string; declined: string | null }) => [p.email, p.declined !== null]), [['di@example.com', false], ['cy@example.com', true]]);
+  const refused = await call('acme', 'ada-token', 'waitlist_activate', { email: 'cy@example.com' });
+  assert.equal(refused.isError, true);
+  assert.match(refused.content[0].text, /Restore them/);
+  await call('acme', 'ada-token', 'waitlist_decline', { email: 'cy@example.com', restore: true });
+  const activated = await call('acme', 'ada-token', 'waitlist_activate', { email: 'CY@example.com ' });
+  assert.ok(activated.structuredContent.people.find((p: { email: string }) => p.email === 'cy@example.com').activated);
+  assert.match((await call('acme', 'ada-token', 'waitlist_decline', { email: 'cy@example.com' })).content[0].text, /already activated/);
+  assert.match((await call('acme', 'ada-token', 'waitlist_activate', { email: 'nobody@example.com' })).content[0].text, /not on the waitlist/);
+  assert.match((await call('acme', 'ada-token', 'waitlist_activate', {})).content[0].text, /Give the person's address/);
+  assert.deepEqual((await call('globex', 'bob-token', 'waitlist_list')).structuredContent.people, [], 'another brand is untouched');
+});
+
+test('with its card built, the waitlist tools name it, and the card is read with the look\'s fonts from this origin', async () => {
+  const acme = await readyCustomer();
+  const handle = createContentServer({
+    issuer: 'https://auth.example', audience: ORIGIN, tokens, customer: () => acme.customer,
+    apps: { waitlist: '<!doctype html><html><head><title>card</title></head><body>card</body></html>' },
+  });
+  const rpc = async (method: string, params: object = {}) => (await (await handle(new Request(`${ORIGIN}/customers/acme/mcp`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ada-token' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  }))).json() as any);
+  assert.deepEqual((await rpc('initialize', { protocolVersion: '2025-06-18' })).result.capabilities, { tools: {}, resources: {} });
+  const tools = (await rpc('tools/list')).result.tools as { name: string; _meta?: any }[];
+  for (const name of ['waitlist_list', 'waitlist_activate', 'waitlist_decline']) {
+    const meta = tools.find((t) => t.name === name)!._meta;
+    assert.equal(meta.ui.resourceUri, 'ui://cmokit/waitlist.html');
+    assert.equal(meta['ui/resourceUri'], 'ui://cmokit/waitlist.html');
+  }
+  assert.equal(tools.find((t) => t.name === 'brand_read')!._meta, undefined);
+  const listed = (await rpc('resources/list')).result.resources;
+  assert.deepEqual(listed.map((r: { uri: string; mimeType: string }) => [r.uri, r.mimeType]), [['ui://cmokit/waitlist.html', 'text/html;profile=mcp-app']]);
+  const [content] = (await rpc('resources/read', { uri: 'ui://cmokit/waitlist.html' })).result.contents;
+  assert.equal(content.mimeType, 'text/html;profile=mcp-app');
+  assert.match(content.text, new RegExp(`url\\(${ORIGIN}/fonts/display.woff2\\)[^<]*</style></head>`));
+  assert.deepEqual(content._meta.ui.csp, { resourceDomains: [ORIGIN, 'https://assets.claude.ai'] });
+  assert.equal((await rpc('resources/read', { uri: 'ui://cmokit/other.html' })).error.code, -32002);
 });
 
 test('the one-time page takes a key once, and never through MCP', async () => {

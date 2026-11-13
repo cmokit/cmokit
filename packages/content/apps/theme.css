@@ -1,0 +1,59 @@
+/* The cards' theme. Backgrounds, text, borders and the body font are the host's own style variables, as
+   Claude's design guidelines ask, so a card reads as part of the conversation; CMOkit's look (ADR-0046),
+   the tokens of LOOK in @cmokit/issuer's look.ts, gives the accent, the heading font, and every fallback
+   where a host sends no variables. Light and dark follow the host's theme, which the card sets as
+   data-theme, and otherwise the person's setting. The page itself stays transparent. */
+@import "tailwindcss";
+/* Every card and shared component under apps/, whichever card is being built. */
+@source "./";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --bg: #f2efe8; --surface: #fffcf6; --sunk: #e9e4da; --ink: #1f1c18; --muted: #5c564e; --line: #ddd5c8;
+  --accent: #2d5a4a; --accent-strong: #234839; --on-accent: #fff; --focus: #2d5a4a; --problem: #9b2c1f; --problem-bg: #f8e7e2;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141613; --surface: #1d201c; --sunk: #191b18; --ink: #ece8df; --muted: #a39c90; --line: #33362f;
+    --accent: #86c2a9; --accent-strong: #a3d3bf; --on-accent: #141613; --focus: #86c2a9; --problem: #f0a195; --problem-bg: #2e1d1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141613; --surface: #1d201c; --sunk: #191b18; --ink: #ece8df; --muted: #a39c90; --line: #33362f;
+  --accent: #86c2a9; --accent-strong: #a3d3bf; --on-accent: #141613; --focus: #86c2a9; --problem: #f0a195; --problem-bg: #2e1d1a;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--color-background-tertiary, var(--bg));
+  --color-surface: var(--color-background-primary, var(--surface));
+  --color-sunk: var(--color-background-secondary, var(--sunk));
+  --color-ink: var(--color-text-primary, var(--ink));
+  --color-muted: var(--color-text-secondary, var(--muted));
+  --color-line: var(--color-border-tertiary, var(--line));
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-focus: var(--focus);
+  --color-problem: var(--color-text-danger, var(--problem));
+  --color-problem-bg: var(--color-background-danger, var(--problem-bg));
+  --font-display: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-xs: .8125rem;
+  --text-sm: .9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { background: transparent; }
+  body { margin: 0; color: var(--color-text-primary, var(--ink)); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+}

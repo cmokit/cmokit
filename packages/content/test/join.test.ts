@@ -109,6 +109,9 @@ test('a joiner learns their place in line, which referrals move up and activatio
   assert.equal(await place({ email: 'ed@example.com' }), null);
   const page = await join({ email: 'di@example.com' }, { json: false });
   assert.match(await page.text(), /You're number 2 on the list/);
+  await customer.waitlistDecline('cy@example.com');
+  assert.equal(await place({ email: 'di@example.com' }), 1, 'a declined person no longer waits ahead of anyone');
+  assert.equal(await place({ email: 'cy@example.com' }), null, 'and is told only that they are on the list');
 });
 
 test('the page\'s tracking tags are kept as where a person came from, from their first join', async () => {

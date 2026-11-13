@@ -22,6 +22,9 @@
       "cmokit-source": "./src/worker.ts",
       "types": "./dist/worker.d.ts",
       "default": "./dist/worker.js"
+    },
+    "./apps/waitlist.html": {
+      "default": "./dist/apps/waitlist.html"
     }
   },
   "files": [
@@ -32,9 +35,26 @@
     "@cmokit/issuer": "^0.1.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json && npm run build:apps",
+    "build:apps": "vite build -c apps/vite.config.ts --logLevel warn"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0",
+    "tailwindcss": "4.3.5",
+    "vite": "8.3.8",
+    "vite-plugin-singlefile": "2.3.4",
+    "zod": "4.6.7"
   }
 }

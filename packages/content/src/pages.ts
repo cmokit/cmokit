@@ -229,6 +229,7 @@ ${brand}
 function waitlistTab(w: NonNullable<Customer['waitlist']>): string {
   const person = (p: WaitlistEntry) => `<li><span class="row-main"><strong>${escape(p.email)}</strong><span class="note">${p.instagram ? `Instagram @${escape(p.instagram)}, commented on ${p.engaged} Reel${p.engaged === 1 ? '' : 's'}, ` : ''}joined ${escape(p.joined.slice(0, 10))}, ${p.referrals} referral${p.referrals === 1 ? '' : 's'}${cameFrom(p.source)}</span></span>${p.activated
     ? `<span class="badge">Activated ${escape(p.activated.slice(0, 10))}</span>`
+    : p.declined ? `<span class="badge">Declined ${escape(p.declined.slice(0, 10))}</span>`
     : `<form method="post" action="/waitlist/activate"><input type="hidden" name="email" value="${escape(p.email)}"><button type="submit">Activate</button></form>`}</li>`;
   return `<h1>Waitlist</h1>
 <p>People join from a form on your site. Joining gives no access until you activate them.${w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>

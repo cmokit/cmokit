@@ -4,13 +4,13 @@
 // passes through the conversation. No tool's input takes a credential.
 
 import {
-  AUDIENCES, FORMATS, KINDS, NUMBERS, PATTERNS, REJECTIONS, SECTIONS, SIGNALS, type Customer,
+  AUDIENCES, FORMATS, KINDS, NUMBERS, PATTERNS, REJECTIONS, Refusal, SECTIONS, SIGNALS, type Customer,
 } from './customer.ts';
 import { PLATFORMS } from './links.ts';
 
 /** The calls a tool makes on its customer's records, whether held here or in a Durable Object. */
 export type CustomerCalls = {
-  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'waitlistList' | 'isUser' | 'access' | 'billing']: Customer[K];
+  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'waitlistList' | 'waitlistActivate' | 'waitlistDecline' | 'isUser' | 'access' | 'billing']: Customer[K];
 };
 
 export interface Context {
@@ -26,6 +26,8 @@ export interface Tool {
   description: string;
   inputSchema: Record<string, unknown>;
   annotations: { title: string; readOnlyHint: boolean; destructiveHint: boolean; idempotentHint?: boolean; openWorldHint: boolean };
+  /** The card Claude shows with the tool's result, when the server has it built (ADR-0049). */
+  card?: 'waitlist';
   call(args: Record<string, any>, context: Context): Promise<unknown>;
 }
 
@@ -44,6 +46,13 @@ const offer = object({
   promote: { type: 'boolean', description: 'False for something the person asked never to promote.' },
   notes: string('Anything else the plan needs, such as the rhythm or the usual host and venue.'),
 }, ['id', 'name', 'pattern']);
+
+/** A change to one person on the waitlist answers the whole list, so a card showing it redraws. */
+async function changed(customer: CustomerCalls, email: unknown, change: (email: string) => Promise<{ found: boolean }>) {
+  if (typeof email !== 'string' || !email.trim()) throw new Refusal('Give the person\'s address, as waitlist_list lists it.');
+  if (!(await change(email)).found) throw new Refusal('That address is not on the waitlist.');
+  return { people: await customer.waitlistList() };
+}
 
 const readOnly = (title: string) => ({ title, readOnlyHint: true, destructiveHint: false, openWorldHint: false });
 
@@ -172,10 +181,39 @@ export const TOOLS: Tool[] = [
     description: 'The brand\'s waitlist in the order its account page ranks it: referrals plus Reels commented on, '
       + 'then who joined first. Each person has their address, when they joined, their referrals, the Instagram '
       + 'handle they proved, how many Reels it commented on, the tracking tags of the page they joined on, and '
-      + 'when they were activated. Activating someone is done on the account page, not here.',
+      + 'when they were activated or declined. Where Claude shows cards, the person sees the list as a card, '
+      + 'where they sort and filter it and activate or decline people themselves.',
     inputSchema: object({}),
     annotations: readOnly('List the waitlist'),
+    card: 'waitlist',
     call: async (_args, { customer }) => ({ people: await customer.waitlistList() }),
+  },
+  {
+    name: 'waitlist_activate',
+    title: 'Activate someone on the waitlist',
+    description: 'Activates one person on the brand\'s waitlist, by the address it lists, and answers the waitlist '
+      + 'as it now stands. Call it only when the person you work for names who to activate. Activating gives them '
+      + 'access to what the brand sells; CMOkit sends them no email yet, so the person tells them. A declined '
+      + 'person is restored with waitlist_decline first.',
+    inputSchema: object({ email: string('Their address, as waitlist_list gives it.') }, ['email']),
+    annotations: { title: 'Activate someone', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    card: 'waitlist',
+    call: (args, { customer }) => changed(customer, args.email, (email) => customer.waitlistActivate(email)),
+  },
+  {
+    name: 'waitlist_decline',
+    title: 'Decline someone on the waitlist',
+    description: 'Declines one person on the brand\'s waitlist, by the address it lists, or with restore true '
+      + 'puts a declined person back, and answers the waitlist as it now stands. Call it only when the person you '
+      + 'work for names who to decline. Declining sends nothing and deletes nothing: the card hides declined '
+      + 'people unless its Declined filter is on. An activated person cannot be declined.',
+    inputSchema: object({
+      email: string('Their address, as waitlist_list gives it.'),
+      restore: { type: 'boolean', description: 'True to put a declined person back on the waiting list.' },
+    }, ['email']),
+    annotations: { title: 'Decline someone', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    card: 'waitlist',
+    call: (args, { customer }) => changed(customer, args.email, (email) => customer.waitlistDecline(email, args.restore !== true)),
   },
 ];
 

@@ -12,6 +12,7 @@
       "node"
     ],
     "skipLibCheck": true,
+    "jsx": "react-jsx",
     "lib": [
       "es2024",
       "dom",
@@ -25,6 +26,8 @@
     "scripts/**/*.ts",
     "packages/*/src/**/*.ts",
     "packages/*/test/**/*.ts",
+    "packages/content/apps/**/*.ts",
+    "packages/content/apps/**/*.tsx",
     "packages/create-cmokit/template/*.ts",
     "packages/create-cmokit/template/edge/*.ts",
     "packages/create-cmokit/template/lifecycle/*.ts",
