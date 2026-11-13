@@ -172,6 +172,7 @@ const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList
   'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsRecord', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
   'claudeSeen', 'claudeConnected',
   'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistDecline', 'waitlistActivated', 'waitlistActivatedInstagram',
+  'funnelVisit', 'funnelRead',
   'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount', 'instagramDisconnect'] as const;
 type Call = (typeof CALLS)[number];
 

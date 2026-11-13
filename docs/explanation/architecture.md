@@ -93,7 +93,7 @@ flowchart TB
   stripe["Stripe"]
 
   person -- "signs in" --> issuer
-  content -- "account_status, brand_read, brand_change, brand_history, offers_list, piece_save, pieces_list, results_read, waitlist_list, waitlist_activate, waitlist_decline" --> server
+  content -- "account_status, brand_read, brand_change, brand_history, offers_list, piece_save, pieces_list, results_read, funnel_read, waitlist_list, waitlist_activate, waitlist_decline" --> server
   task -- "results_read, pieces_list, piece_save" --> server
   lp -. "brand_read" .-> server
   future -. "the same tools and context" .-> server

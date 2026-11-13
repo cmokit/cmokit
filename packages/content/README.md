@@ -8,7 +8,7 @@ and signals, and the customer's sealed connections. It runs no model; every mode
 person's own Claude.
 
 - **Tools:** `account_status`, `brand_read`, `brand_change`, `brand_history`, `offers_list`,
-  `piece_save`, `pieces_list`, `results_read`, `waitlist_list`, `waitlist_activate` and
+  `piece_save`, `pieces_list`, `results_read`, `funnel_read`, `waitlist_list`, `waitlist_activate` and
   `waitlist_decline`, over Streamable HTTP with no session.
 - **Cards:** with the pages the package's build writes to `dist/apps/` passed in as `apps`, the
   waitlist tools show the waitlist as an MCP Apps card in Claude: the five most engaged waiting

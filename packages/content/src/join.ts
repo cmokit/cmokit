@@ -3,7 +3,9 @@
 // site addresses the brand's users listed may add people, and the answer is the person's referral
 // link: the page they joined on, with every query parameter it had, carrying their own code, and
 // their place in line, and, once the brand connected its Instagram, the account whose Reels they
-// comment their code on to move up more (ADR-0045). The page's tracking tags are kept with the person. It uses the web-standard Request and Response only
+// comment their code on to move up more (ADR-0045). The page's tracking tags are kept with the person. The
+// same form counts each opening of its page, once a session, as a visit for the brand's funnel, keeping
+// only the page, its tags and the day (ADR-0050). It uses the web-standard Request and Response only
 // (ADR-0003).
 
 import type { InstagramAccount, WaitlistDetails, WaitlistJoined } from './customer.ts';
@@ -18,7 +20,11 @@ export interface JoinCalls {
   waitlistSites(): Promise<string[]>;
   waitlistJoin(email: string, details?: WaitlistDetails): Promise<WaitlistJoined>;
   instagramAccount?(): Promise<InstagramAccount | null>;
+  funnelVisit?(page: string, source?: Record<string, string>): Promise<void>;
 }
+
+/** The field the form's script sends, with the page, to count a visit instead of a join. */
+export const VISIT = 'visit';
 
 export interface JoinOptions {
   /** Whether a visitor may join now; false slows a flood of joins from one place. Absent, every join is let through. */
@@ -46,6 +52,11 @@ export async function handleJoin(request: Request, customer: JoinCalls, options:
   if (!allowed) return new Response('This page is not one of the brand\'s sites, so it cannot add people to its waitlist.', { status: 403 });
 
   const fields = await read(request);
+  if (fields[VISIT]) {
+    const link = referralLink(fields.page, origin!);
+    await customer.funnelVisit?.(pageOf(link), tags(link));
+    return new Response(null, { status: 204, headers: cors });
+  }
   const wantsJson = (request.headers.get('accept') ?? '').includes('application/json');
   const answer = (status: number, body: Answer) => wantsJson
     ? Response.json(body, { status, headers: { ...cors, 'cache-control': 'no-store' } })
@@ -60,7 +71,7 @@ export async function handleJoin(request: Request, customer: JoinCalls, options:
   const ip = request.headers.get('cf-connecting-ip') ?? '';
   if (options.allow && !(await options.allow(ip))) return answer(429, { problem: 'Too many tries. Wait a minute and try again.' });
 
-  const details: WaitlistDetails = { source };
+  const details: WaitlistDetails = { source, page: pageOf(link) };
   const ref = fields.ref?.trim();
   if (ref) details.ref = ref;
   const { code, place } = await customer.waitlistJoin(email, details);
@@ -85,6 +96,11 @@ function tags(page: URL): Record<string, string> {
     if (TAG.test(name) && value && !(name in kept)) kept[name] = value.slice(0, 100);
   }
   return kept;
+}
+
+/** A page as the funnel counts it: its address without the query or fragment. */
+function pageOf(link: URL): string {
+  return `${link.origin}${link.pathname}`;
 }
 
 /**
@@ -155,6 +171,14 @@ export function joinSnippet(action: string): string {
 </div>
 </div>
 <script>
+// Counts this page as a visit for the brand's funnel, once a session; it sends no cookie and no identity.
+try {
+  const seen = 'cmokit-visit:' + location.pathname;
+  if (!sessionStorage.getItem(seen)) {
+    sessionStorage.setItem(seen, '1');
+    fetch('${action}', { method: 'POST', mode: 'no-cors', credentials: 'omit', keepalive: true, body: new URLSearchParams({ ${VISIT}: '1', page: location.href }) });
+  }
+} catch {}
 document.querySelectorAll('[data-cmokit-waitlist]').forEach((box) => {
   const join = box.querySelector('[data-cmokit-join]');
   join.addEventListener('submit', async (event) => {
