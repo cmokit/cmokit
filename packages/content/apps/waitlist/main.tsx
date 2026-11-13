@@ -1,7 +1,9 @@
 // The waitlist card's connection to Claude, through the MCP Apps SDK (ADR-0049). The host hands the card
 // the waitlist tool's result; the card's changes call the server's own tools, which answer the waitlist
-// again. Light or dark follows the host's theme.
-import { applyDocumentTheme, type App } from '@modelcontextprotocol/ext-apps';
+// again. Light or dark follows the host's theme. The card shows the full list when Claude has it full
+// screen, and asks for full screen from the "Open full list" click. A host that offers no full screen,
+// or refuses, gets the full list in place instead.
+import { applyDocumentTheme, type App, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useApp } from '@modelcontextprotocol/ext-apps/react';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -16,23 +18,38 @@ const textOf = (result: Result): string => result.content?.find((c) => c.type ==
 
 function Root() {
   const [people, setPeople] = useState<Person[] | null>(null);
+  const [context, setContext] = useState<McpUiHostContext | undefined>();
+  const [inPlace, setInPlace] = useState(false);
   const { app, error } = useApp({
-    appInfo: { name: 'cmokit-waitlist', version: '0.1.0' },
-    capabilities: {},
+    appInfo: { name: 'cmokit-waitlist', version: '0.2.0' },
+    capabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
     onAppCreated: (created: App) => {
       created.ontoolresult = (result) => {
         const listed = peopleOf(result as Result);
         if (listed) setPeople(listed);
       };
-      created.onhostcontextchanged = (context) => {
-        if (context.theme) applyDocumentTheme(context.theme);
+      created.onhostcontextchanged = (changed) => {
+        if (changed.theme) applyDocumentTheme(changed.theme);
+        setContext(created.getHostContext());
       };
     },
   });
   useEffect(() => {
-    const theme = app?.getHostContext()?.theme;
-    if (theme) applyDocumentTheme(theme);
+    const now = app?.getHostContext();
+    if (now?.theme) applyDocumentTheme(now.theme);
+    setContext(now);
   }, [app]);
+
+  const fullscreen = context?.displayMode === 'fullscreen';
+  // Claude grants full screen only from a recent click, so this runs straight from the button.
+  const expand = async () => {
+    if (app && context?.availableDisplayModes?.includes('fullscreen')) {
+      const { mode } = await app.requestDisplayMode({ mode: 'fullscreen' });
+      if (mode === 'fullscreen') return;
+    }
+    setInPlace(true);
+  };
+  const inset = fullscreen ? context?.safeAreaInsets : undefined;
 
   if (error) return <p className="p-4 text-problem">The card could not reach Claude: {error.message}</p>;
 
@@ -52,7 +69,11 @@ function Root() {
     }
   };
 
-  return <WaitlistCard people={people} change={change} />;
+  return (
+    <div style={inset && { paddingTop: inset.top, paddingRight: inset.right, paddingBottom: inset.bottom, paddingLeft: inset.left }}>
+      <WaitlistCard people={people} change={change} view={fullscreen || inPlace ? 'full' : 'summary'} expand={expand} />
+    </div>
+  );
 }
 
 createRoot(document.getElementById('root')!).render(<StrictMode><Root /></StrictMode>);

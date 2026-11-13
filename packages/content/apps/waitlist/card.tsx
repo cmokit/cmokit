@@ -1,42 +1,92 @@
-// The waitlist card (ADR-0049): the brand's waitlist, ranked by engagement, to sort, filter and search,
-// with Activate on each waiting person and Decline or Restore behind a tap. Each change is a call to
-// the server's own tool, and the list redraws from the waitlist it answers.
-import { useState } from 'react';
+// The waitlist card (ADR-0049), in two views. Inline in the conversation it fits its content, with no
+// scrolling of its own: how many are waiting and the five most engaged, each with Activate and Decline.
+// "Open full list" asks Claude for full screen, where the whole waitlist filters, searches and sorts.
+// Each change is a call to the server's own tool, and both views redraw from the waitlist it answers.
+import { useState, type ReactNode } from 'react';
 import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
 import { cn } from '../ui/cn.ts';
 import { Notice } from '../ui/notice.tsx';
 import { counts, engagement, FILTERS, plural, shown, SORTS, stateOf, type Filter, type Person, type Sort } from './list.ts';
 
-/** How many rows show before "Show more". */
-const PAGE = 20;
+/** How many of the most engaged waiting people the inline card shows. */
+export const TOP = 5;
 
+export type View = 'summary' | 'full';
 export type Change = { tool: 'waitlist_activate' | 'waitlist_decline'; email: string; restore?: boolean };
 export type Outcome = { tone: 'info' | 'warning' | 'error'; text: string };
 
-export function WaitlistCard({ people, change }: {
+export function WaitlistCard({ people, change, view, expand }: {
   people: Person[] | null;
   /** Makes one change on the server, and answers what to tell the person. */
   change(c: Change): Promise<Outcome>;
+  view: View;
+  /** Opens the full list. Called straight from the button's click, as Claude asks for full screen. */
+  expand(): void;
 }) {
-  const [filter, setFilter] = useState<Filter>('waiting');
-  const [sort, setSort] = useState<Sort>('engaged');
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState<string | null>(null);
-  const [limit, setLimit] = useState(PAGE);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Outcome | null>(null);
 
-  if (people === null) return <p className="p-4 text-muted">Loading the waitlist…</p>;
+  if (people === null) return <Skeleton />;
 
-  const total = counts(people);
-  const list = shown(people, filter, sort, search);
   const act = async (c: Change) => {
     setBusy(c.email);
     setNotice(await change(c));
     setBusy(null);
-    setOpen(null);
   };
+  const banner = notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>;
+  return view === 'full'
+    ? <Full people={people} busy={busy} act={act} notice={banner} />
+    : <Summary people={people} busy={busy} act={act} notice={banner} expand={expand} />;
+}
+
+type Shared = { people: Person[]; busy: string | null; act(c: Change): void; notice: ReactNode };
+
+function Summary({ people, busy, act, notice, expand }: Shared & { expand(): void }) {
+  const total = counts(people);
+  const top = shown(people, 'waiting', 'engaged').slice(0, TOP);
+  return (
+    <div className="flex flex-col gap-3 p-3 sm:p-4">
+      <header className="flex flex-col gap-0.5">
+        <h2 className="m-0 font-display text-lg font-semibold tracking-tight">Waitlist</h2>
+        <p className="m-0 text-xs text-muted">
+          {total.waiting} waiting · {total.activated} activated · {total.declined} declined
+        </p>
+      </header>
+      {notice}
+      {top.length === 0 ? (
+        <p className="m-0 rounded-md border border-dashed border-line px-4 py-5 text-center text-sm text-muted">Nobody is waiting.</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-md border border-line bg-surface p-0">
+          {top.map((p) => (
+            <li key={p.email} className="flex items-center gap-1.5 py-2 pl-3 pr-2">
+              <Who person={p} />
+              <Button variant="ghost" size="md" className="px-3" disabled={busy === p.email}
+                onClick={() => act({ tool: 'waitlist_decline', email: p.email })}>Decline</Button>
+              <Button variant="primary" size="md" disabled={busy === p.email}
+                onClick={() => act({ tool: 'waitlist_activate', email: p.email })}>
+                {busy === p.email ? 'Saving…' : 'Activate'}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {people.length > 0 && (
+        <Button variant="outline" size="md" className="w-full" onClick={expand}>
+          Open full list{total.waiting > top.length ? ` (${total.waiting - top.length} more waiting)` : ''}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function Full({ people, busy, act, notice }: Shared) {
+  const [filter, setFilter] = useState<Filter>('waiting');
+  const [sort, setSort] = useState<Sort>('engaged');
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
+  const total = counts(people);
+  const list = shown(people, filter, sort, search);
 
   return (
     <div className="flex flex-col gap-3 p-3 sm:p-4">
@@ -44,51 +94,57 @@ export function WaitlistCard({ people, change }: {
         <h2 className="m-0 font-display text-lg font-semibold tracking-tight">Waitlist</h2>
         <span className="text-xs text-muted">{plural(people.length, 'person', 'people')}</span>
       </header>
-
-      {notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>}
-
-      <div role="group" aria-label="Show" className="flex gap-1 rounded-full bg-sunk p-1">
-        {FILTERS.map((f) => (
-          <button key={f.value} type="button" aria-pressed={filter === f.value}
-            onClick={() => { setFilter(f.value); setLimit(PAGE); setOpen(null); }}
-            className={cn('flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium',
-              filter === f.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink')}>
-            {f.label}<span className="tabular-nums opacity-70">{total[f.value]}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-2">
-        <label className="sr-only" htmlFor="waitlist-search">Search by address or handle</label>
-        <input id="waitlist-search" type="search" value={search} placeholder="Search address or @handle"
-          onChange={(e) => { setSearch(e.target.value); setLimit(PAGE); }}
-          className="h-9 min-w-0 flex-1 rounded-full border border-line bg-surface px-3.5 text-sm text-ink placeholder:text-muted" />
-        <label className="sr-only" htmlFor="waitlist-sort">Sort</label>
-        <select id="waitlist-sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}
-          className="h-9 shrink-0 cursor-pointer rounded-full border border-line bg-surface px-3 text-xs text-ink">
-          {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-      </div>
+      {notice}
+      <Segmented<Filter> label="Show" value={filter} onChange={(f) => { setFilter(f); setOpen(null); }}
+        options={FILTERS.map((f) => ({ ...f, count: total[f.value] }))} />
+      <label className="sr-only" htmlFor="waitlist-search">Search by address or handle</label>
+      <input id="waitlist-search" type="search" value={search} placeholder="Search address or @handle"
+        onChange={(e) => setSearch(e.target.value)}
+        className="h-11 min-w-0 rounded-full border border-line bg-surface px-4 text-sm text-ink placeholder:text-muted" />
+      <Segmented<Sort> label="Sort" value={sort} onChange={setSort} options={SORTS} />
 
       {list.length === 0 ? (
         <p className="m-0 rounded-md border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
           {search ? 'Nobody here matches that search.' : filter === 'waiting' ? 'Nobody is waiting.' : `Nobody is ${filter}.`}
         </p>
       ) : (
-        <ul className="m-0 flex list-none flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-surface p-0">
-          {list.slice(0, limit).map((p) => (
+        <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-md border border-line bg-surface p-0">
+          {list.map((p) => (
             <Row key={p.email} person={p} open={open === p.email} busy={busy === p.email}
               toggle={() => setOpen(open === p.email ? null : p.email)} act={act} />
           ))}
         </ul>
       )}
-
-      {list.length > limit && (
-        <Button variant="ghost" size="md" onClick={() => setLimit(limit + PAGE)}>
-          Show {Math.min(PAGE, list.length - limit)} more of {list.length - limit}
-        </Button>
-      )}
     </div>
+  );
+}
+
+/** Visible choices in place of a menu, which Claude's guidelines ask cards to avoid. */
+function Segmented<T extends string>({ label, value, onChange, options }: {
+  label: string;
+  value: T;
+  onChange(value: T): void;
+  options: { value: T; label: string; count?: number }[];
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex gap-1 rounded-full bg-sunk p-1">
+      {options.map((o) => (
+        <button key={o.value} type="button" aria-pressed={value === o.value} onClick={() => onChange(o.value)}
+          className={cn('flex min-h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 text-xs font-medium',
+            value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink')}>
+          {o.label}{o.count !== undefined && <span className="tabular-nums opacity-70">{o.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Who({ person: p }: { person: Person }) {
+  return (
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="truncate font-medium">{p.instagram ? `@${p.instagram}` : p.email}</span>
+      <span className="truncate text-xs text-muted">{plural(p.referrals, 'referral')} · {plural(p.engaged, 'Reel')}</span>
+    </span>
   );
 }
 
@@ -104,18 +160,13 @@ function Row({ person: p, open, busy, toggle, act }: {
   const details = `waitlist-${p.email.replace(/[^a-z0-9]/gi, '-')}`;
   return (
     <li className="flex flex-col">
-      <div className="flex items-center gap-2 px-3 py-2.5">
+      <div className="flex items-center gap-2 px-3 py-2">
         <button type="button" onClick={toggle} aria-expanded={open} aria-controls={details}
-          className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 text-left">
-          <span className="w-full truncate font-medium">{p.instagram ? `@${p.instagram}` : p.email}</span>
-          <span className="w-full truncate text-xs text-muted">
-            {plural(p.referrals, 'referral')} · {plural(p.engaged, 'Reel')}
-          </span>
-        </button>
+          className="flex min-h-11 min-w-0 flex-1 cursor-pointer text-left"><Who person={p} /></button>
         {score > 0 && <Badge variant="quiet" title="Referrals plus Reels commented on">{score}</Badge>}
         {state === 'waiting' && (
-          <Button variant="primary" disabled={busy} onClick={() => act({ tool: 'waitlist_activate', email: p.email })}>
-            {busy ? 'Activating…' : 'Activate'}
+          <Button variant="primary" size="md" disabled={busy} onClick={() => act({ tool: 'waitlist_activate', email: p.email })}>
+            {busy ? 'Saving…' : 'Activate'}
           </Button>
         )}
         {state === 'activated' && <Badge variant="accent">Activated</Badge>}
@@ -132,18 +183,29 @@ function Row({ person: p, open, busy, toggle, act }: {
             {Object.keys(p.source).length > 0 && <><dt className="text-muted">Came from</dt>
               <dd className="m-0 break-all">{Object.entries(p.source).map(([k, v]) => `${k}=${v}`).join(', ')}</dd></>}
           </dl>
-          {state === 'waiting' && (
+          {state !== 'activated' && (
             <div className="flex justify-end">
-              <Button variant="outline" disabled={busy} onClick={() => act({ tool: 'waitlist_decline', email: p.email })}>Decline</Button>
-            </div>
-          )}
-          {state === 'declined' && (
-            <div className="flex justify-end">
-              <Button variant="outline" disabled={busy} onClick={() => act({ tool: 'waitlist_decline', email: p.email, restore: true })}>Restore</Button>
+              <Button variant="outline" size="md" disabled={busy}
+                onClick={() => act({ tool: 'waitlist_decline', email: p.email, ...(state === 'declined' ? { restore: true } : {}) })}>
+                {state === 'waiting' ? 'Decline' : 'Restore'}
+              </Button>
             </div>
           )}
         </div>
       )}
     </li>
+  );
+}
+
+/** A skeleton in the summary's shape while the waitlist loads, as Claude's guidelines prefer to a spinner. */
+function Skeleton() {
+  return (
+    <div className="flex flex-col gap-3 p-3 sm:p-4" aria-busy="true" aria-label="Loading the waitlist">
+      <div className="h-5 w-24 rounded bg-sunk" />
+      <div className="h-3 w-44 rounded bg-sunk" />
+      <div className="flex flex-col divide-y divide-line rounded-md border border-line">
+        {[0, 1, 2].map((i) => <div key={i} className="h-14" />)}
+      </div>
+    </div>
   );
 }
