@@ -1,6 +1,6 @@
 ---
 name: content
-description: Plans, writes and checks short-form social content for one brand (Instagram Reels, carousels, photo posts and Stories first), from its brand context and event calendar, through CMOkit's connector, and runs the weekly review. Use when onboarding a brand, planning the week, writing a Reel or carousel brief, recording that a piece was posted or its numbers, reviewing results, or when asked whether a platform allows or requires labeling something made with AI.
+description: Plans, writes and checks short-form social content for one brand (Instagram Reels, carousels, photo posts and Stories first), from its brand context and event calendar, through CMOkit's connector, and runs the weekly review. Use when onboarding a brand, planning the week, writing a Reel or carousel brief, recording that a piece was posted or its numbers, reviewing results, reviewing the waitlist page's conversion, or when asked whether a platform allows or requires labeling something made with AI.
 ---
 
 # Content
@@ -146,6 +146,43 @@ commercially.
 
 Results count registrations by the piece's `utm_content`, so a shared profile link credits whichever
 piece was current. Say so when it matters.
+
+## 8. Conversion review (weekly)
+
+The brand's funnel starts on the page that carries its waitlist form: visits, then joins, then
+Instagram handles proved by commenting a code, then activation by the brand. Run this review in the
+same weekly pass as step 7, or whenever the person asks how the page converts.
+
+1. Call `funnel_read` for the last 7 days and for the 7 days before them. Start no earlier than
+   `counting_since`: joins before it have no visits to compare with. If `counting_since` is null, or
+   a period has no visits, the site still has an older form: tell the person to copy the form again
+   from the Waitlist tab on app.cmokit.ai and paste it over the old one, and stop the review there.
+2. Read two stages. The page's stage is `join_rate`, joins divided by visits. The Reels' stage is
+   `proved` divided by `joined`. Activation is the brand's own choice, never a page's result, so
+   never call it the weakest stage. The weakest stage is the lower of the two, compared with the
+   last review where there was one.
+3. Find the worst source: among sources with at least 50 visits in the period, the one whose
+   `join_rate` is lowest. A source is its tracking tags; name it by `utm_source` and `utm_content`,
+   and call visits without tags "direct or untagged".
+4. Judge the change in play, if one is. Ask the person, once, which change went live and on what day,
+   unless this conversation already says. Compare the 7 days after it with the 7 days before it,
+   on the page it changed. Call a result only when each side has at least 100 visits and the
+   difference in join rate is at least twice its standard error,
+   `sqrt(p1(1-p1)/n1 + p2(1-p2)/n2)`, computed with code. Otherwise say it is too early, and keep
+   the change for another week. A visit is counted once per browser session, and bots that run the
+   script count too, so treat a small difference as none.
+5. Propose one change, and only one while another is being judged. It targets the weakest stage or
+   the worst source, names what it changes and what it should move, and is judged in step 4 next
+   week. For the page's stage: the headline's promise, the button's words, proof beside the form, or
+   the form higher on the page. For the Reels' stage: how the Reel asks people to comment their
+   code. For a source: the Reel or link that sends it, so its promise matches the page.
+6. Say the numbers that decided it, in one line each, and what the person does next. They make the
+   change on their own site; you never edit the site. Changing two things at once makes neither
+   judgeable, so say so if they want to.
+
+There is no A/B split on a hosted site yet: a change is judged against the weeks before it, so a
+holiday, a launch or a Reel that took off can move the numbers by itself. Say so when one of those
+happened.
 
 ## AI content rules
 

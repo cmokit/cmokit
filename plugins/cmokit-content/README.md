@@ -1,7 +1,8 @@
 # cmokit-content
 
 A plugin for Claude's chat, on the web, desktop and mobile, that plans, writes and checks one brand's
-Reels, carousels, photo posts and Stories, and reviews what worked each week. It holds one skill,
+Reels, carousels, photo posts and Stories, reviews what worked each week, and reviews how the
+brand's waitlist page converts, proposing one change at a time. It holds one skill,
 `content`. Everything it keeps (the brand context, the pieces, their tracked links and results) lives
 on CMOkit's content server, reached through CMOkit's connector, so every skill that serves the brand
 reads the same context.
@@ -26,4 +27,4 @@ when you sign in. Add CMOkit to Claude by that address only: CMOkit's sign-in gr
 `https://mcp.cmokit.ai/mcp`, so a customer's own path, `/customers/<slug>/mcp`, cannot sign in from Claude.
 When something is missing, the skill says what and how to turn it on.
 
-The decisions behind it are ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0029 and ADR-0034.
+The decisions behind it are ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0029, ADR-0034 and ADR-0050.
