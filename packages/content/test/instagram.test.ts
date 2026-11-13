@@ -64,6 +64,23 @@ test('the brand connects its Instagram through Meta\'s login, and its account an
   assert.deepEqual(read, ['portfolio-token 999'], 'the brand\'s own account is read with the kept token');
 });
 
+test('the brand disconnects its Instagram: the account and its token are forgotten, and it can connect again', async () => {
+  const { post, customer, connectBrand, handle } = setup();
+  await customer.addUser('ada');
+  const waitlist = async () => (await handle(new Request(`${APP}/waitlist`, { headers: { cookie: '__Host-cmokit-session=ada-token' } }))).text();
+  await connectBrand();
+  const connected = await waitlist();
+  assert.match(connected, /Connected: @acmebrand\./);
+  assert.match(connected, /<button type="submit">Disconnect Instagram<\/button>/);
+  assert.doesNotMatch(connected, /Connect Instagram<\/button>/);
+  assert.equal((await post('/instagram/disconnect')).headers.get('location'), '/waitlist?instagram=disconnected');
+  assert.equal(await customer.instagramAccount(), null);
+  assert.equal((await post('/instagram/count')).headers.get('location'), '/waitlist?instagram=failed', 'nothing to count once disconnected');
+  assert.match(await waitlist(), /<button type="submit">Connect Instagram<\/button>/);
+  await connectBrand();
+  assert.equal((await customer.instagramAccount())!.username, 'acmebrand');
+});
+
 test('Meta saying no sends the brand back to its account page, and an unknown start is gone', async () => {
   const { post, back, customer } = setup();
   await customer.addUser('ada');

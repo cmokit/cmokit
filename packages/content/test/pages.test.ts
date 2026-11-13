@@ -12,7 +12,7 @@ test('every page carries the shared look under the wordmark, loads fonts only fr
     accountPage({ email: 'ada@example.com' }),
   ];
   for (const response of pages) {
-    assert.equal(response.headers.get('content-security-policy'), "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; frame-ancestors 'none'");
+    assert.equal(response.headers.get('content-security-policy'), "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self' https://www.facebook.com; frame-ancestors 'none'");
     const body = await response.text();
     assert.ok(body.includes(`<style>${LOOK}</style>`));
     assert.ok(body.includes(HEADER));

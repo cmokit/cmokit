@@ -714,6 +714,12 @@ export class Customer {
     );
   }
 
+  /** Forgets the brand's Instagram account and its token. Handles people already proved stay theirs. */
+  async instagramDisconnect(): Promise<void> {
+    this.#sql.all('DELETE FROM connections WHERE vendor = ?', INSTAGRAM);
+    this.#sql.all('DELETE FROM settings WHERE name = ?', 'instagram_counted');
+  }
+
   /** The brand's own Instagram account, if it connected one. */
   async instagramAccount(): Promise<InstagramAccount | null> {
     const row = this.#sql.all('SELECT name FROM connections WHERE vendor = ?', INSTAGRAM)[0];

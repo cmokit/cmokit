@@ -68,6 +68,7 @@ export interface CustomerPages {
   instagramSave(person: string, id: string, username: string, token: string): Promise<void>;
   instagramAccount(): Promise<InstagramAccount | null>;
   instagramCount(): Promise<{ reels: number; people: number }>;
+  instagramDisconnect(): Promise<void>;
 }
 
 /** Terms every user accepts before using the server, as a closed beta's (ADR-0047). */

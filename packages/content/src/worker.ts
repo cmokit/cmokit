@@ -172,7 +172,7 @@ const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList
   'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsRecord', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
   'claudeSeen', 'claudeConnected',
   'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated', 'waitlistActivatedInstagram',
-  'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount'] as const;
+  'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount', 'instagramDisconnect'] as const;
 type Call = (typeof CALLS)[number];
 
 /** The account page, at APP_URL, signing in through the issuer over its service binding (ADR-0041). */
