@@ -168,3 +168,38 @@ test('site addresses are kept as https origins, and anything else is refused', a
   await assert.rejects(customer.waitlistSetSites(Array.from({ length: 11 }, (_, i) => `s${i}.example`)), /at most 10/);
   assert.deepEqual(await customer.waitlistSites(), ['https://brand.example', 'https://www.brand.example']);
 });
+
+test('the form counts visits per day, page and source for the brand\'s funnel, and keeps nothing about the visitor', async () => {
+  const { join, customer, later } = await setup();
+  const visit = (page: string, origin?: string | null) => join({ visit: '1', page }, { origin });
+  assert.equal((await visit(`${SITE}/beta?utm_source=ig&utm_content=r1&email=x@y.z#top`)).status, 204);
+  await visit(`${SITE}/beta?utm_content=r1&utm_source=ig`);
+  await visit(`${SITE}/beta`);
+  assert.equal((await visit(`${SITE}/beta`, 'https://evil.example')).status, 403, 'only the brand\'s sites count');
+  assert.equal((await visit(`${SITE}/beta`, null)).status, 403);
+  await join({ email: 'cy@example.com', page: `${SITE}/beta?utm_source=ig&utm_content=r1` });
+  await customer.waitlistActivate('cy@example.com');
+  later(86_400_000);
+  await visit(`${SITE}/beta`);
+  await join({ email: 'di@example.com', page: `${SITE}/beta` });
+
+  const day1 = await customer.funnelRead({ from: '2026-11-09', to: '2026-11-09' });
+  assert.equal(day1.counting_since, '2026-11-09');
+  assert.deepEqual(day1.totals, { visits: 3, joined: 1, proved: 0, activated: 1, join_rate: 0.333 });
+  assert.deepEqual(day1.rows, [
+    { page: `${SITE}/beta`, source: { utm_source: 'ig', utm_content: 'r1' }, visits: 2, joined: 1, proved: 0, activated: 1, join_rate: 0.5 },
+    { page: `${SITE}/beta`, source: {}, visits: 1, joined: 0, proved: 0, activated: 0, join_rate: 0 },
+  ]);
+  const both = await customer.funnelRead({ from: '2026-11-09', to: '2026-11-10' });
+  assert.deepEqual(both.totals, { visits: 4, joined: 2, proved: 0, activated: 1, join_rate: 0.5 });
+  assert.doesNotMatch(JSON.stringify(both), /x@y\.z|email/, 'a query parameter that is not a tracking tag is never kept');
+  await assert.rejects(customer.funnelRead({ from: '2026-11-10', to: '2026-11-09' }), /first day comes after the last/);
+  assert.equal((JSON.parse((await customer.exportAll()).json) as { visits: unknown[] }).visits.length, 2, 'the export holds the counts');
+});
+
+test('the form\'s script counts its page once a session, without cookies', () => {
+  const snippet = joinSnippet('https://app.example/join/acme');
+  assert.match(snippet, /sessionStorage/);
+  assert.match(snippet, /fetch\('https:\/\/app\.example\/join\/acme', \{ method: 'POST', mode: 'no-cors', credentials: 'omit'/);
+  assert.match(snippet, /visit: '1', page: location\.href/);
+});

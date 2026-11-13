@@ -152,7 +152,7 @@ test('MCP over Streamable HTTP, statelessly: initialize, notifications, tools', 
   assert.equal((await handle(new Request(`${ORIGIN}/customers/acme/mcp`, { headers: { authorization: 'Bearer ada-token' } }))).status, 405);
   const listed = await (await rpc('acme', 'ada-token', 'tools/list')).json() as any;
   assert.deepEqual(listed.result.tools.map((t: { name: string }) => t.name), [
-    'account_status', 'brand_read', 'brand_change', 'brand_history', 'offers_list', 'piece_save', 'pieces_list', 'results_read', 'waitlist_list',
+    'account_status', 'brand_read', 'brand_change', 'brand_history', 'offers_list', 'piece_save', 'pieces_list', 'results_read', 'funnel_read', 'waitlist_list',
     'waitlist_activate', 'waitlist_decline',
   ]);
   assert.equal(listed.result.tools.find((t: { name: string }) => t.name === 'waitlist_list')._meta, undefined, 'no card without a built card');

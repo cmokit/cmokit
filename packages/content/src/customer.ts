@@ -9,6 +9,7 @@ import type { EventSummary, Events, Tally } from './events.ts';
 import { InstagramError, type InstagramApp } from './instagram.ts';
 import { PLATFORMS, destinationProblem, trackedLink, type Platform } from './links.ts';
 import type { Row, Sql } from './sql.ts';
+import { recordVisits, sourceKey, type VisitStore } from './visits.ts';
 import { hash, randomToken, type Vault } from './vault.ts';
 
 /** The brand context's sections, as `CNT-01` lists them; what the brand sells is its offers. */
@@ -96,6 +97,8 @@ export interface CustomerDeps {
   events: Events;
   /** The Instagram app, when one is set up (ADR-0045). */
   instagram?: InstagramApp;
+  /** Where visit counts are kept; the brand's own records when absent (ADR-0050). */
+  visits?: VisitStore;
   now?(): number;
   newId?(): string;
 }
@@ -128,8 +131,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS claude (person TEXT PRIMARY KEY, first_at INTEGER NOT NULL)',
 ];
 /** Columns added to the waitlist after it was first made; each is added to an older brand's records. */
-const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER', 'instagram_user TEXT', 'declined_at INTEGER'];
-const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist', 'instagram_starts', 'claude'];
+const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER', 'instagram_user TEXT', 'declined_at INTEGER', 'page TEXT'];
+const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist', 'instagram_starts', 'claude', 'visits'];
 /** The most site addresses a brand's waitlist accepts joins from. */
 const MAX_SITES = 10;
 
@@ -153,6 +156,32 @@ export interface WaitlistEntry {
 export interface WaitlistDetails {
   ref?: string;
   source?: Record<string, string>;
+  /** The page they joined on, without its query. */
+  page?: string;
+}
+
+/** One row of the funnel: a page and source, and how many people reached each stage from it (ADR-0050). */
+export interface FunnelRow {
+  page: string;
+  /** The tracking tags (utm_*); empty for visits that carried none. */
+  source: Record<string, string>;
+  visits: number;
+  joined: number;
+  /** Of those who joined, how many proved their Instagram handle by commenting their code. */
+  proved: number;
+  activated: number;
+  /** joined divided by visits, or null with no visits counted. */
+  join_rate: number | null;
+}
+
+/** The brand's funnel over a period, from visits to activation. */
+export interface Funnel {
+  from: string;
+  to: string;
+  /** The first day visits were counted; joins before it have no visits to compare with. */
+  counting_since: string | null;
+  totals: Omit<FunnelRow, 'page' | 'source'>;
+  rows: FunnelRow[];
 }
 
 /** Who started connecting the brand's Instagram: one of its users. */
@@ -181,6 +210,7 @@ export class Customer {
   readonly #deps: CustomerDeps;
   readonly #now: () => number;
   readonly #newId: () => string;
+  readonly #visits: VisitStore;
 
   constructor(sql: Sql, deps: CustomerDeps) {
     this.#sql = sql;
@@ -188,6 +218,7 @@ export class Customer {
     this.#now = deps.now ?? Date.now;
     this.#newId = deps.newId ?? (() => `p${randomToken().replace(/[^a-z0-9]/g, '').slice(0, 9)}`);
     for (const statement of SCHEMA) sql.all(statement);
+    this.#visits = deps.visits ?? recordVisits(sql);
     for (const column of WAITLIST_ADDED) {
       try {
         sql.all(`ALTER TABLE waitlist ADD COLUMN ${column}`);
@@ -621,9 +652,9 @@ export class Customer {
     const referrer = details.ref ? this.#sql.all('SELECT code FROM waitlist WHERE code = ?', details.ref)[0] : undefined;
     const code = randomToken().replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
     const source = details.source && Object.keys(details.source).length ? JSON.stringify(details.source) : null;
-    this.#sql.all(`INSERT INTO waitlist (email, shown, joined_at, code, referred_by, activated_at, source)
-      VALUES (?, ?, ?, ?, ?, NULL, ?)`,
-      key, email.trim(), this.#now(), code, (referrer?.code as string | undefined) ?? null, source);
+    this.#sql.all(`INSERT INTO waitlist (email, shown, joined_at, code, referred_by, activated_at, source, page)
+      VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+      key, email.trim(), this.#now(), code, (referrer?.code as string | undefined) ?? null, source, details.page ?? null);
     return { code, joined: true, place: this.#place(code) };
   }
 
@@ -787,6 +818,50 @@ export class Customer {
     return { reels, people };
   }
 
+  // The funnel (ADR-0050): visits to the brand's pages, then the waitlist's stages, per page and source.
+
+  /** Counts one opening of a page on one of the brand's sites. Nothing about who opened it is kept. */
+  async funnelVisit(page: string, source: Record<string, string> = {}): Promise<void> {
+    await this.#visits.add({ day: new Date(this.#now()).toISOString().slice(0, 10), page, source });
+  }
+
+  /**
+   * Visits, joins, proved handles and activations from the first day to the last, both included, for
+   * each page and source. A join counts on the day it happened; its proof and activation count whenever
+   * they happened, so a period's people are followed to where they are now.
+   */
+  async funnelRead(range: { from: string; to: string }): Promise<Funnel> {
+    const from = isoDate(range.from).slice(0, 10);
+    const to = isoDate(range.to).slice(0, 10);
+    if (from > to) throw new Refusal('The first day comes after the last.');
+    const rows = new Map<string, FunnelRow>();
+    const row = (page: string, source: Record<string, string>) => {
+      const key = `${page} ${sourceKey(source)}`;
+      let found = rows.get(key);
+      if (!found) rows.set(key, found = { page, source, visits: 0, joined: 0, proved: 0, activated: 0, join_rate: null });
+      return found;
+    };
+    for (const count of await this.#visits.counts(from, to)) row(count.page, count.source).visits += count.visits;
+    const start = Date.parse(`${from}T00:00:00Z`);
+    const end = Date.parse(`${to}T00:00:00Z`) + DAY;
+    for (const person of this.#sql.all('SELECT page, source, instagram_id, activated_at FROM waitlist WHERE joined_at >= ? AND joined_at < ?', start, end)) {
+      const found = row((person.page as string | null) ?? '', person.source ? JSON.parse(person.source as string) as Record<string, string> : {});
+      found.joined += 1;
+      if (person.instagram_id !== null) found.proved += 1;
+      if (person.activated_at !== null) found.activated += 1;
+    }
+    const totals = { visits: 0, joined: 0, proved: 0, activated: 0, join_rate: null as number | null };
+    for (const r of rows.values()) {
+      r.join_rate = rate(r.joined, r.visits);
+      totals.visits += r.visits; totals.joined += r.joined; totals.proved += r.proved; totals.activated += r.activated;
+    }
+    totals.join_rate = rate(totals.joined, totals.visits);
+    return {
+      from, to, counting_since: await this.#visits.since(), totals,
+      rows: [...rows.values()].sort((a, b) => b.visits - a.visits || b.joined - a.joined),
+    };
+  }
+
   // Export and closing (ADR-0030).
 
   async exportAll(): Promise<{ json: string; markdown: string }> {
@@ -800,6 +875,7 @@ export class Customer {
       terms: this.#sql.all('SELECT person, version, at FROM terms').map((r) => ({ person: r.person, version: r.version, accepted: iso(r.at as number) })),
       claude: this.#sql.all('SELECT person, first_at FROM claude').map((r) => ({ person: r.person, connected: iso(r.first_at as number) })),
       waitlist: { sites: await this.waitlistSites(), people: await this.waitlistList() },
+      visits: await this.#visits.counts('0000-01-01', '9999-12-31'),
       pieces: await Promise.all(pieces.map(async (p) => ({ ...p, signals: await this.signals(p.id) }))),
     };
     const lines = [`# Brand context, version ${version}`, ''];
@@ -881,6 +957,11 @@ function isoDate(value: string): string {
   const at = Date.parse(value);
   if (Number.isNaN(at)) throw new Refusal(`${value} is not a date.`);
   return new Date(at).toISOString().slice(0, value.length <= 10 ? 10 : 24);
+}
+
+/** A share to three decimals, or null with nothing to divide by. */
+function rate(part: number, whole: number): number | null {
+  return whole > 0 ? Math.round((part / whole) * 1000) / 1000 : null;
 }
 
 function iso(at: number): string {

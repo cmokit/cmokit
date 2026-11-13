@@ -63,6 +63,8 @@ export interface CustomerPages {
   waitlistList(): Promise<WaitlistEntry[]>;
   waitlistActivate(email: string): Promise<{ found: boolean }>;
   waitlistDecline(email: string, declined?: boolean): Promise<{ found: boolean }>;
+  /** Counting a visit to one of the brand's pages for its funnel (ADR-0050). */
+  funnelVisit(page: string, source?: Record<string, string>): Promise<void>;
   /** Connecting the brand's Instagram, and counting comments on its Reels (ADR-0045). */
   instagramStart(person: string): Promise<string>;
   instagramTake(token: string): Promise<InstagramStart | undefined>;
@@ -205,6 +207,7 @@ export function createContentServer(options: ContentServerOptions) {
       // The form's Instagram step names the brand's account, so it shows only while an app is set up.
       return handleJoin(request, instagram ? customer : {
         waitlistSites: () => customer.waitlistSites(), waitlistJoin: (email, details) => customer.waitlistJoin(email, details),
+        funnelVisit: (page, source) => customer.funnelVisit(page, source),
       }, options.join);
     }
 

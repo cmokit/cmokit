@@ -10,7 +10,7 @@ import { PLATFORMS } from './links.ts';
 
 /** The calls a tool makes on its customer's records, whether held here or in a Durable Object. */
 export type CustomerCalls = {
-  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'waitlistList' | 'waitlistActivate' | 'waitlistDecline' | 'isUser' | 'access' | 'billing']: Customer[K];
+  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'waitlistList' | 'waitlistActivate' | 'waitlistDecline' | 'funnelRead' | 'isUser' | 'access' | 'billing']: Customer[K];
 };
 
 export interface Context {
@@ -174,6 +174,21 @@ export const TOOLS: Tool[] = [
     }, ['from', 'to']),
     annotations: { ...readOnly('Read results'), openWorldHint: true },
     call: (args, { customer }) => customer.resultsRead({ from: args.from, to: args.to }),
+  },
+  {
+    name: 'funnel_read',
+    title: 'Read the funnel',
+    description: 'The brand\'s waitlist funnel over a period, for each page and source: visits to the pages that carry the '
+      + 'waitlist form (counted once a browser session, with no visitor identity), then how many joined, proved their '
+      + 'Instagram handle and were activated, with joined divided by visits. A source is the page\'s tracking tags '
+      + '(utm_*), empty for visits that carried none. counting_since is the first day visits were counted; joins before '
+      + 'it have no visits to compare with. Use it to find the weakest stage and the source that converts worst.',
+    inputSchema: object({
+      from: string('The first day, as YYYY-MM-DD.'),
+      to: string('The last day, as YYYY-MM-DD.'),
+    }, ['from', 'to']),
+    annotations: readOnly('Read the funnel'),
+    call: (args, { customer }) => customer.funnelRead({ from: args.from, to: args.to }),
   },
   {
     name: 'waitlist_list',
