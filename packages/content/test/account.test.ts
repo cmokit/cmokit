@@ -248,6 +248,14 @@ test('a brand\'s users list its sites, get the form to paste, and activate peopl
   assert.match(await (await get('/waitlist?activated=done', session('ada-token'))).text(), /CMOkit sends no email yet/);
   assert.equal((await post('/waitlist/activate', { email: 'zed@example.com' }, session('ada-token'))).headers.get('location'), '/waitlist?activated=missing');
   assert.equal((await post('/waitlist/activate', { email: 'cy@example.com' }, session('bob-token'))).status, 403, 'not a user of this brand');
+
+  await handle(new Request(`${APP}/join/acme`, {
+    method: 'POST', body: new URLSearchParams({ email: 'di@example.com' }), headers: { origin: 'https://brand.example', accept: 'application/json' },
+  }));
+  await acme.waitlistDecline('di@example.com');
+  assert.match(await (await get('/waitlist', session('ada-token'))).text(), /<strong>di@example\.com<\/strong>.*?<span class="badge">Declined \d{4}-\d{2}-\d{2}<\/span>/);
+  assert.equal((await post('/waitlist/activate', { email: 'di@example.com' }, session('ada-token'))).headers.get('location'), '/waitlist?activated=declined');
+  assert.equal((await acme.waitlistList()).find((p) => p.email === 'di@example.com')!.activated, null);
 });
 
 test('on CMOkit\'s own brand, the page says activating someone lets them use CMOkit', async () => {

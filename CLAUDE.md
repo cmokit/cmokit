@@ -14,6 +14,9 @@ Everything is TypeScript on Node 24 or later, written only in syntax Node can st
 with `node` directly. No second language without a record. `npm run check` type-checks and checks the
 decision records and the package boundaries, and `npm test` runs every package's tests with Node's
 test runner; CI runs both on every pull request. (ADR-0007)
+The one exception is the cards Claude shows beside tools' results: React in TSX under
+`packages/content/apps/`, built by Vite into one page each, with any logic a test needs in plain
+`.ts` beside it. (ADR-0049)
 
 ## Pull requests
 

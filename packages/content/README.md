@@ -8,7 +8,11 @@ and signals, and the customer's sealed connections. It runs no model; every mode
 person's own Claude.
 
 - **Tools:** `account_status`, `brand_read`, `brand_change`, `brand_history`, `offers_list`,
-  `piece_save`, `pieces_list`, `results_read` and `waitlist_list`, over Streamable HTTP with no session.
+  `piece_save`, `pieces_list`, `results_read`, `waitlist_list`, `waitlist_activate` and
+  `waitlist_decline`, over Streamable HTTP with no session.
+- **Cards:** with the pages the package's build writes to `dist/apps/` passed in as `apps`, the
+  waitlist tools show the waitlist as an MCP Apps card in Claude, to sort, filter, activate and
+  decline from (ADR-0049). Without them the tools answer in text.
 - **Sign-in:** it checks bearer tokens issued for its own audience by CMOkit's issuer, which it
   names in its Protected Resource Metadata, and issues none. A person must be a user of the customer
   the path names, or, at `/mcp`, of the customer their sign-in chose.

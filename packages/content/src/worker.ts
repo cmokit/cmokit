@@ -22,7 +22,7 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { fontResponse, type Fonts } from '@cmokit/issuer/look';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
-import { createContentServer, type AccountOptions, type Billing, type CustomerPages, type Tokens } from './index.ts';
+import { createContentServer, type AccountOptions, type Apps, type Billing, type CustomerPages, type Tokens } from './index.ts';
 import { instagramApp, type InstagramApp } from './instagram.ts';
 import { luma } from './luma.ts';
 import type { Sql } from './sql.ts';
@@ -171,7 +171,7 @@ export interface CustomerClass {
 const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList', 'pieceSave', 'piecesList', 'resultsRead', 'isUser',
   'access', 'billing', 'linkFor', 'connect', 'termsAccepted', 'termsRecord', 'termsLink', 'termsFor', 'acceptTerms', 'provision', 'setAccess', 'addUser', 'exportAll',
   'claudeSeen', 'claudeConnected',
-  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistActivated', 'waitlistActivatedInstagram',
+  'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistDecline', 'waitlistActivated', 'waitlistActivatedInstagram',
   'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount', 'instagramDisconnect'] as const;
 type Call = (typeof CALLS)[number];
 
@@ -198,8 +198,11 @@ export function accountFor(env: ContentEnv): AccountOptions | undefined {
   };
 }
 
-/** `fonts` are the pages' two fonts, served at `/fonts/`; without them the pages use the system font (ADR-0046). */
-export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; fonts?: Fonts }) {
+/**
+ * `fonts` are the pages' two fonts, served at `/fonts/`; without them the pages use the system font (ADR-0046).
+ * `apps` are the built cards Claude shows beside a tool's result; without them the tools answer in text alone (ADR-0049).
+ */
+export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; fonts?: Fonts; apps?: Apps }) {
   class Customer {
     readonly #logic: CustomerLogic;
 
@@ -313,6 +316,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
         account: accountWith(env),
         join: { allow: env.JOINS ? async (key) => (await env.JOINS!.limit({ key })).success : undefined },
         instagram: instagramFor(env),
+        apps: options.apps,
       });
       return handle(request);
     },

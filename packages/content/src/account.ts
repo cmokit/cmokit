@@ -155,8 +155,11 @@ export async function handleAccount(request: Request, url: URL, account: Account
   if (route === 'POST /waitlist/activate') {
     if (!customer) return new Response('Not found', { status: 404 });
     const email = String((await request.formData()).get('email') ?? '').trim();
-    const { found } = await customer.waitlistActivate(email);
-    return seeOther(`/waitlist?activated=${found ? 'done' : 'missing'}`);
+    const found = await customer.waitlistActivate(email).then((r) => r.found ? 'done' : 'missing', (error) => {
+      if (error instanceof Refusal || (error as Error).name === 'Refusal') return 'declined';
+      throw error;
+    });
+    return seeOther(`/waitlist?activated=${found}`);
   }
 
   if (route === 'POST /waitlist/sites') {
@@ -258,6 +261,7 @@ function notice(url: URL): string | undefined {
   const activated = url.searchParams.get('activated');
   if (activated === 'done') return 'Activated. CMOkit sends no email yet, so tell them yourself.';
   if (activated === 'missing') return 'That address is not on the waitlist.';
+  if (activated === 'declined') return 'That person was declined. Restore them in Claude before activating them.';
   const instagram = url.searchParams.get('instagram');
   if (instagram === 'connected') return 'Instagram connected. Count comments on your Reels whenever you like.';
   if (instagram === 'counted') return 'Comments counted, and the waitlist is ranked again.';

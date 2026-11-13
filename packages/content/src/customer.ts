@@ -128,7 +128,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS claude (person TEXT PRIMARY KEY, first_at INTEGER NOT NULL)',
 ];
 /** Columns added to the waitlist after it was first made; each is added to an older brand's records. */
-const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER', 'instagram_user TEXT'];
+const WAITLIST_ADDED = ['instagram TEXT', 'source TEXT', 'instagram_id TEXT', 'engaged INTEGER', 'instagram_user TEXT', 'declined_at INTEGER'];
 const TABLES = ['users', 'settings', 'connections', 'links', 'brand', 'pieces', 'signals', 'terms', 'waitlist', 'instagram_starts', 'claude'];
 /** The most site addresses a brand's waitlist accepts joins from. */
 const MAX_SITES = 10;
@@ -139,6 +139,8 @@ export interface WaitlistEntry {
   joined: string;
   referrals: number;
   activated: string | null;
+  /** When a user of the brand declined them; a declined person is never activated unless restored first. */
+  declined: string | null;
   /** The Instagram handle they proved by commenting their code, without its @. */
   instagram: string | null;
   /** How many of the brand's recent Reels that account commented on, at the last count. */
@@ -635,6 +637,7 @@ export class Customer {
       joined: iso(row.joined_at as number),
       referrals: Number(row.referrals),
       activated: row.activated_at === null ? null : iso(row.activated_at as number),
+      declined: row.declined_at === null || row.declined_at === undefined ? null : iso(row.declined_at as number),
       // A handle typed into an older form was never proved, so only a proved one shows.
       instagram: row.instagram_id === null ? null : (row.instagram as string | null),
       engaged: Number(row.engaged ?? 0),
@@ -644,24 +647,44 @@ export class Customer {
 
   /** The waitlist in the order its users see it. */
   #ranked(): Row[] {
-    return this.#sql.all(`SELECT * FROM (SELECT w.shown, w.code, w.joined_at, w.activated_at, w.instagram, w.instagram_id, w.source,
+    return this.#sql.all(`SELECT * FROM (SELECT w.shown, w.code, w.joined_at, w.activated_at, w.declined_at, w.instagram, w.instagram_id, w.source,
         w.rowid AS position, (SELECT COUNT(*) FROM waitlist r WHERE r.referred_by = w.code) AS referrals,
         CASE WHEN w.instagram_id IS NULL THEN 0 ELSE COALESCE(w.engaged, 0) END AS engaged
       FROM waitlist w) ORDER BY referrals + engaged DESC, joined_at ASC, position ASC`);
   }
 
-  /** A person's place in that order among those not yet activated; null once they are activated. */
+  /** A person's place in that order among those still waiting; null once they are activated or declined. */
   #place(code: string): number | null {
-    const waiting = this.#ranked().filter((row) => row.activated_at === null);
+    const waiting = this.#ranked().filter((row) => row.activated_at === null && row.declined_at === null);
     const at = waiting.findIndex((row) => row.code === code);
     return at === -1 ? null : at + 1;
   }
 
-  /** Activates a person on the waitlist; found is false for an address not on it. Safe to repeat. */
+  /**
+   * Activates a person on the waitlist; found is false for an address not on it. Safe to repeat. A
+   * declined person is refused: restoring them first keeps one deliberate step between the two.
+   */
   async waitlistActivate(email: string): Promise<{ found: boolean }> {
     const key = email.trim().toLowerCase();
-    if (this.#sql.all('SELECT 1 FROM waitlist WHERE email = ?', key).length === 0) return { found: false };
+    const row = this.#sql.all('SELECT declined_at FROM waitlist WHERE email = ?', key)[0];
+    if (!row) return { found: false };
+    if (row.declined_at !== null) throw new Refusal('That person was declined. Restore them before activating them.');
     this.#sql.all('UPDATE waitlist SET activated_at = ? WHERE email = ? AND activated_at IS NULL', this.#now(), key);
+    return { found: true };
+  }
+
+  /**
+   * Declines a person on the waitlist, or restores a declined one with `declined` false; found is false
+   * for an address not on it. Declining only hides them from the waiting list: nothing is sent, and they
+   * keep their code and their place in the ranking. An activated person cannot be declined. Safe to repeat.
+   */
+  async waitlistDecline(email: string, declined = true): Promise<{ found: boolean }> {
+    const key = email.trim().toLowerCase();
+    const row = this.#sql.all('SELECT activated_at FROM waitlist WHERE email = ?', key)[0];
+    if (!row) return { found: false };
+    if (declined && row.activated_at !== null) throw new Refusal('That person is already activated, so they cannot be declined.');
+    if (declined) this.#sql.all('UPDATE waitlist SET declined_at = ? WHERE email = ? AND declined_at IS NULL', this.#now(), key);
+    else this.#sql.all('UPDATE waitlist SET declined_at = NULL WHERE email = ?', key);
     return { found: true };
   }
 

@@ -62,6 +62,7 @@ export interface CustomerPages {
   waitlistJoin(email: string, details?: WaitlistDetails): Promise<WaitlistJoined>;
   waitlistList(): Promise<WaitlistEntry[]>;
   waitlistActivate(email: string): Promise<{ found: boolean }>;
+  waitlistDecline(email: string, declined?: boolean): Promise<{ found: boolean }>;
   /** Connecting the brand's Instagram, and counting comments on its Reels (ADR-0045). */
   instagramStart(person: string): Promise<string>;
   instagramTake(token: string): Promise<InstagramStart | undefined>;
@@ -116,6 +117,13 @@ export interface ContentServerOptions {
    * account page.
    */
   instagram?: InstagramApp;
+  /** The built cards Claude shows beside tools' results; absent, tools answer in text alone (ADR-0049). */
+  apps?: Apps;
+}
+
+/** Each card as one self-contained HTML page, as the build makes it. */
+export interface Apps {
+  waitlist: string;
 }
 
 const LAPSED = "This customer's subscription has lapsed, so its records are closed until it is paid. "
@@ -249,7 +257,7 @@ export function createContentServer(options: ContentServerOptions) {
         const { token, expires } = await customer.termsLink(checked.person);
         return { what: 'terms', label: 'CMOkit beta terms', terms: terms.url, link: `${base}/terms?t=${token}`, expires };
       } : undefined;
-      const answer = await respond(message, { person: checked.person, base, customer }, manage, unaccepted);
+      const answer = await respond(message, { person: checked.person, base, customer }, manage, unaccepted, options.apps);
       return Response.json(answer);
     }
 
@@ -273,17 +281,47 @@ function metadata(request: Request, resource: string, issuer: string): Response 
   return Response.json({ resource, authorization_servers: [issuer], bearer_methods_supported: ['header'], resource_name: 'CMOkit' });
 }
 
-function initialized(id: string | number | null, params: Record<string, any>) {
+function initialized(id: string | number | null, params: Record<string, any>, apps?: Apps) {
   const asked = params.protocolVersion;
   return success(id, {
     protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
-    capabilities: { tools: {} },
+    capabilities: apps ? { tools: {}, resources: {} } : { tools: {} },
     serverInfo: { name: 'cmokit-content', title: 'CMOkit', version: '0.1.0' },
     instructions: INSTRUCTIONS,
   });
 }
 
-const listed = (tool: Tool) => { const { call: _call, ...rest } = tool; return rest; };
+/** The cards a tool's result can show, by the MCP Apps extension's ui:// addresses (ADR-0049). */
+export const CARDS = { waitlist: 'ui://cmokit/waitlist.html' } as const;
+const CARD_TYPE = 'text/html;profile=mcp-app';
+
+/** A tool as tools/list gives it: with its card's address when the server has the card built. */
+const listed = (tool: Tool, apps?: Apps) => {
+  const { call: _call, card, ...rest } = tool;
+  if (!card || !apps) return rest;
+  // Hosts read the nested key; older ones read the flat one.
+  return { ...rest, _meta: { ui: { resourceUri: CARDS[card] }, 'ui/resourceUri': CARDS[card] } };
+};
+
+/**
+ * A card's page, with the look's two fonts loaded from this server's own origin, which the card's
+ * content security policy names as its one other source.
+ */
+function cardPage(page: string, origin: string): string {
+  const faces = `<style>@font-face{font-family:'Schibsted Grotesk';src:url(${origin}/fonts/display.woff2) format('woff2');font-weight:400 900;font-display:swap}`
+    + `@font-face{font-family:'Instrument Sans';src:url(${origin}/fonts/body.woff2) format('woff2');font-weight:400 700;font-display:swap}</style>`;
+  return page.includes('</head>') ? page.replace('</head>', `${faces}</head>`) : faces + page;
+}
+
+function cards(id: string | number | null, method: string, params: Record<string, any>, apps: Apps | undefined, origin: string) {
+  const all = apps ? [{ uri: CARDS.waitlist, name: 'waitlist', title: 'Waitlist', description: 'The brand\'s waitlist, to sort, filter, activate and decline.', mimeType: CARD_TYPE }] : [];
+  if (method === 'resources/list') return success(id, { resources: all });
+  if (apps && params.uri === CARDS.waitlist) {
+    return success(id, { contents: [{ uri: CARDS.waitlist, mimeType: CARD_TYPE, text: cardPage(apps.waitlist, origin),
+      _meta: { ui: { prefersBorder: true, csp: { resourceDomains: [origin] } } } }] });
+  }
+  return failure(id, -32002, `Resource not found: ${params.uri}`);
+}
 const result = (id: string | number | null, data: unknown) => {
   const structured = Array.isArray(data) ? { items: data } : data as Record<string, unknown>;
   return success(id, { content: [{ type: 'text', text: JSON.stringify(structured, null, 1) }], structuredContent: structured });
@@ -315,11 +353,13 @@ async function respond(
   context: { person: string; base: string; customer: CustomerCalls },
   manage?: () => Promise<string | undefined>,
   unaccepted?: () => Promise<Record<string, unknown>>,
+  apps?: Apps,
 ) {
   const { id = null, method, params = {} } = message;
-  if (method === 'initialize') return initialized(id, params);
+  if (method === 'initialize') return initialized(id, params, apps);
   if (method === 'ping') return success(id, {});
-  if (method === 'tools/list') return success(id, { tools: (unaccepted ? TOOLS.filter((t) => t.name === 'account_status') : TOOLS).map(listed) });
+  if (method === 'tools/list') return success(id, { tools: (unaccepted ? TOOLS.filter((t) => t.name === 'account_status') : TOOLS).map((t) => listed(t, apps)) });
+  if (method === 'resources/list' || method === 'resources/read') return cards(id, method, params, apps, new URL(context.base).origin);
   if (method === 'tools/call') {
     const tool = TOOLS.find((t) => t.name === params.name);
     if (!tool) return failure(id, -32602, `Unknown tool: ${params.name}`);

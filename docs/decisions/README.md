@@ -53,3 +53,4 @@ from [adr-template.md](adr-template.md).
 | [0046](0046-cmokits-own-pages-share-one-stylesheet-from-its-design-system-and-serve-their-fonts-themselves.md) | CMOkit's own pages share one stylesheet from its design system, and serve their fonts themselves | Proposed |
 | [0047](0047-beta-terms-are-accepted-with-a-box-on-the-sign-in-screen-and-kept-with-the-customer.md) | Beta terms are accepted with a box on the sign-in screen, and kept with the customer | Proposed |
 | [0048](0048-creators-sign-in-with-instagram-and-cmokits-waitlist-lets-them-in-by-the-handle-they-proved.md) | Creators sign in with Instagram, and CMOkit's waitlist lets them in by the handle they proved | Proposed |
+| [0049](0049-the-cards-claude-shows-are-mcp-apps-written-in-react-and-built-into-one-page-each.md) | The cards Claude shows are MCP Apps, written in React and built into one page each | Proposed |

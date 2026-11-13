@@ -1,0 +1,56 @@
+/* CMOkit's own look (ADR-0046) for the cards: the tokens of LOOK, in @cmokit/issuer's look.ts, named for
+   Tailwind. Light and dark follow the host's theme, which the card sets as data-theme, and otherwise the
+   person's setting. The two fonts are loaded by the server, from its own origin, when it serves the card. */
+@import "tailwindcss";
+/* Every card and shared component under apps/, whichever card is being built. */
+@source "./";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --bg: #f2efe8; --surface: #fffcf6; --sunk: #e9e4da; --ink: #1f1c18; --muted: #5c564e; --line: #ddd5c8;
+  --accent: #2d5a4a; --accent-strong: #234839; --on-accent: #fff; --focus: #2d5a4a; --problem: #9b2c1f; --problem-bg: #f8e7e2;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141613; --surface: #1d201c; --sunk: #191b18; --ink: #ece8df; --muted: #a39c90; --line: #33362f;
+    --accent: #86c2a9; --accent-strong: #a3d3bf; --on-accent: #141613; --focus: #86c2a9; --problem: #f0a195; --problem-bg: #2e1d1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141613; --surface: #1d201c; --sunk: #191b18; --ink: #ece8df; --muted: #a39c90; --line: #33362f;
+  --accent: #86c2a9; --accent-strong: #a3d3bf; --on-accent: #141613; --focus: #86c2a9; --problem: #f0a195; --problem-bg: #2e1d1a;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-focus: var(--focus);
+  --color-problem: var(--problem);
+  --color-problem-bg: var(--problem-bg);
+  --font-display: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-xs: .8125rem;
+  --text-sm: .9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+}
