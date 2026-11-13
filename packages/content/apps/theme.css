@@ -1,6 +1,8 @@
-/* CMOkit's own look (ADR-0046) for the cards: the tokens of LOOK, in @cmokit/issuer's look.ts, named for
-   Tailwind. Light and dark follow the host's theme, which the card sets as data-theme, and otherwise the
-   person's setting. The two fonts are loaded by the server, from its own origin, when it serves the card. */
+/* The cards' theme. Backgrounds, text, borders and the body font are the host's own style variables, as
+   Claude's design guidelines ask, so a card reads as part of the conversation; CMOkit's look (ADR-0046),
+   the tokens of LOOK in @cmokit/issuer's look.ts, gives the accent, the heading font, and every fallback
+   where a host sends no variables. Light and dark follow the host's theme, which the card sets as
+   data-theme, and otherwise the person's setting. The page itself stays transparent. */
 @import "tailwindcss";
 /* Every card and shared component under apps/, whichever card is being built. */
 @source "./";
@@ -26,18 +28,18 @@
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-sunk: var(--sunk);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
+  --color-bg: var(--color-background-tertiary, var(--bg));
+  --color-surface: var(--color-background-primary, var(--surface));
+  --color-sunk: var(--color-background-secondary, var(--sunk));
+  --color-ink: var(--color-text-primary, var(--ink));
+  --color-muted: var(--color-text-secondary, var(--muted));
+  --color-line: var(--color-border-tertiary, var(--line));
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-on-accent: var(--on-accent);
   --color-focus: var(--focus);
-  --color-problem: var(--problem);
-  --color-problem-bg: var(--problem-bg);
+  --color-problem: var(--color-text-danger, var(--problem));
+  --color-problem-bg: var(--color-background-danger, var(--problem-bg));
   --font-display: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --text-xs: .8125rem;
@@ -51,6 +53,7 @@
 
 @layer base {
   html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  html, body { background: transparent; }
+  body { margin: 0; color: var(--color-text-primary, var(--ink)); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; -webkit-font-smoothing: antialiased; }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 }

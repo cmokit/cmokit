@@ -1,6 +1,7 @@
 // The waitlist card (ADR-0049), in two views. Inline in the conversation it fits its content, with no
-// scrolling of its own: how many are waiting and the five most engaged, each with Activate and Decline.
-// "Open full list" asks Claude for full screen, where the whole waitlist filters, searches and sorts.
+// scrolling of its own and two buttons, as Claude's guidelines ask: how many are waiting, the five most
+// engaged, "Activate these 5" (a second tap confirms) and "Open full list". Full screen, the whole
+// waitlist filters, searches and sorts, with Activate and Decline or Restore on each person.
 // Each change is a call to the server's own tool, and both views redraw from the waitlist it answers.
 import { useState, type ReactNode } from 'react';
 import { Badge } from '../ui/badge.tsx';
@@ -34,17 +35,36 @@ export function WaitlistCard({ people, change, view, expand }: {
     setNotice(await change(c));
     setBusy(null);
   };
+  // One call per person, in order, as the server's tool takes one address.
+  const activate = async (emails: string[]) => {
+    setBusy('all');
+    const failed: Outcome[] = [];
+    for (const email of emails) {
+      const outcome = await change({ tool: 'waitlist_activate', email });
+      if (outcome.tone === 'error') failed.push(outcome);
+    }
+    const done = emails.length - failed.length;
+    setNotice(failed.length
+      ? { tone: 'error', text: `Activated ${plural(done, 'person', 'people')}. ${failed.length} failed: ${failed[0].text}` }
+      : { tone: 'info', text: `Activated ${plural(done, 'person', 'people')}. CMO Kit sends no email yet, so tell them yourself.` });
+    setBusy(null);
+  };
   const banner = notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>;
   return view === 'full'
     ? <Full people={people} busy={busy} act={act} notice={banner} />
-    : <Summary people={people} busy={busy} act={act} notice={banner} expand={expand} />;
+    : <Summary people={people} busy={busy} notice={banner} activate={activate} expand={expand} />;
 }
 
 type Shared = { people: Person[]; busy: string | null; act(c: Change): void; notice: ReactNode };
 
-function Summary({ people, busy, act, notice, expand }: Shared & { expand(): void }) {
+function Summary({ people, busy, notice, activate, expand }: Omit<Shared, 'act'> & {
+  activate(emails: string[]): Promise<void>;
+  expand(): void;
+}) {
+  const [confirming, setConfirming] = useState(false);
   const total = counts(people);
   const top = shown(people, 'waiting', 'engaged').slice(0, TOP);
+  const these = top.length === 1 ? 'this 1' : `these ${top.length}`;
   return (
     <div className="flex flex-col gap-3 p-3 sm:p-4">
       <header className="flex flex-col gap-0.5">
@@ -57,25 +77,34 @@ function Summary({ people, busy, act, notice, expand }: Shared & { expand(): voi
       {top.length === 0 ? (
         <p className="m-0 rounded-md border border-dashed border-line px-4 py-5 text-center text-sm text-muted">Nobody is waiting.</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-md border border-line bg-surface p-0">
+        <ul aria-label={`The ${top.length} most engaged waiting`}
+          className="m-0 flex list-none flex-col divide-y divide-line rounded-md border border-line bg-surface p-0">
           {top.map((p) => (
-            <li key={p.email} className="flex items-center gap-1.5 py-2 pl-3 pr-2">
+            <li key={p.email} className="flex items-center gap-2 px-3 py-2">
               <Who person={p} />
-              <Button variant="ghost" size="md" className="px-3" disabled={busy === p.email}
-                onClick={() => act({ tool: 'waitlist_decline', email: p.email })}>Decline</Button>
-              <Button variant="primary" size="md" disabled={busy === p.email}
-                onClick={() => act({ tool: 'waitlist_activate', email: p.email })}>
-                {busy === p.email ? 'Saving…' : 'Activate'}
-              </Button>
+              {engagement(p) > 0 && <Badge variant="quiet" title="Referrals plus Reels commented on">{engagement(p)}</Badge>}
             </li>
           ))}
         </ul>
       )}
-      {people.length > 0 && (
-        <Button variant="outline" size="md" className="w-full" onClick={expand}>
-          Open full list{total.waiting > top.length ? ` (${total.waiting - top.length} more waiting)` : ''}
-        </Button>
+      {confirming && (
+        <p className="m-0 text-xs text-muted">They get no email from CMO Kit, and the card can't undo an activation. Tap again to activate {these}.</p>
       )}
+      <div className="flex gap-2">
+        {top.length > 0 && (
+          <Button variant="primary" size="md" className="flex-1" disabled={busy !== null}
+            onClick={async () => {
+              if (!confirming) return setConfirming(true);
+              setConfirming(false);
+              await activate(top.map((p) => p.email));
+            }}>
+            {busy ? 'Activating…' : confirming ? `Confirm: activate ${top.length}` : `Activate ${these}`}
+          </Button>
+        )}
+        {people.length > 0 && (
+          <Button variant="outline" size="md" className="flex-1" onClick={() => { setConfirming(false); expand(); }}>Open full list</Button>
+        )}
+      </div>
     </div>
   );
 }

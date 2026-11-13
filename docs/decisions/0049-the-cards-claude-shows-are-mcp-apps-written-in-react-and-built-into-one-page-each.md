@@ -59,9 +59,11 @@ difference, and the host can load a card before the tool is called.
 > server's own origin, the only source its policy names. Without one, the tools answer in text alone.
 > A card changes records only by calling the server's own tools, which answer with what changed.
 > A card follows Claude's design guidelines for MCP Apps: inline it fits its content with no scrolling
-> of its own, at most a handful of items and visible controls in place of menus, and a list longer
-> than that opens full screen from the card's own button, by `requestDisplayMode`. A host that offers
-> no full screen, or refuses it, shows the full view in place.
+> of its own, at most a handful of items, at most two buttons and visible controls in place of menus,
+> and a list longer than that opens full screen from the card's own button, by `requestDisplayMode`.
+> A host that offers no full screen, or refuses it, shows the full view in place. Backgrounds, text,
+> borders and the body font are the host's style variables, with CMOkit's look as the accent, the
+> heading font and the fallback where a host sends none.
 
 ### Consequences
 

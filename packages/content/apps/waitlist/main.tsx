@@ -1,10 +1,10 @@
 // The waitlist card's connection to Claude, through the MCP Apps SDK (ADR-0049). The host hands the card
 // the waitlist tool's result; the card's changes call the server's own tools, which answer the waitlist
-// again. Light or dark follows the host's theme. The card shows the full list when Claude has it full
+// again. Light or dark, colors and the body font follow the host's own style variables. The card shows the full list when Claude has it full
 // screen, and asks for full screen from the "Open full list" click. A host that offers no full screen,
 // or refuses, gets the full list in place instead.
-import { applyDocumentTheme, type App, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
-import { useApp } from '@modelcontextprotocol/ext-apps/react';
+import { type App, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
+import { useApp, useHostStyles } from '@modelcontextprotocol/ext-apps/react';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../theme.css';
@@ -28,17 +28,12 @@ function Root() {
         const listed = peopleOf(result as Result);
         if (listed) setPeople(listed);
       };
-      created.onhostcontextchanged = (changed) => {
-        if (changed.theme) applyDocumentTheme(changed.theme);
-        setContext(created.getHostContext());
-      };
+      created.addEventListener('hostcontextchanged', () => setContext(created.getHostContext()));
     },
   });
-  useEffect(() => {
-    const now = app?.getHostContext();
-    if (now?.theme) applyDocumentTheme(now.theme);
-    setContext(now);
-  }, [app]);
+  // The host's theme, style variables and font (Claude's Anthropic Sans), kept current.
+  useHostStyles(app, app?.getHostContext());
+  useEffect(() => setContext(app?.getHostContext()), [app]);
 
   const fullscreen = context?.displayMode === 'fullscreen';
   // Claude grants full screen only from a recent click, so this runs straight from the button.

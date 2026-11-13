@@ -12,8 +12,8 @@ person's own Claude.
   `waitlist_decline`, over Streamable HTTP with no session.
 - **Cards:** with the pages the package's build writes to `dist/apps/` passed in as `apps`, the
   waitlist tools show the waitlist as an MCP Apps card in Claude: the five most engaged waiting
-  people to activate or decline, and the whole list full screen to filter, search and sort
-  (ADR-0049). Without them the tools answer in text.
+  people to activate together, and the whole list full screen to filter, search, sort and activate
+  or decline one by one (ADR-0049). Without them the tools answer in text.
 - **Sign-in:** it checks bearer tokens issued for its own audience by CMOkit's issuer, which it
   names in its Protected Resource Metadata, and issues none. A person must be a user of the customer
   the path names, or, at `/mcp`, of the customer their sign-in chose.

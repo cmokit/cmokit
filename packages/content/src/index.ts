@@ -293,6 +293,8 @@ function initialized(id: string | number | null, params: Record<string, any>, ap
 
 /** The cards a tool's result can show, by the MCP Apps extension's ui:// addresses (ADR-0049). */
 export const CARDS = { waitlist: 'ui://cmokit/waitlist.html' } as const;
+/** Where Claude serves the font its style variables name (Anthropic Sans), which a card loads. */
+const HOST_FONTS = 'https://assets.claude.ai';
 const CARD_TYPE = 'text/html;profile=mcp-app';
 
 /** A tool as tools/list gives it: with its card's address when the server has the card built. */
@@ -318,7 +320,7 @@ function cards(id: string | number | null, method: string, params: Record<string
   if (method === 'resources/list') return success(id, { resources: all });
   if (apps && params.uri === CARDS.waitlist) {
     return success(id, { contents: [{ uri: CARDS.waitlist, mimeType: CARD_TYPE, text: cardPage(apps.waitlist, origin),
-      _meta: { ui: { prefersBorder: true, csp: { resourceDomains: [origin] } } } }] });
+      _meta: { ui: { prefersBorder: false, csp: { resourceDomains: [origin, HOST_FONTS] } } } }] });
   }
   return failure(id, -32002, `Resource not found: ${params.uri}`);
 }

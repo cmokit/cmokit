@@ -239,7 +239,7 @@ test('with its card built, the waitlist tools name it, and the card is read with
   const [content] = (await rpc('resources/read', { uri: 'ui://cmokit/waitlist.html' })).result.contents;
   assert.equal(content.mimeType, 'text/html;profile=mcp-app');
   assert.match(content.text, new RegExp(`url\\(${ORIGIN}/fonts/display.woff2\\)[^<]*</style></head>`));
-  assert.deepEqual(content._meta.ui.csp, { resourceDomains: [ORIGIN] });
+  assert.deepEqual(content._meta.ui.csp, { resourceDomains: [ORIGIN, 'https://assets.claude.ai'] });
   assert.equal((await rpc('resources/read', { uri: 'ui://cmokit/other.html' })).error.code, -32002);
 });
 
