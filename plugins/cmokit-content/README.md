@@ -22,7 +22,8 @@ Set up on the web or the desktop app; everything after works on a phone.
 
 The plugin declares CMOkit's hosted address, `https://mcp.cmokit.ai/mcp`, and signing in routes you
 to your customer's records; if your account belongs to more than one customer, you choose which one
-when you sign in. Each customer also keeps its own path, `/customers/<slug>/mcp`, on the same server.
+when you sign in. Add CMOkit to Claude by that address only: CMOkit's sign-in grants access to
+`https://mcp.cmokit.ai/mcp`, so a customer's own path, `/customers/<slug>/mcp`, cannot sign in from Claude.
 When something is missing, the skill says what and how to turn it on.
 
 The decisions behind it are ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0029 and ADR-0034.

@@ -8,7 +8,7 @@ and signals, and the customer's sealed connections. It runs no model; every mode
 person's own Claude.
 
 - **Tools:** `account_status`, `brand_read`, `brand_change`, `brand_history`, `offers_list`,
-  `piece_save`, `pieces_list` and `results_read`, over Streamable HTTP with no session.
+  `piece_save`, `pieces_list`, `results_read` and `waitlist_list`, over Streamable HTTP with no session.
 - **Sign-in:** it checks bearer tokens issued for its own audience by CMOkit's issuer, which it
   names in its Protected Resource Metadata, and issues none. A person must be a user of the customer
   the path names, or, at `/mcp`, of the customer their sign-in chose.
