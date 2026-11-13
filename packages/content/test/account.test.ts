@@ -175,6 +175,11 @@ test('Home leads a new brand through setup, marking each step done from what the
   assert.match(html, /Finish setup on a computer/);
   assert.match(html, /href="mailto:ada%40example\.com\?subject=Set%20up%20CMO%20Kit/);
   assert.match(words(html), /3\. Add CMO Kit to Claude Desktop Next 4\. Sign in from Claude Next/);
+  // The address Claude connects to is on the page to copy, and in the emailed steps.
+  assert.match(html, /<code[^>]*>https:\/\/mcp\.example<\/code>/);
+  assert.match(html, />Copy the address</);
+  assert.match(words(html), /pick Acme Breakfasts at "Which brand\?"/);
+  assert.match(html, /address%20in%20Claude%3A%20https%3A%2F%2Fmcp\.example%0A/);
   await acme.claudeSeen('ada');
 
   // The brand context is already approved, so measuring the page is next, done once a visit is counted.

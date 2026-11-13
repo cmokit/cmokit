@@ -102,9 +102,10 @@ export interface AccountView {
     manage?: string;
     /**
      * What the brand's setup shows as done beyond the brand context: Claude connected, a visit counted
-     * on a page with the brand's form (ADR-0050), and a first piece planned.
+     * on a page with the brand's form (ADR-0050), and a first piece planned; with the address Claude
+     * connects to.
      */
-    setup?: { claude: boolean; measured: boolean; planned: boolean; home: string };
+    setup?: { claude: boolean; measured: boolean; planned: boolean; home: string; connector: string };
   };
 }
 

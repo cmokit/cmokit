@@ -180,14 +180,14 @@ function NoCustomer({ view }: { view: AccountView }) {
 
 /** Where the brand's setup stands, from what the server holds, and the one step to take next; nothing once it is done. */
 function Setup({ c, named, email }: { c: Customer; named: boolean; email: string | null }) {
-  const setup = c.setup ?? { claude: true, measured: true, planned: true, home: '' };
+  const setup = c.setup ?? { claude: true, measured: true, planned: true, home: '', connector: '' };
   const done = [true, named, setup.claude, setup.claude, c.brand.version > 0, setup.measured, setup.planned];
   const next = done.indexOf(false);
   if (next === -1) return null;
   return (
     <div className="space-y-4">
       <Note>Setup: step {next + 1} of {SETUP.length}</Note>
-      <NextStep next={next} home={setup.home} email={email} />
+      <NextStep next={next} home={setup.home} connector={setup.connector} email={email} />
       <Rows label="Setup">
         {SETUP.map((label, i) => (
           <Row key={label} end={done[i] ? <Badge>Done</Badge> : i === next || (i === 3 && next === 2) ? <Badge variant="accent">Next</Badge> : <Badge>Later</Badge>}>
@@ -203,7 +203,7 @@ function StepTitle({ children }: { children: ReactNode }) {
   return <h2 className="font-display text-lg leading-tight font-semibold tracking-tight">{children}</h2>;
 }
 
-function NextStep({ next, home, email }: { next: number; home: string; email: string | null }) {
+function NextStep({ next, home, connector, email }: { next: number; home: string; connector: string; email: string | null }) {
   if (next === 1) {
     return (
       <>
@@ -219,7 +219,7 @@ function NextStep({ next, home, email }: { next: number; home: string; email: st
     );
   }
   if (next <= 3) {
-    const body = `${CLAUDE_STEPS.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nYour CMO Kit account: ${home}`;
+    const body = `${CLAUDE_STEPS.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nCMO Kit's address in Claude: ${connector}\nYour CMO Kit account: ${home}`;
     const mail = `mailto:${email ? encodeURIComponent(email) : ''}?subject=${encodeURIComponent('Set up CMO Kit in Claude Desktop')}&body=${encodeURIComponent(body)}`;
     return (
       <>
@@ -262,6 +262,16 @@ function NextStep({ next, home, email }: { next: number; home: string; email: st
   );
 }
 
+/** The address Claude connects to, to add by hand where the plugin's own connector can't reach it. */
+function ClaudeAddress({ connector, name }: { connector: string; name: string }) {
+  return (
+    <>
+      <p>If Claude asks for CMO Kit's address, or the plugin can't connect, add a custom connector in Claude's settings with this address. When you sign in, pick {name} at "Which brand?".</p>
+      <CopyBlock text={connector} label="Copy the address" />
+    </>
+  );
+}
+
 function HomeTab({ c, name, email }: { c: Customer; name: string; email: string | null }) {
   const named = !c.rename || c.brands.find((b) => b.slug === c.slug)?.name != null;
   const { version, at, sections, offers } = c.brand;
@@ -275,6 +285,11 @@ function HomeTab({ c, name, email }: { c: Customer; name: string; email: string 
           <p>{c.terms.accepted
             ? <>You accepted <Link href={c.terms.url} external>the beta terms</Link>, version {c.terms.version}.</>
             : <>You have not accepted <Link href={c.terms.url} external>the beta terms</Link> (version {c.terms.version}) yet. <Link href={c.terms.link ?? ''}>Read and accept them</Link>.</>}</p>
+        </Section>
+      )}
+      {c.setup && (
+        <Section title="Claude">
+          <ClaudeAddress connector={c.setup.connector} name={name} />
         </Section>
       )}
       <Section title="Connections">

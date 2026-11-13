@@ -258,6 +258,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
       measured: (await customer.funnelRead({ from: today, to: today })).counting_since !== null,
       planned: (await customer.piecesList()).length > 0,
       home: account.origin,
+      connector: context.audience,
     };
     const { terms, billing } = context;
     if (terms) {
