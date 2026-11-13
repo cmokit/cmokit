@@ -152,7 +152,7 @@ test('MCP over Streamable HTTP, statelessly: initialize, notifications, tools', 
   assert.equal((await handle(new Request(`${ORIGIN}/customers/acme/mcp`, { headers: { authorization: 'Bearer ada-token' } }))).status, 405);
   const listed = await (await rpc('acme', 'ada-token', 'tools/list')).json() as any;
   assert.deepEqual(listed.result.tools.map((t: { name: string }) => t.name), [
-    'account_status', 'brand_read', 'brand_change', 'brand_history', 'offers_list', 'piece_save', 'pieces_list', 'results_read',
+    'account_status', 'brand_read', 'brand_change', 'brand_history', 'offers_list', 'piece_save', 'pieces_list', 'results_read', 'waitlist_list',
   ]);
 });
 
@@ -183,6 +183,15 @@ test('a tool call reaches only its customer\'s records, and a refusal is a tool 
   assert.match(refused.content[0].text, /approves/);
   const status = await call('acme', 'ada-token', 'account_status');
   assert.doesNotMatch(JSON.stringify(status), new RegExp(CALENDAR_KEY), 'no result carries a stored credential');
+});
+
+test('waitlist_list reads its own customer\'s waitlist, ranked as the account page ranks it', async () => {
+  const { call, acme } = await server();
+  const di = await acme.customer.waitlistJoin('di@example.com');
+  await acme.customer.waitlistJoin('cy@example.com', { ref: di.code });
+  const listed = (await call('acme', 'ada-token', 'waitlist_list')).structuredContent.people;
+  assert.deepEqual(listed.map((p: { email: string; referrals: number }) => [p.email, p.referrals]), [['di@example.com', 1], ['cy@example.com', 0]]);
+  assert.deepEqual((await call('globex', 'bob-token', 'waitlist_list')).structuredContent.people, []);
 });
 
 test('the one-time page takes a key once, and never through MCP', async () => {

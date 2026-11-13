@@ -1,4 +1,4 @@
-// The content server's eight tools (ADR-0029). Each does something Claude's own features cannot do
+// The content server's tools (ADR-0029). Each does something Claude's own features cannot do
 // reliably: keep the brand context and its versions, keep pieces and their signals across
 // conversations, build tracked links, and read events and registrations with a key that never
 // passes through the conversation. No tool's input takes a credential.
@@ -10,7 +10,7 @@ import { PLATFORMS } from './links.ts';
 
 /** The calls a tool makes on its customer's records, whether held here or in a Durable Object. */
 export type CustomerCalls = {
-  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'isUser' | 'access' | 'billing']: Customer[K];
+  [K in 'status' | 'brandRead' | 'brandHistory' | 'brandChange' | 'offersList' | 'pieceSave' | 'piecesList' | 'resultsRead' | 'waitlistList' | 'isUser' | 'access' | 'billing']: Customer[K];
 };
 
 export interface Context {
@@ -165,6 +165,17 @@ export const TOOLS: Tool[] = [
     }, ['from', 'to']),
     annotations: { ...readOnly('Read results'), openWorldHint: true },
     call: (args, { customer }) => customer.resultsRead({ from: args.from, to: args.to }),
+  },
+  {
+    name: 'waitlist_list',
+    title: 'List the waitlist',
+    description: 'The brand\'s waitlist in the order its account page ranks it: referrals plus Reels commented on, '
+      + 'then who joined first. Each person has their address, when they joined, their referrals, the Instagram '
+      + 'handle they proved, how many Reels it commented on, the tracking tags of the page they joined on, and '
+      + 'when they were activated. Activating someone is done on the account page, not here.',
+    inputSchema: object({}),
+    annotations: readOnly('List the waitlist'),
+    call: async (_args, { customer }) => ({ people: await customer.waitlistList() }),
   },
 ];
 
