@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Customer, aesGcmVault, createContentServer, instagramApp, type InstagramApp, type ReelComment, type Tokens } from '../src/index.ts';
-import { KEY, T0, eventsStandIn, sqlite } from './fixtures.ts';
+import { KEY, T0, eventsStandIn, sqlite, portal } from './fixtures.ts';
 
 const APP = 'https://app.example';
 const SITE = 'https://brand.example';
@@ -27,7 +27,7 @@ function setup(withApp = true) {
   const { app, comments, read } = fakeInstagram();
   const customer = new Customer(sqlite(), { vault: aesGcmVault(KEY), events: eventsStandIn().events, instagram: app, now: () => now });
   const handle = createContentServer({
-    issuer: 'https://auth.example', audience: 'https://mcp.example', tokens,
+    issuer: 'https://auth.example', audience: 'https://mcp.example', tokens, portal,
     customer: () => customer,
     account: { origin: APP, exchange: async () => undefined, email: async () => 'ada@example.com' },
     ...(withApp ? { instagram: app } : {}),
@@ -71,12 +71,12 @@ test('the brand disconnects its Instagram: the account and its token are forgott
   await connectBrand();
   const connected = await waitlist();
   assert.match(connected, /Connected: @acmebrand\./);
-  assert.match(connected, /<button type="submit">Disconnect Instagram<\/button>/);
-  assert.doesNotMatch(connected, /Connect Instagram<\/button>/);
+  assert.match(connected, /<button type="submit"[^>]*>Disconnect Instagram<\/button>/);
+  assert.doesNotMatch(connected, />Connect Instagram<\/button>/);
   assert.equal((await post('/instagram/disconnect')).headers.get('location'), '/waitlist?instagram=disconnected');
   assert.equal(await customer.instagramAccount(), null);
   assert.equal((await post('/instagram/count')).headers.get('location'), '/waitlist?instagram=failed', 'nothing to count once disconnected');
-  assert.match(await waitlist(), /<button type="submit">Connect Instagram<\/button>/);
+  assert.match(await waitlist(), /<button type="submit"[^>]*>Connect Instagram<\/button>/);
   await connectBrand();
   assert.equal((await customer.instagramAccount())!.username, 'acmebrand');
 });

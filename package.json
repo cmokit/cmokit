@@ -14,7 +14,7 @@
     "typecheck": "tsc",
     "check:decisions": "node scripts/check-decisions.ts",
     "check:boundaries": "node scripts/check-boundaries.ts",
-    "test": "node --conditions=cmokit-source --test \"packages/*/test/*.test.ts\" \"scripts/test/*.test.ts\"",
+    "test": "node --conditions=cmokit-source --import ./scripts/tsx.ts --test \"packages/*/test/*.test.ts\" \"scripts/test/*.test.ts\"",
     "build": "npm run build -w @cmokit/cli && npm run build -w @cmokit/edge -w @cmokit/astro -w @cmokit/lifecycle -w @cmokit/issuer -w @cmokit/content -w create-cmokit",
     "build:starter": "npm run build -w cmokit-site",
     "check:hosted": "wrangler deploy --dry-run --config hosted/issuer/wrangler.jsonc --outdir .wrangler/dry-run/issuer && wrangler deploy --dry-run --config hosted/content/wrangler.jsonc --outdir .wrangler/dry-run/content",
@@ -26,6 +26,7 @@
     "@fontsource-variable/schibsted-grotesk": "^5.3.0",
     "@types/node": "^24.19.2",
     "astro": "^7.4.2",
+    "esbuild": "0.28.2",
     "typescript": "^7.0.2"
   }
 }

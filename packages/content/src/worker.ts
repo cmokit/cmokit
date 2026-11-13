@@ -22,7 +22,7 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { fontResponse, type Fonts } from '@cmokit/issuer/look';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
-import { createContentServer, type AccountOptions, type Apps, type Billing, type CustomerPages, type Tokens } from './index.ts';
+import { createContentServer, type AccountOptions, type Apps, type Billing, type CustomerPages, type Portal, type Tokens } from './index.ts';
 import { instagramApp, type InstagramApp } from './instagram.ts';
 import { luma } from './luma.ts';
 import type { Sql } from './sql.ts';
@@ -202,8 +202,9 @@ export function accountFor(env: ContentEnv): AccountOptions | undefined {
 /**
  * `fonts` are the pages' two fonts, served at `/fonts/`; without them the pages use the system font (ADR-0046).
  * `apps` are the built cards Claude shows beside a tool's result; without them the tools answer in text alone (ADR-0049).
+ * `portal` is the built account page (ADR-0051); without it the account origin serves no page.
  */
-export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; fonts?: Fonts; apps?: Apps }) {
+export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; fonts?: Fonts; apps?: Apps; portal?: Portal }) {
   class Customer {
     readonly #logic: CustomerLogic;
 
@@ -318,6 +319,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
         join: { allow: env.JOINS ? async (key) => (await env.JOINS!.limit({ key })).success : undefined },
         instagram: instagramFor(env),
         apps: options.apps,
+        ...(options.portal ? { portal: options.portal } : {}),
       });
       return handle(request);
     },

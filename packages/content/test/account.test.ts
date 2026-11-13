@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createContentServer, type Tokens } from '../src/index.ts';
-import { newCustomer, readyCustomer } from './fixtures.ts';
+import { portalScript } from '../src/pages.ts';
+import { newCustomer, portal, readyCustomer } from './fixtures.ts';
 
 const ORIGIN = 'https://mcp.example';
 const APP = 'https://app.example';
@@ -23,7 +24,7 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
   const renamed: [string, string, string][] = [];
   const names: Record<string, string> = { 'cfo-kit-0a1b2c': 'CFO Kit' };
   const handle = createContentServer({
-    issuer: ISSUER, audience: ORIGIN, tokens,
+    issuer: ISSUER, audience: ORIGIN, tokens, portal,
     customer: (slug) => (slug === 'acme' ? acme.customer : newCustomer().customer),
     customersOf: async (person) => options.brandsOf?.[person] ?? [],
     ...(options.terms ? { terms: { url: 'https://example.com/terms', version: '2026-11-08' } } : {}),
@@ -50,6 +51,11 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
 }
 
 const session = (token: string) => `__Host-cmokit-session=${token}`;
+
+/** A page's words as a person reads them: no tags, React's text separators or entities, one space between words. */
+const words = (html: string) => html.replace(/<script[^>]*>.*?<\/script>/gs, '').replace(/<style>.*?<\/style>/gs, '').replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ')
+  .replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+  .replace(/\s+/g, ' ').trim();
 
 test('the account page describes itself as a public OAuth client by its metadata document', async () => {
   const { get } = await server();
@@ -116,11 +122,12 @@ test('the page is three tabs at paths of their own, with a tab bar that marks th
   const { get } = await server();
   for (const [path, label] of [['/', 'Home'], ['/waitlist', 'Waitlist'], ['/account', 'Account']]) {
     const html = await (await get(path, session('ada-token'))).text();
-    assert.match(html, /<nav class="tabs" aria-label="Account"><a href="\/"[^>]*>Home<\/a><a href="\/waitlist"[^>]*>Waitlist<\/a><a href="\/account"[^>]*>Account<\/a><\/nav>/);
-    assert.match(html, new RegExp(`aria-current="page">${label}<`), path);
+    const nav = html.match(/<nav aria-label="Account".*?<\/nav>/)?.[0] ?? '';
+    assert.deepEqual([...nav.matchAll(/<a href="([^"]+)"/g)].map((m) => m[1]), ['/', '/waitlist', '/account'], path);
+    assert.match(nav, new RegExp(`aria-current="page"[^>]*>${label}<`), path);
     assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1, path);
   }
-  assert.doesNotMatch(await (await get('/', session('new-token'))).text(), /class="tabs"/, 'no tabs before there is a brand');
+  assert.doesNotMatch(await (await get('/', session('new-token'))).text(), /<nav aria-label="Account"/, 'no tabs before there is a brand');
 });
 
 test('without a valid session, the page and the export send the person to sign in', async () => {
@@ -141,10 +148,10 @@ test('a person who is not a user of the customer is refused, and one nobody acti
   const empty = await get('/', session('new-token'));
   assert.equal(empty.status, 200);
   const before = await empty.text();
-  assert.match(before, /<h1>You're not activated yet<\/h1>/);
+  assert.match(before, /<h1[^>]*>You&#x27;re not activated yet<\/h1>/);
   assert.doesNotMatch(before, />Join the waitlist</, 'no link while CMO Kit lists no site');
   await acme.waitlistSetSites(['https://cmokit.example']);
-  assert.match(await (await get('/', session('new-token'))).text(), /<a href="https:\/\/cmokit\.example">Join the waitlist<\/a>/);
+  assert.match(await (await get('/', session('new-token'))).text(), /<a href="https:\/\/cmokit\.example"[^>]*>Join the waitlist<\/a>/);
   assert.equal((await get('/export', session('new-token'))).status, 404);
 });
 
@@ -154,10 +161,9 @@ test('Home leads a new brand through setup, marking each step done from what the
 
   // An unnamed brand is named first, on Home, and naming it returns there.
   let html = await step();
-  assert.match(html, /Setup: step 2 of 6/);
-  assert.match(html, /<form method="post" action="\/brands\/name">\s*<input type="hidden" name="from" value="home">/);
-  assert.match(html, /1\. Sign in<\/span><span class="badge">Done/);
-  assert.match(html, /2\. Name your brand<\/span><span class="badge next">Next/);
+  assert.match(words(html), /Setup: step 2 of 7/);
+  assert.match(html, /<form[^>]* action="\/brands\/name" method="post"><input type="hidden" name="from" value="home"\/>/);
+  assert.match(words(html), /1\. Sign in Done 2\. Name your brand Next 3\. Add CMO Kit to Claude Desktop Later/);
   const named = await post('/brands/name', { name: 'Acme Breakfasts', from: 'home' }, session('ada-token'));
   assert.equal(named.status, 303);
   assert.equal(named.headers.get('location'), '/?brand=named');
@@ -165,16 +171,26 @@ test('Home leads a new brand through setup, marking each step done from what the
 
   // Then Claude Desktop, with the steps to email to oneself, until the person's Claude connects.
   html = await step();
-  assert.match(html, /Setup: step 3 of 6/);
+  assert.match(words(html), /Setup: step 3 of 7/);
   assert.match(html, /Finish setup on a computer/);
   assert.match(html, /href="mailto:ada%40example\.com\?subject=Set%20up%20CMO%20Kit/);
-  assert.match(html, /3\. Add CMO Kit to Claude Desktop<\/span><span class="badge next">Next.*4\. Sign in from Claude<\/span><span class="badge next">Next/s);
+  assert.match(words(html), /3\. Add CMO Kit to Claude Desktop Next 4\. Sign in from Claude Next/);
+  // The address Claude connects to is on the page to copy, and in the emailed steps.
+  assert.match(html, /<code[^>]*>https:\/\/mcp\.example<\/code>/);
+  assert.match(html, />Copy the address</);
+  assert.match(words(html), /pick Acme Breakfasts at "Which brand\?"/);
+  assert.match(html, /address%20in%20Claude%3A%20https%3A%2F%2Fmcp\.example%0A/);
   await acme.claudeSeen('ada');
 
-  // The brand context is already approved, so the first Reel is next, and setup ends once one is planned.
+  // The brand context is already approved, so measuring the page is next, done once a visit is counted.
   html = await step();
-  assert.match(html, /Setup: step 6 of 6/);
-  assert.match(html, /Plan your first Reel<\/h2>/);
+  assert.match(words(html), /Setup: step 6 of 7 Measure your page/);
+  assert.match(html, /<a href="\/waitlist"[^>]*>Go to the Waitlist tab<\/a>/);
+  await acme.funnelVisit('https://brand.example/', {});
+
+  // Then the first Reel, and setup ends once one is planned.
+  html = await step();
+  assert.match(words(html), /Setup: step 7 of 7 Plan your first Reel/);
   await acme.pieceSave('ada', { signal: 'planned', week: '2026-W47', offer: 'table', format: 'teaser', kind: 'reel', destination: 'https://luma.com/table-nov' });
   html = await step();
   assert.doesNotMatch(html, /Setup: step/);
@@ -201,7 +217,7 @@ test('signing out clears the session, and other paths at the account origin fall
 test('any user of a brand adds another, from the account page\'s own form only', async () => {
   const { get, post, added } = await server({ brands: true });
   const page = await (await get('/account', session('ada-token'))).text();
-  assert.match(page, /<form method="post" action="\/brands">/);
+  assert.match(page, /<form[^>]* action="\/brands" method="post">/);
   // Under no-referrer, Safari sends the form's Origin as "null" and every change would be refused.
   assert.match(page, /<meta name="referrer" content="same-origin">/);
   const made = await post('/brands', { name: 'CFO Kit' }, session('ada-token'));
@@ -222,8 +238,8 @@ test('any user of a brand adds another, from the account page\'s own form only',
 test('a brand\'s users list its sites, get the form to paste, and activate people from its ranked waitlist', async () => {
   const { get, post, handle, acme } = await server();
   let html = await (await get('/waitlist', session('ada-token'))).text();
-  assert.match(html, /<h1>Waitlist<\/h1>/);
-  assert.match(html, /Add your site's address first/);
+  assert.match(html, /<h1[^>]*>Waitlist<\/h1>/);
+  assert.match(words(html), /Add your site's address first/);
   assert.doesNotMatch(html, /lets them sign in and use CMOkit/, 'only CMOkit\'s own brand grants CMOkit');
 
   const saved = await post('/waitlist/sites', { sites: 'brand.example\nhttps://www.brand.example' }, session('ada-token'));
@@ -238,8 +254,11 @@ test('a brand\'s users list its sites, get the form to paste, and activate peopl
   }));
   assert.equal(joined.status, 200);
   html = await (await get('/waitlist', session('ada-token'))).text();
-  assert.match(html, /action=&#34;https:\/\/app\.example\/join\/acme&#34;/, 'the snippet names this brand\'s join address');
-  assert.match(html, /<ul class="rows"><li><span class="row-main"><strong>cy@example\.com<\/strong><span class="note">joined \d{4}-\d{2}-\d{2}, 0 referrals, came from utm_content=reel-1<\/span><\/span><form method="post" action="\/waitlist\/activate"><input type="hidden" name="email" value="cy@example\.com">/);
+  assert.match(html, /action=&quot;https:\/\/app\.example\/join\/acme&quot;/, 'the snippet names this brand\'s join address');
+  assert.match(html, />Copy the form</, 'the form comes with a button that copies it');
+  const row = html.match(/<ul aria-label="Waitlist".*?<\/ul>/)?.[0] ?? '';
+  assert.match(words(row), /^cy@example\.com joined \d{4}-\d{2}-\d{2}, 0 referrals, came from utm_content=reel-1 Activate$/);
+  assert.match(row, /<form action="\/waitlist\/activate" method="post"><input type="hidden" name="email" value="cy@example\.com"\/>/);
 
   const done = await post('/waitlist/activate', { email: 'cy@example.com' }, session('ada-token'));
   assert.equal(done.status, 303);
@@ -253,7 +272,7 @@ test('a brand\'s users list its sites, get the form to paste, and activate peopl
     method: 'POST', body: new URLSearchParams({ email: 'di@example.com' }), headers: { origin: 'https://brand.example', accept: 'application/json' },
   }));
   await acme.waitlistDecline('di@example.com');
-  assert.match(await (await get('/waitlist', session('ada-token'))).text(), /<strong>di@example\.com<\/strong>.*?<span class="badge">Declined \d{4}-\d{2}-\d{2}<\/span>/);
+  assert.match(words(await (await get('/waitlist', session('ada-token'))).text()), /di@example\.com joined \d{4}-\d{2}-\d{2}, 0 referrals Declined \d{4}-\d{2}-\d{2}/);
   assert.equal((await post('/waitlist/activate', { email: 'di@example.com' }, session('ada-token'))).headers.get('location'), '/waitlist?activated=declined');
   assert.equal((await acme.waitlistList()).find((p) => p.email === 'di@example.com')!.activated, null);
 });
@@ -266,17 +285,17 @@ test('on CMOkit\'s own brand, the page says activating someone lets them use CMO
 test('the account page lists every brand of the person by name, and a sign-in that chose none signs in again to choose', async () => {
   const { get, post, renamed } = await server({ brands: true, brandsOf: { ada: ['acme', 'cfo-kit-0a1b2c'], new: ['acme', 'cfo-kit-0a1b2c'] } });
   const page = await (await get('/account?brand=added', session('ada-token'))).text();
-  assert.match(page, /<p>Brand: Unnamed brand\.<\/p>/, 'a brand never named, such as the first one made at activation');
-  assert.match(page, /<li>Unnamed brand \(shown on this page\)<\/li><li>CFO Kit<\/li>/);
-  assert.doesNotMatch(page, /cfo-kit-0a1b2c/, 'brands are shown by name, not by code');
-  assert.match(page, /<a href="\/signin">Switch brand<\/a>/);
+  assert.match(words(page), /Brand: Unnamed brand\./, 'a brand never named, such as the first one made at activation');
+  assert.match(page, /<li>Unnamed brand<!-- --> \(shown on this page\)<\/li><li>CFO Kit<\/li>/);
+  assert.doesNotMatch(words(page), /cfo-kit-0a1b2c/, 'brands are shown by name, not by code');
+  assert.match(page, /<a href="\/signin"[^>]*>Switch brand<\/a>/);
   assert.match(page, /listed under Brands/);
   // Naming the brand the page shows.
-  assert.match(page, /<form method="post" action="\/brands\/name">/);
+  assert.match(page, /<form[^>]* action="\/brands\/name" method="post">/);
   const named = await post('/brands/name', { name: 'CMO Kit' }, session('ada-token'));
   assert.equal(named.headers.get('location'), '/account?brand=renamed');
   assert.deepEqual(renamed, [['ada', 'acme', 'CMO Kit']]);
-  assert.match(await (await get('/account?brand=renamed', session('ada-token'))).text(), /<p>Brand: CMO Kit\.<\/p>/);
+  assert.match(words(await (await get('/account?brand=renamed', session('ada-token'))).text()), /Brand: CMO Kit\./);
   assert.equal((await post('/brands/name', { name: '<b>' }, session('ada-token'))).headers.get('location'), '/account?brand=invalid');
   assert.equal((await post('/brands/name', { name: 'CMO Kit' }, session('ada-token'), 'https://evil.example')).status, 403);
   assert.equal(renamed.length, 1);
@@ -284,4 +303,14 @@ test('the account page lists every brand of the person by name, and a sign-in th
   const again = await get('/', session('new-token'));
   assert.equal(again.status, 303);
   assert.equal(again.headers.get('location'), '/signin');
+});
+
+test('the account page\'s script is served from its own origin, cached for good at its versioned address', async () => {
+  const { get } = await server();
+  const versioned = await get(portalScript(portal));
+  assert.equal(versioned.status, 200);
+  assert.equal(versioned.headers.get('content-type'), 'text/javascript; charset=utf-8');
+  assert.equal(versioned.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+  assert.equal(await versioned.text(), portal.script);
+  assert.equal((await get('/portal.js?v=old')).headers.get('cache-control'), 'no-cache', 'an older address is not cached for good');
 });

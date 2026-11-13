@@ -1,0 +1,13 @@
+/* The account page's stylesheet (ADR-0051): the cards' theme, which falls back to CMOkit's look
+   (ADR-0046) where no host sends style variables, as on a page of its own; the look's two fonts,
+   served from the page's own origin; and the page's own background. */
+@import "../theme.css";
+
+@font-face { font-family: 'Schibsted Grotesk'; src: url(/fonts/display.woff2) format('woff2'); font-weight: 400 900; font-display: swap; }
+@font-face { font-family: 'Instrument Sans'; src: url(/fonts/body.woff2) format('woff2'); font-weight: 400 700; font-display: swap; }
+
+@layer base {
+  html, body { background: var(--bg); }
+  body { font-size: var(--text-base); line-height: 1.6; }
+  p { text-wrap: pretty; }
+}
