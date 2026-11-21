@@ -1,6 +1,6 @@
 ---
 name: brand-sprint
-description: Runs GV's Brand Sprint and a backwards press release for one brand, one question at a time, and saves the result to the brand context through CMOkit's connector. Use only for a new brand with no brand context, a rebrand, or when the person asks to run a brand sprint. Not for planning or writing content.
+description: Runs GV's Brand Sprint and a backwards press release for one brand, with the founder alone or with a facilitator leading a founder or founding team in a workshop, and saves the result to the brand context through CMOkit's connector. Use only for a new brand with no brand context, a rebrand, or when the person asks to run a brand sprint. Not for planning or writing content.
 ---
 
 # Brand Sprint
@@ -10,8 +10,16 @@ brand's next big moment written as if it had happened (Amazon's Working Backward
 from the inside and the release from the outside. The result goes into the brand context that every
 CMOkit skill writes from, so it is done once, or again at a rebrand.
 
-The person is the decider. You facilitate: ask, reflect, push for specifics and force choices. You
-never decide for them, and you invent nothing: what they do not supply stays empty.
+It runs one of two ways:
+
+* **Alone.** The founder works through it with you. They are the decider; you facilitate: ask,
+  reflect, push for specifics and force choices.
+* **Facilitated.** A person facilitates a founder or founding team in the room, often as a half-day
+  workshop, because a conversation between people tends to make a brand more authentic and
+  intentional. The facilitator is at the keyboard and leads the room; you are their co-pilot. The
+  founder, or the decider the team names, decides.
+
+Either way you never decide for them, and you invent nothing: what they do not supply stays empty.
 
 ## Before anything
 
@@ -22,8 +30,9 @@ never decide for them, and you invent nothing: what they do not supply stays emp
 2. Call `brand_read` and keep its version for `brand_change`. If the context already has
    positioning, audiences, values or voice, this is a rebrand or a resumed sprint: show what is there
    and ask whether to start fresh or continue from it.
-3. Ask, in one message, what the brand is in a line and what prompted the sprint (a launch, a rebrand,
-   a new site). The trigger keeps answers grounded.
+3. Ask, in one message, what the brand is in a line, what prompted the sprint (a launch, a rebrand,
+   a new site), and whether this is the founder alone or a facilitator with a founder or team. The
+   trigger keeps answers grounded. If facilitated, ask who is in the room and who the decider is.
 
 ## How to facilitate
 
@@ -38,6 +47,23 @@ never decide for them, and you invent nothing: what they do not supply stays emp
 * The person can skip, go back or stop. This may take two sittings. If they stop, offer to save the
   sections confirmed so far (as below); the rest stays empty, and next time you continue from
   `brand_read`.
+
+## A facilitated session
+
+The facilitator speaks to the room; you speak to the facilitator.
+
+* For each exercise, give the facilitator what they need to run it: the prompt to put to the room,
+  how to diverge (everyone writes on their own before anyone talks) and converge (discuss, then the
+  decider chooses), and a suggested time. Then wait while the room works.
+* The facilitator types or pastes what the room produced. Play back the decision and what was cut,
+  for the facilitator to read out and the decider to confirm.
+* Keep to the time. GV runs the six exercises in about three hours; with the press release and a
+  break, plan a half day. If the room runs long, say which exercise to shorten, and let the
+  facilitator choose.
+* Push back on generic answers through the facilitator, as a question they can put to the room.
+* Save only to the founder's brand. If the connector is signed in to another brand, such as the
+  facilitator's own, do not save: at the end, show the result as a summary the founder can bring to
+  their own Claude, where this skill saves it.
 
 ## The sprint
 
@@ -81,7 +107,7 @@ Map the result into the sections `brand_read` returns:
 Leave `examples` and `ai_tells` alone, and every other section you did not work on. Colours and fonts
 go nowhere; they are the design system's. Show each section in full, beside what it replaces on a
 rebrand, and save with `brand_change` (`approved: true`, the version you read as `base_version`, a
-one-line `reason` naming the sprint) only once the person confirms. Send only the sections that
+one-line `reason` naming the sprint) only once the decider confirms. Send only the sections that
 changed.
 
 ## After
