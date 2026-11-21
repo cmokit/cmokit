@@ -39,6 +39,9 @@ with the decider confirming.
    a new site), whether the founder is doing this on their own or with a facilitator, and whether
    anyone else is in it. The trigger keeps answers grounded. If it is a team, ask who the decider
    is.
+4. Ask whether they have their own brand sprint template. If they do, have them paste or upload it,
+   and follow its exercises and their order instead of the sprint below, keeping each exercise's
+   shape and everything else in this skill.
 
 ## Say it out loud, if they like
 
@@ -72,17 +75,15 @@ rather than smoothing it over, and never keep anything the transcript did not sa
   unstick them, labelled as examples, and drawn from what they have already said where you can.
   Examples pull answers toward the same place, so use them sparingly. Never record an answer they
   have not given or confirmed.
-* After each exercise, play back the decision in a line or two and confirm it before moving on.
-* The person can skip, go back or stop. This may take two sittings. If they stop, offer to save the
-  sections confirmed so far (as below); the rest stays empty, and next time you continue from
-  `brand_read`.
+* This may take two sittings. If they stop, offer to save the sections confirmed so far (as
+  below); the rest stays empty, and next time you continue from `brand_read`.
 
 ## A facilitated session
 
 The facilitator talks with the founder; you speak to the facilitator.
 
 * For each exercise, give the facilitator what they need to run it: the question to put to the
-  founder, a follow-up that asks them to explain, and a suggested time. Then wait while they talk.
+  founder, a follow-up that asks them to explain, and the timebox. Then wait while they talk.
 * The facilitator dictates, pastes a transcript or types what the founder said, in the founder's own
   words. They do not summarize in their own framing: a trusted listener shapes what the speaker
   comes to believe, and the brand must stay the founder's. Play back the decision and what was cut,
@@ -97,24 +98,47 @@ The facilitator talks with the founder; you speak to the facilitator.
 
 ## The sprint
 
-1. **20-year roadmap.** Where the brand is in 5, 10 and 20 years, and what must be true at year 5 for
-   year 20 to happen.
-2. **What, how, why.** What it makes or does; how it does it differently; why it exists. Keep asking
-   "why does that matter?" until the answer stops being about the product. One sentence each.
-3. **Three values.** Six to ten candidates, narrowed to three. Each must guide a real decision and set
-   the brand apart. Each gets a line of meaning in the person's words.
-4. **Audiences.** Who the brand must matter to, collected broadly and ranked to three, then narrowed
-   to one primary and at most one secondary. Push for a specific segment over "everyone". Each gets
-   what they need to believe about the brand.
-5. **Personality sliders.** Where the brand sits from 1 to 10 on: friend to authority, mass appeal to
-   elite, young and innovative to mature and classic, playful to serious. Push away from 5, which
-   usually means undecided. The person may add one pair of their own. Have them place each slider
-   before explaining it, since putting a judgment into words first can bend it. Each gets a "this
-   means we..." line.
-6. **Competitive landscape.** Six to ten competitors or comparable brands, adjacent and aspirational
-   ones included, placed on two axes (classic to modern, expressive to reserved, or axes the person
-   prefers). Have them place the brands first, then say why. Then where this brand belongs and why
-   that space is open.
+Six exercises, in this order, each with a fixed shape so the conversation always knows where it is
+and how it ends. GV runs them in about three hours.
+
+Every exercise runs the same way:
+
+1. **Open.** Say which exercise it is (2 of 6), what it produces and its timebox, in one line.
+2. **Ask.** Put the exercise's opening question.
+3. **Explore.** Follow up at most three times, each time to make them explain, to push back on
+   something generic, or to make them cut.
+4. **Close.** Play back the result in the exercise's shape, for them to confirm or correct in
+   writing. Then move to the next exercise.
+
+If they are stuck, or the timebox has passed, do not keep circling: play back the best version of
+what they have said so far, mark it as a draft, and move on; come back to drafts at the end, before
+saving. They can also skip, go back or stop.
+
+1. **Roadmap** (about 20 minutes). Produces four short lines: where the brand is in 5, 10, 15 and 20
+   years. Each is one directional line, a North Star, not a plan or a checklist. Ask: "Picture the
+   brand 20 years from now. Where is it?", then work back through 15, 10 and 5. A theme that runs
+   through every horizon belongs in the next exercise, not here.
+2. **What, how, why** (about 30 minutes). Produces three sentences, one each.
+   * What: what the brand makes or does.
+   * How: three high-level qualities that apply to anything it makes, the way Apple's are well
+     designed, easy to use and powerful. Not features or detail.
+   * Why: why it exists. Keep asking "why does that matter?" until the answer stops being about the
+     product.
+3. **Three values** (about 30 minutes). Produces three values, each with a line of meaning in the
+   person's words. Collect six to ten candidates, then narrow to three. Each must guide a real
+   decision and set the brand apart.
+4. **Audiences** (about 30 minutes). Produces one primary audience and at most one secondary, each
+   with what they need to believe about the brand. Collect broadly, rank to three, then narrow. Push
+   for a specific segment over "everyone".
+5. **Personality sliders** (about 20 minutes). Produces a number from 1 to 10 and a "this means
+   we..." line for each of: friend to authority, mass appeal to elite, young and innovative to mature
+   and classic, playful to serious. The person may add one pair of their own. Have them place each
+   slider before explaining it, since putting a judgment into words first can bend it. Push away from
+   5, which usually means undecided.
+6. **Competitive landscape** (about 30 minutes). Produces six to ten competitors or comparable brands,
+   adjacent and aspirational ones included, placed on two axes (classic to modern, expressive to
+   reserved, or axes the person prefers), and a line on where this brand belongs and why that space
+   is open. Have them place the brands first, then say why.
 
 ## The backwards press release
 
