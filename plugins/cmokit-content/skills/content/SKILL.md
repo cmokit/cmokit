@@ -25,7 +25,8 @@ link routes, story structures, finishing and measuring.
    results are the numbers they report.
    If `missing` lists the beta terms, give the person their link to read and accept them first:
    no other tool works until they have, and only they can accept, so never say they did.
-3. Call `brand_read`. If its version is 0, run onboarding (step 0) before anything else. Write
+3. Call `brand_read`. If its version is 0, run onboarding (step 0) before anything else; if it has
+   positioning but no `examples`, onboarding's closing steps were not finished: run them first. Write
    everything from the version you read, and keep its number for `brand_change`.
 4. If the person has no Claude Design system published as their default, write without visuals, say
    why, and offer to make one from their site, logo and fonts.
@@ -40,14 +41,9 @@ Pick one path by what the person already has, say which and why, and let them ch
 * **A brand book.** They upload guidelines, a deck or a style guide with the site and logo. Draft
   positioning, values, audiences and voice from it, and ask only about what it leaves out. Have
   Claude Design build the design system from the same files.
-* **The Brand Sprint and a backwards press release, in tandem.** For a new brand, a rebrand, or a
-  brand in the founder's head. Run GV's Brand Sprint one question at a time, the person as decider:
-  a 20-year roadmap; what, how and why; three values; three audiences, narrowed to one primary and
-  at most one secondary; personality sliders; the competitive landscape. Push back on generic answers and force each list down to three. Then write a press
-  release for the brand's next big moment, as if it had happened: headline, the customer's problem,
-  what changes for them in one sentence, a customer quote, a few questions and answers. Where the
-  sprint and the release disagree, ask the person to choose. Their headline and quote seed the first
-  hooks, and the moment becomes the first launch. This path may take two sittings.
+* **The Brand Sprint and a backwards press release.** For a new brand, a rebrand, or a brand in the
+  founder's head: run the `brand-sprint` skill, which saves what it finds; then come back here for
+  the closing steps.
 * **A light start.** They paste the site, two or three posts they like and a few real comments.
   Save a partial context, leave the rest empty, ask about gaps as they come up, and offer a full path
   once the first pieces are out.
@@ -64,9 +60,9 @@ Every path ends with the same closing steps:
    by DM, and the first sort of the calendar (step 1, with `past_days`).
 
 Invent nothing: what neither the material nor the person supplies stays empty. Map the result into
-the sections `brand_read` returns (sliders and the press release go in `voice` and `positioning`;
-colours and fonts go nowhere, they are the design system's). Show the whole context, and save it with
-`brand_change` (`approved: true`, `base_version` 0) only once the person confirms it.
+the sections `brand_read` returns (colours and fonts go nowhere, they are the design system's). Show
+the whole context, and save it with `brand_change` (`approved: true`, the version you read as
+`base_version`) only once the person confirms it.
 
 ## 1. Sort the calendar and plan the week (weekly)
 

@@ -74,8 +74,12 @@ published processes where they fit instead of inventing one.
 >   system is built from the same files (ADR-0027). The skill asks only about what the book leaves
 >   out, usually customers' own words and the closing steps.
 > * **The Brand Sprint and a backwards press release, in tandem.** For a new brand, a rebrand, or a
->   brand that lives in the founder's head. The sprint runs as published, one question at a time, with
->   the person as decider and Claude facilitating: a 20-year roadmap; what, how and why; three values;
+>   brand that lives in the founder's head. This path is a skill of its own in the content plugin,
+>   `brand-sprint`, because it runs once or at a rebrand and the content skill should not carry it
+>   afterwards; it saves what it finds through `brand_change`, and the content skill's closing steps
+>   follow. The sprint runs as published, one question at a time, with
+>   the person as decider and Claude facilitating, or with a person facilitating a founder or
+>   founding team in a half-day workshop and Claude assisting the facilitator: a 20-year roadmap; what, how and why; three values;
 >   three audiences, narrowed to one primary and at most one secondary (`CNT-02`); personality
 >   sliders; and the competitive landscape. The press release is
 >   written for the brand's next big moment, such as a flagship event or product: a headline, the
@@ -173,8 +177,8 @@ Research* 34 (1997). The workshops' contents were read through search extracts a
 2026-10-30, not in full; Amazon's page was read on 2026-11-07.
 
 **Follow-on obligations.** The skill's default list of AI tells, the paths' prompts and the closing
-steps are content of the skill, evaluated like the rest of it. The sprint path may reuse an existing
-brand sprint skill and map its cheat sheet into the brand context's sections.
+steps are content of the skill, evaluated like the rest of it. The sprint path's skill maps its result
+into the brand context's sections itself.
 
 **Reversal cost.** Low: the exercise is text in the skill, and a context already confirmed stays.
 
