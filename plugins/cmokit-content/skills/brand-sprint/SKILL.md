@@ -104,11 +104,18 @@ and how it ends. GV runs them in about three hours.
 Every exercise runs the same way:
 
 1. **Open.** Say which exercise it is (2 of 6), what it produces and its timebox, in one line.
-2. **Ask.** Put the exercise's opening question.
-3. **Explore.** Follow up at most three times, each time to make them explain, to push back on
-   something generic, or to make them cut.
-4. **Close.** Play back the result in the exercise's shape, for them to confirm or correct in
+2. **Note.** Put the exercise's opening question, and have them note several answers of their own,
+   quickly, written or spoken, before discussing any. Go broad: quantity first. In a team, each
+   person notes their own, written or spoken, before anyone shares.
+3. **Vote.** Have them mark their favorites, as many as the exercise keeps. In a team, everyone
+   shares their notes, each person marks favorites, and the decider chooses.
+4. **Explore.** Follow up at most three times on what they chose, each time to make them explain,
+   to push back on something generic, or to make them cut.
+5. **Close.** Play back the result in the exercise's shape, for them to confirm or correct in
    writing. Then move to the next exercise.
+
+This is GV's note and vote. The personality sliders are the exception: there they place each slider
+directly, as below.
 
 If they are stuck, or the timebox has passed, do not keep circling: play back the best version of
 what they have said so far, mark it as a draft, and move on; come back to drafts at the end, before
@@ -116,8 +123,8 @@ saving. They can also skip, go back or stop.
 
 1. **Roadmap** (about 20 minutes). Produces four short lines: where the brand is in 5, 10, 15 and 20
    years. Each is one directional line, a North Star, not a plan or a checklist. Ask: "Picture the
-   brand 20 years from now. Where is it?", then work back through 15, 10 and 5. A theme that runs
-   through every horizon belongs in the next exercise, not here.
+   brand 20 years from now. Where is it?", note and vote one line, then do the same at 15, 10 and 5
+   years. A theme that runs through every horizon belongs in the next exercise, not here.
 2. **What, how, why** (about 30 minutes). Produces three sentences, one each.
    * What: what the brand makes or does.
    * How: three high-level qualities that apply to anything it makes, the way Apple's are well
