@@ -135,3 +135,16 @@ test('usage prices cache reads and writes', () => {
   usage.add('some-other-model', usage0 as Anthropic.Usage);
   assert.equal(usage.cost(), null);
 });
+
+test('an exercise left open fails the closing check', async () => {
+  const done: Run = {
+    scenario: 'cmo-kit-sprint', ended: 'done', plantedAt: null, after: { version: 1, context: { sections: {}, offers: [] }, at: null },
+    turns: [{ who: 'claude', text: 'Where is CMO Kit in 5 years?', calls: [] }],
+  };
+  const judged = (exercises: unknown[]) => fake([], () => ({ exercises })).client;
+  const open = await check(judged([{ exercise: 'roadmap', closed: false, why: 'No playback.' }]), models, new Usage(), done, 'closes-each-exercise');
+  assert.equal(open.pass, false);
+  assert.match(open.why, /roadmap: No playback/);
+  const closed = await check(judged([{ exercise: 'roadmap', closed: true, why: 'Confirmed.' }]), models, new Usage(), done, 'closes-each-exercise');
+  assert.equal(closed.pass, true);
+});

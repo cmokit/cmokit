@@ -1,7 +1,7 @@
 // The founder's side of the brand-sprint evals: CMO Kit's own brand sprint, with Geoff as the
-// founder. Every line Geoff "says" is copied word for word from CMO Kit's brand context as it was
-// saved after its sprint (version 2, 2026-11-15) and the lines Geoff approved as his own voice
-// (version 3, 2026-11-16). Nothing here is written for him. A test checks that every line marked
+// founder. Every line Geoff "says" is copied word for word from CMO Kit's brand context, version 5
+// (2026-11-21), which holds what its sprint saved so far, the roadmap included, and the lines Geoff
+// approved as his own voice. Nothing here is written for him. A test checks that every line marked
 // `real` still appears in SAVED, so an edit cannot slip a made-up quote in.
 //
 // Where CMO Kit's sprint has no real answer for an exercise, the exercise is listed in PENDING and
@@ -13,15 +13,21 @@
 // marked `harness` only move the conversation along (confirming, skipping), and say nothing about
 // the brand.
 
-/** CMO Kit's saved brand context, the sections the sprint fills, verbatim. */
+/** CMO Kit's saved brand context, verbatim: the sections the sprint fills, and the approved-lines part of examples. */
 export const SAVED = {
   positioning: `CMO Kit is a marketing loop that runs in one conversation with Claude, for people who create content for a living.
 
 **What:** it plans posts and ads backwards from what you sell, gives each one a tracked link, runs landing page experiments, measures conversions on the third-party pages where people buy (like a Luma event page or a product page), analyzes results and recommends improvements each week.
 
-**How:** it learns from your results and keeps improving what it knows about your business. That context is fully exportable, so there's no vendor lock-in and switching agents doesn't mean starting over. It's open source, so you can self-host, and it connects to the tools you already use.
+**How:** it learns from your results and keeps improving what it knows about your business. It shows its work, so every recommendation traces back to your own results. That context is fully exportable, so there's no vendor lock-in and switching agents doesn't mean starting over. It's open source, so you can self-host, and it connects to the tools you already use.
 
 **Why:** AI lets anyone make and optimize endless content, your competitors included, so what stands out is what AI can't commoditize: your humanity. CMO Kit takes care of the busywork, so your time and attention can go to strategy and creative expression. CMO Kit is a test of the Kindness Flywheel hypothesis.
+
+**20-year roadmap (directional, not a plan):**
+- 5 years: the marketing partner for creators, owner-run shops and startup teams.
+- 10 years: trusted by growing companies.
+- 15 years: trusted by large enterprises.
+- 20 years: ubiquitous, the agent humans and agents alike go to to grow through kindness, not growth at all costs.
 
 **Now:** private beta. The goal is waitlist signups at cmokit.ai.
 
@@ -41,7 +47,9 @@ In copy, address "people who create content for a living", not "practitioners".`
 
 **We are not:** marketing bro. No funnel, scale, growth hack or conversion talk in customer copy, no hype, no fake urgency or scarcity, no vague or cute phrasing, and no copy that sounds like AI.
 
-**Words to avoid:** "your people", "practitioners" in copy.`,
+**Words to avoid:** "your people", "practitioners" in copy.
+
+**For influencers:** the same voice; only the goal words change (earnings and sponsors instead of seats).`,
   examples: `Approved lines in Geoff's own voice (Nov 15):
 - "I don't like making content."
 - "Especially everything around the filming."
@@ -77,7 +85,7 @@ export const LINES: Line[] = [
   real('what', 'positioning', 'typed', 'what it makes or does',
     'What: it plans posts and ads backwards from what you sell, gives each one a tracked link, runs landing page experiments, measures conversions on the third-party pages where people buy (like a Luma event page or a product page), analyzes results and recommends improvements each week.'),
   real('how', 'positioning', 'typed', 'how it does it differently',
-    "How: it learns from your results and keeps improving what it knows about your business. That context is fully exportable, so there's no vendor lock-in and switching agents doesn't mean starting over. It's open source, so you can self-host, and it connects to the tools you already use."),
+    "How: it learns from your results and keeps improving what it knows about your business. It shows its work, so every recommendation traces back to your own results. That context is fully exportable, so there's no vendor lock-in and switching agents doesn't mean starting over. It's open source, so you can self-host, and it connects to the tools you already use."),
   real('why-humanity', 'positioning', 'typed', 'why it exists',
     "Why: AI lets anyone make and optimize endless content, your competitors included, so what stands out is what AI can't commoditize: your humanity."),
   real('why-busywork', 'positioning', 'typed', 'why it exists, what it frees people for',
@@ -86,6 +94,17 @@ export const LINES: Line[] = [
     'CMO Kit is a test of the Kindness Flywheel hypothesis.'),
   real('site-lines', 'positioning', 'typed', 'how the brand says it on its site',
     'Site lines: "Take control of your content strategy." "Less busywork. More room to create."'),
+
+  real('roadmap-framing', 'positioning', 'typed', 'how firm the 20-year roadmap is',
+    '20-year roadmap (directional, not a plan):'),
+  real('roadmap-5', 'positioning', 'typed', 'where the brand is in 5 years',
+    '5 years: the marketing partner for creators, owner-run shops and startup teams.'),
+  real('roadmap-10', 'positioning', 'typed', 'where the brand is in 10 years',
+    '10 years: trusted by growing companies.'),
+  real('roadmap-15', 'positioning', 'typed', 'where the brand is in 15 years',
+    '15 years: trusted by large enterprises.'),
+  real('roadmap-20', 'positioning', 'typed', 'where the brand is in 20 years',
+    '20 years: ubiquitous, the agent humans and agents alike go to to grow through kindness, not growth at all costs.'),
 
   real('dont-like', 'examples', 'spoken', 'why it matters to him personally; how he feels about making content',
     "I don't like making content."),
@@ -152,7 +171,7 @@ export type Reply = keyof typeof REPLIES;
  * check confirms nothing was made up for it. Being filled in, in the cmokit-marketing channel.
  */
 export const PENDING = [
-  '20-year roadmap: where CMO Kit is in 5, 10 and 20 years',
+  'what must be true at year 5 for year 20 to happen (the skill on PR 54 is dropping this question)',
   'narrowing the four values to three',
   'narrowing the three audiences to one primary and at most one secondary',
   'a "this means we..." line for each slider (the saved voice has one "We are" and one "We are not" for all of them)',

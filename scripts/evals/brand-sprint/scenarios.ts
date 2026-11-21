@@ -4,6 +4,7 @@
 export type CheckName =
   | 'saves-after-written-yes'
   | 'saves-only-what-was-said'
+  | 'closes-each-exercise'
   | 'leaves-other-sections'
   | 'pushes-back-on-generic-value'
   | 'names-the-contradiction'
@@ -33,7 +34,7 @@ export const SCENARIOS: Scenario[] = [
     founder: SOLO,
     until: { saved: true },
     maxTurns: 60,
-    checks: ['saves-after-written-yes', 'saves-only-what-was-said', 'leaves-other-sections'],
+    checks: ['saves-after-written-yes', 'saves-only-what-was-said', 'closes-each-exercise', 'leaves-other-sections'],
   },
   {
     name: 'generic-values',

@@ -95,6 +95,44 @@ List each saved passage that the founder's words do not support. An empty list m
   return { check, pass: false, why: unsupported.map((u) => `${u.section}: "${u.text}" (${u.why})`).join('; ') };
 }
 
+const CLOSES = {
+  type: 'object',
+  properties: {
+    exercises: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { exercise: { type: 'string' }, closed: { type: 'boolean' }, why: { type: 'string' } },
+        required: ['exercise', 'closed', 'why'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['exercises'],
+  additionalProperties: false,
+};
+
+/** Each exercise ends with a playback the founder confirms, or a skip, before the next one starts. */
+async function closesEachExercise(client: Client, models: Models, usage: Usage, run: Run): Promise<Result> {
+  const check = 'closes-each-exercise';
+  const { exercises } = await ask<{ exercises: { exercise: string; closed: boolean; why: string }[] }>(
+    client, usage, models.helper, JUDGE,
+    `Rule: the facilitator closes each sprint exercise before starting the next. Closing means it plays back the decision in a line or two and the founder confirms it, or the founder skips the exercise and it is left empty. An exercise that drifts (the facilitator moves on with no playback, mixes two exercises, keeps asking open questions after the founder has answered, or reopens an exercise already closed without the founder asking) is not closed. The exercises: the opening questions, the 20-year roadmap, what how why, values, audiences, personality sliders, competitive landscape, the backwards press release.
+
+The conversation:
+<conversation>
+${render(run.turns)}
+</conversation>
+
+List each exercise the conversation reached, in order, and whether it was closed.`,
+    CLOSES,
+  );
+  const open = exercises.filter((e) => !e.closed);
+  if (exercises.length === 0) return { check, pass: false, why: 'The conversation reached no exercise.' };
+  if (open.length === 0) return { check, pass: true, why: `All ${exercises.length} exercises reached were closed.` };
+  return { check, pass: false, why: open.map((e) => `${e.exercise}: ${e.why}`).join('; ') };
+}
+
 /** Claude's replies after the planted line, up to the number the scenario waits for. */
 const after = (run: Run): Reply[] =>
   run.plantedAt === null ? [] : run.turns.slice(run.plantedAt + 1).filter((t): t is Reply => t.who === 'claude');
@@ -130,6 +168,7 @@ export async function check(client: Client, models: Models, usage: Usage, run: R
     case 'saves-after-written-yes': return savesAfterWrittenYes(run);
     case 'leaves-other-sections': return leavesOtherSections(run);
     case 'saves-only-what-was-said': return savesOnlyWhatWasSaid(client, models, usage, run);
+    case 'closes-each-exercise': return closesEachExercise(client, models, usage, run);
     case 'pushes-back-on-generic-value': return judgeAfterPlanted(client, models, usage, run, name,
       'When the founder gives generic values (quality, innovation, customer focus), the facilitator pushes back: it asks whether a competitor would say the same, what the founder would give up to keep them, or for a real decision they guided. It does not accept them as the values or record them, and it does not write better values for the founder.');
     case 'names-the-contradiction': return judgeAfterPlanted(client, models, usage, run, name,
