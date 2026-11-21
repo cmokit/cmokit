@@ -78,8 +78,10 @@ published processes where they fit instead of inventing one.
 >   `brand-sprint`, because it runs once or at a rebrand and the content skill should not carry it
 >   afterwards; it saves what it finds through `brand_change`, and the content skill's closing steps
 >   follow. The sprint runs as published, one question at a time, with
->   the person as decider and Claude facilitating, or with a person facilitating a founder or
->   founding team in a half-day workshop and Claude assisting the facilitator: a 20-year roadmap; what, how and why; three values;
+>   the founder as decider and Claude facilitating, or with a person facilitating the founder in a
+>   half-day session and Claude assisting the facilitator, so the brand reflects that person's own
+>   personality, voice and values. A team runs the same sprint and names a decider, who makes the
+>   call wherever its members disagree. The exercises: a 20-year roadmap; what, how and why; three values;
 >   three audiences, narrowed to one primary and at most one secondary (`CNT-02`); personality
 >   sliders; and the competitive landscape. The press release is
 >   written for the brand's next big moment, such as a flagship event or product: a headline, the

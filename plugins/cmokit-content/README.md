@@ -4,7 +4,7 @@ A plugin for Claude's chat, on the web, desktop and mobile, that plans, writes a
 Reels, carousels, photo posts and Stories, reviews what worked each week, and reviews how the
 brand's waitlist page converts, proposing one change at a time. It holds two skills:
 `content`, for everyday work, and `brand-sprint`, which runs GV's Brand Sprint and a backwards press
-release once for a new brand or a rebrand, alone or led by a facilitator in a workshop, so the content skill doesn't carry it afterwards.
+release once for a new brand or a rebrand, self-guided or led by a facilitator, so the content skill doesn't carry it afterwards.
 Everything it keeps (the brand context, the pieces, their tracked links and results) lives
 on CMOkit's content server, reached through CMOkit's connector, so every skill that serves the brand
 reads the same context.
