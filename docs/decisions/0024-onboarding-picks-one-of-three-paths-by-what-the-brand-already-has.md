@@ -79,9 +79,9 @@ published processes where they fit instead of inventing one.
 >   afterwards; it saves what it finds through `brand_change`, and the content skill's closing steps
 >   follow. The sprint runs as published, one question at a time, with
 >   the founder as decider and Claude facilitating, or with a person facilitating the founder in a
->   half-day session and Claude assisting the facilitator, so the brand reflects that one person's
->   own personality, voice and values. A team's sprint, which must reconcile its members'
->   differences, is not built yet. The exercises: a 20-year roadmap; what, how and why; three values;
+>   half-day session and Claude assisting the facilitator, so the brand reflects that person's own
+>   personality, voice and values. A team runs the same sprint and names a decider, who makes the
+>   call wherever its members disagree. The exercises: a 20-year roadmap; what, how and why; three values;
 >   three audiences, narrowed to one primary and at most one secondary (`CNT-02`); personality
 >   sliders; and the competitive landscape. The press release is
 >   written for the brand's next big moment, such as a flagship event or product: a headline, the
@@ -186,7 +186,6 @@ into the brand context's sections itself.
 
 ## Revisit when
 
-* A team's brand sprint is designed, with a way to reconcile its members' differences.
 * Most people on the sprint path stop before the closing steps.
 * Most light starts never take a full path.
 * Contexts made by the exercise score worse on voice fidelity than contexts written by hand for the

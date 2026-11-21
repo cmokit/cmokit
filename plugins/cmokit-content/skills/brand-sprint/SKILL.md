@@ -1,6 +1,6 @@
 ---
 name: brand-sprint
-description: Runs GV's Brand Sprint and a backwards press release for a solo founder's brand, self-guided or led by a facilitator, so the brand reflects that person's own personality, voice and values, and saves the result to the brand context through CMOkit's connector. Use only for a new brand with no brand context, a rebrand, or when the person asks to run a brand sprint. Not for planning or writing content.
+description: Runs GV's Brand Sprint and a backwards press release for one brand, self-guided or led by a facilitator, so the brand reflects its founder's own personality, voice and values (or a team's, with a named decider), and saves the result to the brand context through CMOkit's connector. Use only for a new brand with no brand context, a rebrand, or when the person asks to run a brand sprint. Not for planning or writing content.
 ---
 
 # Brand Sprint
@@ -10,9 +10,8 @@ brand's next big moment written as if it had happened (Amazon's Working Backward
 from the inside and the release from the outside. The result goes into the brand context that every
 CMOkit skill writes from, so it is done once, or again at a rebrand.
 
-This skill is for a brand that is one person: a solo founder, creator or practitioner. The point is
-a brand that authentically reflects that person's own personality, voice and values, in their own
-words. It runs one of two ways:
+The point is a brand that authentically reflects the people behind it in their own words: a solo
+founder's own personality, voice and values, or a team's collective ones. It runs one of two ways:
 
 * **Self-guided.** The founder works through it with you. They decide; you facilitate: ask, reflect,
   push for specifics and force choices.
@@ -23,9 +22,9 @@ words. It runs one of two ways:
 
 Either way you never decide for them, and you invent nothing: what they do not supply stays empty.
 
-A brand with a team behind it needs a way to reconcile the team's differences, which this skill does
-not have yet. If the person says the brand is a team's, say so, and offer to run it with the one
-person who will decide, as their own view.
+A team runs the same sprint. The one difference is that the team names a decider, who makes the
+call wherever its members disagree; everything said about the founder below applies to the team,
+with the decider confirming.
 
 ## Before anything
 
@@ -37,8 +36,9 @@ person who will decide, as their own view.
    positioning, audiences, values or voice, this is a rebrand or a resumed sprint: show what is there
    and ask whether to start fresh or continue from it.
 3. Ask, in one message, what the brand is in a line, what prompted the sprint (a launch, a rebrand,
-   a new site), and whether the founder is doing this on their own or with a facilitator. The trigger
-   keeps answers grounded.
+   a new site), whether the founder is doing this on their own or with a facilitator, and whether
+   anyone else is in it. The trigger keeps answers grounded. If it is a team, ask who the decider
+   is.
 
 ## Say it out loud, if they like
 
