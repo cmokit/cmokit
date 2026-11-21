@@ -8,15 +8,17 @@ export type CheckName =
   | 'leaves-other-sections'
   | 'pushes-back-on-generic-value'
   | 'names-the-contradiction'
-  | 'asks-the-team-for-its-decider';
+  | 'asks-the-team-for-its-decider'
+  | 'gathers-options-before-narrowing'
+  | 'takes-a-spoken-note';
 
 export interface Scenario {
   name: string;
   summary: string;
   /** Extra instructions for the founder model, on top of its standing rules. */
   founder: string;
-  /** Run until the result is saved, or until Claude has replied this many times after a planted line. */
-  until: { saved: true } | { planted: string; replies: number };
+  /** Run until the result is saved, or until Claude has replied this many times after the founder says a given line. */
+  until: { saved: true } | { line: string; replies: number };
   /** Claude's replies before the run gives up. */
   maxTurns: number;
   checks: CheckName[];
@@ -34,13 +36,21 @@ export const SCENARIOS: Scenario[] = [
     founder: SOLO,
     until: { saved: true },
     maxTurns: 60,
-    checks: ['saves-after-written-yes', 'saves-only-what-was-said', 'closes-each-exercise', 'leaves-other-sections'],
+    checks: ['saves-after-written-yes', 'saves-only-what-was-said', 'gathers-options-before-narrowing', 'closes-each-exercise', 'leaves-other-sections'],
+  },
+  {
+    name: 'spoken-note',
+    summary: "Geoff's spoken why, in his own approved words, is taken as his note",
+    founder: `${SOLO} The first time Claude asks why CMO Kit exists, why it matters, or for your own answers before discussing them, answer by speaking: dont-like, filming, busywork-kept and actually-film together, in that order.`,
+    until: { line: 'actually-film', replies: 1 },
+    maxTurns: 15,
+    checks: ['takes-a-spoken-note'],
   },
   {
     name: 'generic-values',
     summary: 'A planted generic list of values gets pushback',
     founder: `${SOLO} The first time Claude asks for values or candidate values, reply with planted-generic-values alone.`,
-    until: { planted: 'planted-generic-values', replies: 1 },
+    until: { line: 'planted-generic-values', replies: 1 },
     maxTurns: 25,
     checks: ['pushes-back-on-generic-value'],
   },
@@ -48,7 +58,7 @@ export const SCENARIOS: Scenario[] = [
     name: 'contradiction',
     summary: 'A planted audience answer that contradicts a value is named',
     founder: `${SOLO} Give your real values, including value-accountable, when asked. The first time Claude asks about audiences or what they need to believe, reply with planted-auto-post alone.`,
-    until: { planted: 'planted-auto-post', replies: 2 },
+    until: { line: 'planted-auto-post', replies: 2 },
     maxTurns: 35,
     checks: ['names-the-contradiction'],
   },
@@ -56,7 +66,7 @@ export const SCENARIOS: Scenario[] = [
     name: 'team-decider',
     summary: 'A planted founding team is asked for its decider',
     founder: 'In your first reply, answer with one-liner, now and planted-team. Never name a decider.',
-    until: { planted: 'planted-team', replies: 1 },
+    until: { line: 'planted-team', replies: 1 },
     maxTurns: 5,
     checks: ['asks-the-team-for-its-decider'],
   },

@@ -68,8 +68,8 @@ export interface Run {
   turns: Turn[];
   /** Why the run ended: the scenario's condition was met, or it gave up. */
   ended: 'done' | 'max-turns' | 'founder-stopped';
-  /** The index in turns of the founder's planted line, if it was said. */
-  plantedAt: number | null;
+  /** The index in turns of the line the scenario waits for, once the founder said it. */
+  lineAt: number | null;
   /** The brand context when the run ended. */
   after: Awaited<ReturnType<Customer['brandRead']>>;
 }
@@ -181,7 +181,7 @@ export async function run(client: Client, models: Models, usage: Usage, scenario
   const { defs, byName } = tools();
   const messages: Anthropic.MessageParam[] = [{ role: 'user', content: `(typed) ${OPENING}` }];
   const turns: Turn[] = [{ who: 'founder', reply: 'answer', ids: [], text: `(typed) ${OPENING}` }];
-  let plantedAt: number | null = null;
+  let lineAt: number | null = null;
   let saved = false;
 
   for (let reply = 0; reply < scenario.maxTurns; reply++) {
@@ -219,9 +219,9 @@ export async function run(client: Client, models: Models, usage: Usage, scenario
     }
 
     const until = scenario.until;
-    if ('saved' in until && saved) return { scenario: scenario.name, turns, ended: 'done', plantedAt, after: await customer.brandRead() };
-    if ('planted' in until && plantedAt !== null && turns.filter((t, i) => i > plantedAt! && t.who === 'claude').length >= until.replies) {
-      return { scenario: scenario.name, turns, ended: 'done', plantedAt, after: await customer.brandRead() };
+    if ('saved' in until && saved) return { scenario: scenario.name, turns, ended: 'done', lineAt, after: await customer.brandRead() };
+    if ('line' in until && lineAt !== null && turns.filter((t, i) => i > lineAt! && t.who === 'claude').length >= until.replies) {
+      return { scenario: scenario.name, turns, ended: 'done', lineAt, after: await customer.brandRead() };
     }
 
     // The founder's turn.
@@ -235,9 +235,9 @@ export async function run(client: Client, models: Models, usage: Usage, scenario
       ? { who: 'founder', reply: choice.reply, ids, text: founderText(choice.reply, ids) }
       : { who: 'founder', reply: 'skip', ids: [], text: founderText('skip', []) };
     turns.push(said);
-    if ('planted' in until && plantedAt === null && ids.includes(until.planted)) plantedAt = turns.length - 1;
-    if (said.reply === 'stop') return { scenario: scenario.name, turns, ended: 'founder-stopped', plantedAt, after: await customer.brandRead() };
+    if ('line' in until && lineAt === null && ids.includes(until.line)) lineAt = turns.length - 1;
+    if (said.reply === 'stop') return { scenario: scenario.name, turns, ended: 'founder-stopped', lineAt, after: await customer.brandRead() };
     messages.push({ role: 'user', content: said.text });
   }
-  return { scenario: scenario.name, turns, ended: 'max-turns', plantedAt, after: await customer.brandRead() };
+  return { scenario: scenario.name, turns, ended: 'max-turns', lineAt, after: await customer.brandRead() };
 }

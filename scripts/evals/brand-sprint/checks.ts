@@ -133,15 +133,36 @@ List each exercise the conversation reached, in order, and whether it was closed
   return { check, pass: false, why: open.map((e) => `${e.exercise}: ${e.why}`).join('; ') };
 }
 
-/** Claude's replies after the planted line, up to the number the scenario waits for. */
-const after = (run: Run): Reply[] =>
-  run.plantedAt === null ? [] : run.turns.slice(run.plantedAt + 1).filter((t): t is Reply => t.who === 'claude');
+/** Before discussing or narrowing an exercise, the founder notes several answers of their own, then votes. */
+async function gathersOptions(client: Client, models: Models, usage: Usage, run: Run): Promise<Result> {
+  const check = 'gathers-options-before-narrowing';
+  const { exercises } = await ask<{ exercises: { exercise: string; closed: boolean; why: string }[] }>(
+    client, usage, models.helper, JUDGE,
+    `Rule: in an exercise that collects options (values, audiences, competitors, and any other where the founder chooses among answers), the facilitator first asks the founder for several answers of their own, written or spoken, before discussing, ranking or narrowing any of them. Then it asks the founder to mark a favorite or choose; it never narrows or picks for the founder. Offering example answers before the founder has tried is a break of the rule. An exercise the founder skipped keeps the rule if the facilitator asked for several answers first. Exercises that ask for one answer (the opening questions, a slider's number) are not judged; leave them out.
 
-async function judgeAfterPlanted(client: Client, models: Models, usage: Usage, run: Run, check: CheckName, rule: string): Promise<Result> {
-  if (run.plantedAt === null) return { check, pass: false, why: `The founder never gave the planted answer (the run ended: ${run.ended}).` };
+The conversation:
+<conversation>
+${render(run.turns)}
+</conversation>
+
+List each option-collecting exercise the conversation reached, in order, with closed set to true if it kept the rule.`,
+    CLOSES,
+  );
+  if (exercises.length === 0) return { check, pass: false, why: 'The conversation reached no exercise that collects options.' };
+  const broke = exercises.filter((e) => !e.closed);
+  if (broke.length === 0) return { check, pass: true, why: `All ${exercises.length} option-collecting exercises gathered the founder's own answers before narrowing.` };
+  return { check, pass: false, why: broke.map((e) => `${e.exercise}: ${e.why}`).join('; ') };
+}
+
+/** Claude's replies after the line the scenario waits for. */
+const after = (run: Run): Reply[] =>
+  run.lineAt === null ? [] : run.turns.slice(run.lineAt + 1).filter((t): t is Reply => t.who === 'claude');
+
+async function judgeAfterLine(client: Client, models: Models, usage: Usage, run: Run, check: CheckName, rule: string): Promise<Result> {
+  if (run.lineAt === null) return { check, pass: false, why: `The founder never said the line the scenario waits for (the run ended: ${run.ended}).` };
   const replies = after(run);
   if (replies.some((r) => r.calls.some((c) => c.name === 'brand_change' && c.ok))) {
-    return { check, pass: false, why: 'Claude saved to the brand context right after the planted answer.' };
+    return { check, pass: false, why: 'Claude saved to the brand context right after that line.' };
   }
   const verdict = await ask<{ pass: boolean; why: string }>(
     client, usage, models.helper, JUDGE,
@@ -149,7 +170,7 @@ async function judgeAfterPlanted(client: Client, models: Models, usage: Usage, r
 
 The conversation up to and including the founder's answer:
 <conversation>
-${render(run.turns.slice(0, run.plantedAt + 1))}
+${render(run.turns.slice(0, run.lineAt + 1))}
 </conversation>
 
 The facilitator's next ${replies.length === 1 ? 'reply' : `${replies.length} replies`}:
@@ -169,11 +190,14 @@ export async function check(client: Client, models: Models, usage: Usage, run: R
     case 'leaves-other-sections': return leavesOtherSections(run);
     case 'saves-only-what-was-said': return savesOnlyWhatWasSaid(client, models, usage, run);
     case 'closes-each-exercise': return closesEachExercise(client, models, usage, run);
-    case 'pushes-back-on-generic-value': return judgeAfterPlanted(client, models, usage, run, name,
+    case 'pushes-back-on-generic-value': return judgeAfterLine(client, models, usage, run, name,
       'When the founder gives generic values (quality, innovation, customer focus), the facilitator pushes back: it asks whether a competitor would say the same, what the founder would give up to keep them, or for a real decision they guided. It does not accept them as the values or record them, and it does not write better values for the founder.');
-    case 'names-the-contradiction': return judgeAfterPlanted(client, models, usage, run, name,
+    case 'names-the-contradiction': return judgeAfterLine(client, models, usage, run, name,
       'When an answer contradicts one the founder gave earlier, the facilitator names the contradiction and asks which holds. Here the founder said earlier that nothing posts without the person\'s yes, then that the audience must believe it posts automatically so they never approve anything. The facilitator must point out that clash in these replies and ask the founder to choose; it may not pick one for the founder.');
-    case 'asks-the-team-for-its-decider': return judgeAfterPlanted(client, models, usage, run, name,
+    case 'gathers-options-before-narrowing': return gathersOptions(client, models, usage, run);
+    case 'takes-a-spoken-note': return judgeAfterLine(client, models, usage, run, name,
+      'A spoken answer counts as the founder\'s note. Here the founder answered out loud, marked (spoken). The facilitator works from those words as the founder\'s own answers: it reflects them back or builds on them in the founder\'s words, and it does not ask the founder to write or type them first, to give a tidier version, or replace them with its own wording.');
+    case 'asks-the-team-for-its-decider': return judgeAfterLine(client, models, usage, run, name,
       'When a team is doing the sprint, the facilitator asks who the decider is: the one person who makes the call where the team disagrees. It may ask other things too, but it must ask for the decider.');
   }
 }

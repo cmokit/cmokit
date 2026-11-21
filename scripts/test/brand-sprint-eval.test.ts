@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import type Anthropic from '@anthropic-ai/sdk';
 import { check, leavesOtherSections, savesAfterWrittenYes } from '../evals/brand-sprint/checks.ts';
 import { LINES, PENDING, SAVED } from '../evals/brand-sprint/fixtures.ts';
-import { Usage, run, type Client, type Run } from '../evals/brand-sprint/harness.ts';
+import { Usage, founderText, run, type Client, type Run } from '../evals/brand-sprint/harness.ts';
 import { SCENARIOS, type Scenario } from '../evals/brand-sprint/scenarios.ts';
 
 const models = { skill: 'claude-opus-5-5', helper: 'claude-sonnet-5-5' };
@@ -52,9 +52,11 @@ test("every real line is CMO Kit's saved words, verbatim", () => {
   assert.ok(PENDING.length > 0);
 });
 
-test('every planted line a scenario waits for exists and is planted', () => {
+test('every line a scenario waits for exists, and is planted or real', () => {
   for (const s of SCENARIOS) {
-    if ('planted' in s.until) assert.equal(LINES.find((l) => l.id === (s.until as { planted: string }).planted)?.kind, 'planted', s.name);
+    if (!('line' in s.until)) continue;
+    const kind = LINES.find((l) => l.id === (s.until as { line: string }).line)?.kind;
+    assert.ok(kind === 'planted' || kind === 'real', s.name);
   }
 });
 
@@ -66,7 +68,7 @@ test('the team scenario: Claude reads the brand, the founder plants a team, the 
   const usage = new Usage();
   const done = await run(client, models, usage, scenario('team-decider'));
   assert.equal(done.ended, 'done');
-  assert.equal(done.plantedAt, 2);
+  assert.equal(done.lineAt, 2);
   const [, first, said, second] = done.turns;
   assert.equal(first!.who === 'claude' && first.calls.map((c) => c.name).join(), 'account_status,brand_read');
   assert.match(said!.text, /^\(typed\) CMO Kit is a marketing loop/);
@@ -108,7 +110,7 @@ test('a save before the founder says to save fails', async () => {
 
 test('a save that writes examples or offers fails', () => {
   const runWith = (input: Record<string, unknown>): Run => ({
-    scenario: 'x', ended: 'done', plantedAt: null, after: { version: 2, context: { sections: {}, offers: [] }, at: null },
+    scenario: 'x', ended: 'done', lineAt: null, after: { version: 2, context: { sections: {}, offers: [] }, at: null },
     turns: [{ who: 'claude', text: '', calls: [{ name: 'brand_change', input: { approved: true, ...input }, ok: true, result: {} }] }],
   });
   assert.equal(leavesOtherSections(runWith({ sections: { examples: 'x' } })).pass, false);
@@ -138,7 +140,7 @@ test('usage prices cache reads and writes', () => {
 
 test('an exercise left open fails the closing check', async () => {
   const done: Run = {
-    scenario: 'cmo-kit-sprint', ended: 'done', plantedAt: null, after: { version: 1, context: { sections: {}, offers: [] }, at: null },
+    scenario: 'cmo-kit-sprint', ended: 'done', lineAt: null, after: { version: 1, context: { sections: {}, offers: [] }, at: null },
     turns: [{ who: 'claude', text: 'Where is CMO Kit in 5 years?', calls: [] }],
   };
   const judged = (exercises: unknown[]) => fake([], () => ({ exercises })).client;
@@ -147,4 +149,10 @@ test('an exercise left open fails the closing check', async () => {
   assert.match(open.why, /roadmap: No playback/);
   const closed = await check(judged([{ exercise: 'roadmap', closed: true, why: 'Confirmed.' }]), models, new Usage(), done, 'closes-each-exercise');
   assert.equal(closed.pass, true);
+});
+
+test("Geoff's approved lines reach the skill marked as spoken", () => {
+  const text = founderText('answer', ['dont-like', 'filming', 'busywork-kept', 'actually-film']);
+  assert.equal(text.split('\n\n').length, 4);
+  for (const part of text.split('\n\n')) assert.match(part, /^\(spoken\) /);
 });
