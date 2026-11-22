@@ -147,7 +147,9 @@ unchanged. The workflow's permissions are checked in review.
 Sources: Anthropic's [claude-code-action](https://github.com/anthropics/claude-code-action), read at
 v1.0.266, and Claude Code's [model configuration](https://code.claude.com/docs/en/model-config).
 
-**Follow-on obligations.** The repository secret `ANTHROPIC_API_KEY`, the project's own; the
+**Follow-on obligations.** A workload identity federation rule in the project's own Anthropic
+organization that accepts this repository's GitHub OIDC tokens, named by the repository variables
+`ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID`, so no API key is stored; the
 repository setting that lets GitHub Actions create pull requests; and the plugin's manifest, which
 ADR-0022 describes.
 

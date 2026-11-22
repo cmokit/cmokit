@@ -1,6 +1,8 @@
 // Runs the brand-sprint evals (CNT-24 to CNT-26) against the brand-sprint skill, with CMO Kit's own
 // sprint as the founder's answers. It calls Claude through Anthropic's API, so it needs
-// ANTHROPIC_API_KEY and costs money: it prints the cost of each run. Not part of `npm test` or CI.
+// credentials and costs money: it prints the cost of each run. Not part of `npm test` or CI. On a
+// laptop that is ANTHROPIC_API_KEY or `ant auth login`; in CI, workload identity federation
+// (.github/workflows/brand-sprint-evals.yml). The SDK finds whichever is there.
 //
 //   npm run eval:brand-sprint                       every scenario
 //   npm run eval:brand-sprint -- contradiction      one or more, by name
@@ -15,11 +17,6 @@ import { check, tallies, type Result } from './evals/brand-sprint/checks.ts';
 import { PENDING } from './evals/brand-sprint/fixtures.ts';
 import { Usage, render, run, type Models } from './evals/brand-sprint/harness.ts';
 import { SCENARIOS } from './evals/brand-sprint/scenarios.ts';
-
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('Set ANTHROPIC_API_KEY to run the brand-sprint evals. They call Claude and cost money.');
-  process.exit(2);
-}
 
 const names = process.argv.slice(2);
 const unknown = names.filter((n) => !SCENARIOS.some((s) => s.name === n));

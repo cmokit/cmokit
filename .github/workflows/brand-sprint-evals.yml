@@ -1,8 +1,10 @@
 # Runs the brand-sprint evals (npm run eval:brand-sprint) on a pull request only when a maintainer
 # adds the run-evals label to it, so they never run on every opened or updated pull request. They
-# call Claude and cost a few dollars a run, using the repository secret ANTHROPIC_API_KEY. The run
-# takes the label off when it ends, so adding it again runs the evals again. Results are in the
-# run's summary, and the transcripts are kept as an artifact.
+# call Claude and cost a few dollars a run. They sign in to Anthropic with workload identity
+# federation: the job exchanges GitHub's OIDC token for a short-lived Anthropic token, under the
+# federation rule the repository variables ANTHROPIC_FEDERATION_RULE_ID and ANTHROPIC_ORGANIZATION_ID
+# name, so no API key is stored here. The run takes the label off when it ends, so adding it again
+# runs the evals again. Results are in the run's summary, and the transcripts are kept as an artifact.
 name: brand-sprint-evals
 
 on:
@@ -12,10 +14,12 @@ on:
 permissions:
   contents: read
   issues: write
+  id-token: write
 
 jobs:
   evals:
-    if: github.event.label.name == 'run-evals'
+    # A pull request from a fork cannot get an OIDC token, so it cannot run the evals.
+    if: github.event.label.name == 'run-evals' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -27,9 +31,21 @@ jobs:
       - run: npm ci
       - name: Run the evals
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_IDENTITY_TOKEN_FILE: ${{ runner.temp }}/github-oidc-token
         run: |
           set -o pipefail
+          # GitHub's token lasts about five minutes and Anthropic takes each one once, so fetch a
+          # fresh one now and every four minutes; the SDK rereads the file when it refreshes.
+          oidc() {
+            curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" \
+              | jq -r .value > "$ANTHROPIC_IDENTITY_TOKEN_FILE.new" \
+              && mv "$ANTHROPIC_IDENTITY_TOKEN_FILE.new" "$ANTHROPIC_IDENTITY_TOKEN_FILE"
+          }
+          oidc
+          (while sleep 240; do oidc || true; done) &
           npm run -s eval:brand-sprint 2>&1 | tee evals.txt
       - name: Summary
         if: always()
