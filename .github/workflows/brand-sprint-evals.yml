@@ -1,0 +1,48 @@
+# Runs the brand-sprint evals (npm run eval:brand-sprint) on a pull request only when a maintainer
+# adds the run-evals label to it, so they never run on every opened or updated pull request. They
+# call Claude and cost a few dollars a run, using the repository secret ANTHROPIC_API_KEY. The run
+# takes the label off when it ends, so adding it again runs the evals again. Results are in the
+# run's summary, and the transcripts are kept as an artifact.
+name: brand-sprint-evals
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  evals:
+    if: github.event.label.name == 'run-evals'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run the evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -o pipefail
+          npm run -s eval:brand-sprint 2>&1 | tee evals.txt
+      - name: Summary
+        if: always()
+        run: |
+          { echo '## Brand-sprint evals'; echo '```'; cat evals.txt 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: brand-sprint-transcripts
+          path: .evals/brand-sprint/
+          if-no-files-found: ignore
+      - name: Take the label off
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X DELETE "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/run-evals" || true
