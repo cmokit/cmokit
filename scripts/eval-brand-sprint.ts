@@ -1,4 +1,4 @@
-// Runs the brand-sprint evals (CNT-24 to CNT-26) against the brand-sprint skill, with CMO Kit's own
+// Runs the brand-sprint evals (ADR-0052) against the brand-sprint skill, with CMOKit's own
 // sprint as the founder's answers. It calls Claude through Anthropic's API, so it needs
 // credentials and costs money: it prints the cost of each run. Not part of `npm test` or CI. On a
 // laptop that is ANTHROPIC_API_KEY or `ant auth login`; in CI, workload identity federation
@@ -35,7 +35,7 @@ const out = join(import.meta.dirname, '..', '.evals', 'brand-sprint', new Date()
 mkdirSync(out, { recursive: true });
 
 console.log(`Brand-sprint evals: skill on ${models.skill}, founder and judge on ${models.helper}.`);
-console.log(`Exercises with no real CMO Kit answer yet, which the founder skips:\n${PENDING.map((p) => `  - ${p}`).join('\n')}\n`);
+console.log(`Exercises with no real CMOKit answer yet, which the founder skips:\n${PENDING.map((p) => `  - ${p}`).join('\n')}\n`);
 
 const outcomes = await Promise.all(chosen.map(async (scenario) => {
   const usage = new Usage();
