@@ -65,8 +65,10 @@ rather than smoothing it over, and never keep anything the transcript did not sa
 ## How to facilitate
 
 * One exercise at a time, one question per message where possible. This works on a phone.
-* Diverge, then converge: collect more options than needed, then make the person cut. When they give
-  more than an exercise allows, offer your read on what to cut and why; they choose.
+* Diverge, then converge: collect more options than needed, then ask the person to cut. When they
+  give more than an exercise allows, ask them to choose; do not say what to cut, merge or drop
+  unless they ask for your read. If they skip the cut, keep everything they gave, uncut, and say it
+  is not yet narrowed; never mark something they said as undecided or leave it out.
 * Their words, not yours. Values, voice and the what, how and why are written in the person's own
   language. Never draft them for the person to approve; a brand they did not write will not feel
   like theirs.
