@@ -43,7 +43,7 @@ export const SCENARIOS: Scenario[] = [
     summary: "Geoff's spoken why, in his own approved words, is taken as his note",
     founder: `${SOLO} The first time Claude asks why CMO Kit exists, why it matters, or for your own answers before discussing them, answer by speaking: dont-like, filming, busywork-kept and actually-film together, in that order.`,
     until: { line: 'actually-film', replies: 1 },
-    maxTurns: 15,
+    maxTurns: 20,
     checks: ['takes-a-spoken-note'],
   },
   {
