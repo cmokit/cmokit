@@ -175,6 +175,9 @@ Map the result into the sections `brand_read` returns:
 * `voice`: the sliders and the "this means we..." lines they gave. A slider with only a number is
   saved with only its number.
 
+Save only what the founder said or confirmed. Your own questions, open issues, notes and readings of
+what they meant stay in the conversation, never in a section.
+
 Leave `examples` and `ai_tells` alone, and every other section you did not work on. Colours and fonts
 go nowhere; they are the design system's. Show each section in full, beside what it replaces on a
 rebrand, and save with `brand_change` (`approved: true`, the version you read as `base_version`, a
