@@ -111,6 +111,7 @@ test('Home shows the brand, its brand context and connections, and changes none 
   const html = await page.text();
   assert.match(await (await get('/account', session('ada-token'))).text(), /ada@example\.com/);
   assert.match(html, /A breakfast for founders\./);
+  assert.match(html, /<li><strong[^>]*>No<\/strong> hype<\/li>/, 'a section\'s Markdown is shown formatted');
   assert.match(html, /Table/);
   assert.match(html, /not accepted .*the beta terms/);
   assert.match(html, /\/customers\/acme\/terms\?t=/);

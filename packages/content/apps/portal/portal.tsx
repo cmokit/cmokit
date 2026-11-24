@@ -10,6 +10,7 @@ import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
 import { CopyBlock } from '../ui/copy-block.tsx';
 import { Input, Label, Textarea } from '../ui/input.tsx';
+import { MarkdownText } from '../ui/markdown.tsx';
 import { Notice } from '../ui/notice.tsx';
 import { cn } from '../ui/cn.ts';
 
@@ -310,7 +311,7 @@ function HomeTab({ c, name, email }: { c: Customer; name: string; email: string 
             {sections.map((s) => (
               <div key={s.title}>
                 <h3 className="mb-1 font-semibold">{s.title}</h3>
-                <p>{s.text}</p>
+                <MarkdownText text={s.text} />
               </div>
             ))}
             {offers.length > 0 && (

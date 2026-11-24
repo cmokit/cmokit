@@ -45,7 +45,9 @@ navigation nor data loading.
 > to `dist/apps/portal.js`. The content server takes it as `portal`; hosted CMOKit's adapter passes
 > it in. For each request the server builds the page's view, renders it with `renderToString`,
 > embeds the view as JSON, and serves the script at `/portal.js`, cached for a year at its current
-> version. The policy allows scripts from the server's own origin only. Forms still post to the
+> version. The policy allows scripts from the server's own origin only. The brand context's sections
+> are Markdown, shown formatted by `apps/ui/markdown.tsx` with react-markdown, which builds React
+> elements and renders no HTML, image or script link from the text. Forms still post to the
 > server's routes, which answer with a redirect. Without a `portal`, the account page answers 503 and
 > everything else is unchanged. Tests compile TSX with esbuild through a Node module hook.
 
@@ -54,14 +56,17 @@ navigation nor data loading.
 * Good, because the notice and the copy block are one component each, for the page and the cards.
 * Good, because the page reads and posts with no script, and the script only adds the copy button
   and dismissing the notice.
-* Bad, because the browser loads about 82 KB gzipped of script for two small interactions.
+* Bad, because the browser loads about 117 KB gzipped of script for two small interactions, of which
+  about 35 KB is the Markdown renderer for the brand context.
 * Bad, because the server's bundle includes React's server renderer.
 
 ### Confirmation
 
 `packages/content/test/account.test.ts` and `instagram.test.ts`: every tab, setup step, form and
 notice, rendered by the components. `packages/content/test/pages.test.ts`: the page's policy, its
-view embedded with no `<`, the script's versioned address and caching. `npm run check:hosted` bundles
+view embedded with no `<`, the script's versioned address and caching.
+`packages/content/test/markdown.test.ts`: a section's Markdown shown formatted, with no HTML, image
+or unsafe link from the text. `npm run check:hosted` bundles
 the page into the hosted Worker.
 
 ## Pros and Cons of the Options
