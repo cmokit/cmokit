@@ -58,7 +58,7 @@ export async function readyCustomer(guests: Record<string, GuestFacts[]> = {}) {
   await customer.connect(token, CALENDAR_KEY);
   await customer.brandChange('ada', {
     approved: true, base_version: 0, reason: 'First version, from the brand sprint',
-    sections: { positioning: 'A breakfast for founders.', voice: 'Warm, plain, short.' },
+    sections: { positioning: 'A breakfast for founders.', voice: 'Warm, plain, short.\n\n- **No** hype' },
     offers: [{ id: 'table', name: 'Table', pattern: 'series', aliases: ['Table (formerly Startup Lean Coffee)'] }],
   });
   return made;
