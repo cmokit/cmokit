@@ -7,7 +7,7 @@ decision-makers: [Geoff]
 
 # ADR-0052: A skill is evaluated by a script of its own, run on Claude only when a maintainer labels the pull request
 
-**Requirements served:** `CNT-04`, `CNT-05`. Bears on `AGT-04` and `CNT-24`, which it does not yet meet (see Open questions).
+**Requirements served:** `CNT-04`, `CNT-05`. Meets `AGT-04` for skills with evals, by the merge rule below; `CNT-24` waits on the content skill's evals.
 
 ## Context and Problem Statement
 
@@ -70,15 +70,17 @@ How the brand sprint's evals work, as `scripts/eval-brand-sprint.ts` and
 
 * Good, because nothing is spent unless the maintainer asks, and each answer costs a known amount.
 * Good, because the founder cannot invent, so a check that nothing was invented means something.
-* Bad, because a merge without the label has no evidence, and nothing stops it.
-* Bad, because one run is one sample: the same skill can pass a check on one run and fail it on the
-  next.
+* Bad, because a merge without the label has no evidence, and only the maintainer's merge rule
+  (below) stops it.
+* Bad, because one run is one sample: the same skill can pass a judged check on one run and fail it
+  on the next, so a failure costs a rerun of that scenario.
 * Neutral, because each new skill writes its own script, sharing what it can with this one.
 
 ### Confirmation
 
-Enforced by review. The label run reports an `evals` check on the pull request, which fails when
-any check fails, but no branch rule requires it. `npm test` covers the harness and the fixtures,
+Enforced by the maintainer at merge. The label run reports an `evals` check on the pull request,
+which fails when any check fails, but no branch rule requires it, because a required check would
+hold every pull request that never runs the label. `npm test` covers the harness and the fixtures,
 not the skill.
 
 ## Pros and Cons of the Options
@@ -120,13 +122,37 @@ changes the workflow, not the skill.
 Related: ADR-0024 (onboarding, which the brand sprint serves); ADR-0037 (the policy refresh, which
 signs in to Anthropic from CI the same way).
 
-## Open questions
+## Answers to the open questions (proposed 2026-11-24)
 
-* Whether a falling pass rate blocks a merge. `AGT-04` and `CNT-24` say a release whose scores fall
-  does not ship; today nothing blocks.
-* How a check that passes on one run and fails on the next is handled: rerun, run several times and
-  take a rate, or accept one sample.
-* When the content skill's evals (`CNT-24` to `CNT-26`) are built, and whether they use plugin evals.
+**Does a falling pass rate block a merge?** Yes. A pull request that changes a skill merges only
+after a label run on its last commit in which every check passes, under the rule below. These
+checks are regression checks: each is a rule the skill already meets, and Anthropic's guidance
+holds regression evals to "a nearly 100% pass rate". The maintainer applies the rule at merge, as
+Confirmation says. This meets `AGT-04`'s "does not ship" for the skills that have evals.
+
+**How is a check that passes on one run and fails on the next handled?** It depends on the kind of
+check. A code check guards a rule that must never break (saving without the founder's yes, writing
+outside the sprint's sections), so one failure fails the run; an average must not make up for a
+broken invariant. A judged check that fails is rerun twice on the same commit, for that scenario
+only, and fails if it fails in two of the three runs. That is the majority of three samples that
+practitioners recommend, paid for only when something fails. Not yet built: the script still runs
+each scenario once.
+
+**When are the content skill's evals built?** Before the next change to the content skill merges,
+as a script like this one. Start with three scenarios drawn from real failures, Reels first, which
+is what Anthropic's skill guidance prescribes ("Build three scenarios that test these gaps") and
+in line with its warning that evals get harder to build the longer you wait. Whether plugin evals
+replace the script is decided then.
+
+Sources, read 2026-11-24:
+[Demystifying evals for AI agents](https://www.anthropic.com/research/demystifying-evals-for-ai-agents)
+(Anthropic);
+[Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+(Anthropic);
+[How to gate pull requests on LLM evals in CI](https://openrouter.ai/blog/tutorials/how-to-gate-pull-requests-on-llm-evals-in-ci/)
+(OpenRouter);
+[How to turn LLM evaluation into a reliable CI regression gate](https://oneuptime.com/blog/post/2026-08-31-llm-evaluation-ci-regression-gate/view)
+(OneUptime).
 
 ## Revisit when
 
