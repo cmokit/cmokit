@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type Anthropic from '@anthropic-ai/sdk';
-import { check, leavesOtherSections, savesAfterWrittenYes } from '../evals/brand-sprint/checks.ts';
+import { check, combine, leavesOtherSections, needsRerun, savesAfterWrittenYes, type Result } from '../evals/brand-sprint/checks.ts';
 import { LINES, PENDING, SAVED } from '../evals/brand-sprint/fixtures.ts';
 import { Usage, founderText, run, type Client, type Run } from '../evals/brand-sprint/harness.ts';
 import { SCENARIOS, type Scenario } from '../evals/brand-sprint/scenarios.ts';
@@ -155,4 +155,20 @@ test("Geoff's approved lines reach the skill marked as spoken", () => {
   const text = founderText('answer', ['dont-like', 'filming', 'busywork-kept', 'actually-film']);
   assert.equal(text.split('\n\n').length, 4);
   for (const part of text.split('\n\n')) assert.match(part, /^\(spoken\) /);
+});
+
+test('a judged check fails on two of three runs; a code check on any one', () => {
+  const r = (check: string, pass: boolean) => ({ check, pass, why: pass ? 'ok' : 'no' }) as Result;
+  const judged = 'closes-each-exercise';
+  const code = 'saves-after-written-yes';
+  assert.equal(needsRerun([r(judged, false), r(code, true)]), true);
+  assert.equal(needsRerun([r(judged, false), r(code, false)]), false);
+  assert.equal(needsRerun([r(judged, true), r(code, true)]), false);
+  const majority = combine([[r(judged, false), r(code, true)], [r(judged, true), r(code, true)], [r(judged, true), r(code, true)]]);
+  assert.deepEqual(majority.map((x) => x.pass), [true, true]);
+  const codeOnce = combine([[r(judged, false), r(code, true)], [r(judged, true), r(code, false)], [r(judged, true), r(code, true)]]);
+  assert.deepEqual(codeOnce.map((x) => x.pass), [true, false]);
+  const twice = combine([[r(judged, false)], [r(judged, false)], [r(judged, true)]]);
+  assert.equal(twice[0].pass, false);
+  assert.match(twice[0].why, /passed 1 of 3 runs/);
 });

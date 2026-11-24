@@ -135,8 +135,8 @@ check. A code check guards a rule that must never break (saving without the foun
 outside the sprint's sections), so one failure fails the run; an average must not make up for a
 broken invariant. A judged check that fails is rerun twice on the same commit, for that scenario
 only, and fails if it fails in two of the three runs. That is the majority of three samples that
-practitioners recommend, paid for only when something fails. Not yet built: the script still runs
-each scenario once.
+practitioners recommend, paid for only when something fails. The runner does this (`CODE_CHECKS`,
+`needsRerun` and `combine` in `checks.ts`).
 
 **When are the content skill's evals built?** Before the next change to the content skill merges,
 as a script like this one. Start with three scenarios drawn from real failures, Reels first, which

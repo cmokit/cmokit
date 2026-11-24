@@ -202,6 +202,30 @@ export async function check(client: Client, models: Models, usage: Usage, run: R
   }
 }
 
+/** Checks read from the tool calls: one failure in any run fails them (ADR-0052). */
+export const CODE_CHECKS: ReadonlySet<CheckName> = new Set(['saves-after-written-yes', 'leaves-other-sections']);
+
+/** Runs of a scenario before a judged check's failure counts: it fails on two of three. */
+export const TRIALS = 3;
+
+/** Whether a judged check failed in the first run and no code check did, so the scenario runs again. */
+export function needsRerun(first: Result[]): boolean {
+  return first.some((r) => !r.pass && !CODE_CHECKS.has(r.check)) && first.every((r) => r.pass || !CODE_CHECKS.has(r.check));
+}
+
+/** One result per check across a scenario's runs: a code check passes only if it passed every
+ * run, a judged check if it passed a majority of them. */
+export function combine(runs: Result[][]): Result[] {
+  return runs[0].map((first) => {
+    if (runs.length === 1) return first;
+    const all = runs.map((results) => results.find((r) => r.check === first.check)!);
+    const passed = all.filter((r) => r.pass).length;
+    const pass = CODE_CHECKS.has(first.check) ? passed === all.length : passed * 2 > all.length;
+    const failing = all.find((r) => !r.pass);
+    return { check: first.check, pass, why: `passed ${passed} of ${all.length} runs${failing ? `; a failing run: ${failing.why}` : ''}` };
+  });
+}
+
 /** Counts worth watching from run to run, though they pass or fail nothing. */
 export function tallies(run: Run) {
   const said = run.turns.filter((t): t is Said => t.who === 'founder');
