@@ -42,6 +42,8 @@ with the decider confirming.
 4. Ask whether they have their own brand sprint template. If they do, have them paste or upload it,
    and follow its exercises and their order instead of the sprint below, keeping each exercise's
    shape and everything else in this skill.
+5. Play back the brand line, the trigger and who is in it, and start the sprint only once they
+   confirm or correct it.
 
 ## Say it out loud, if they like
 
@@ -63,18 +65,22 @@ rather than smoothing it over, and never keep anything the transcript did not sa
 ## How to facilitate
 
 * One exercise at a time, one question per message where possible. This works on a phone.
-* Diverge, then converge: collect more options than needed, then make the person cut. When they give
-  more than an exercise allows, offer your read on what to cut and why; they choose.
+* Diverge, then converge: collect more options than needed, then ask the person to cut. When they
+  give more than an exercise allows, ask them to choose; do not say what to cut, merge or drop
+  unless they ask for your read. If they skip the cut, keep everything they gave, uncut, say it is
+  not yet narrowed, and ask them to confirm the uncut list before moving on; never mark something
+  they said as undecided or leave it out.
 * Their words, not yours. Values, voice and the what, how and why are written in the person's own
   language. Never draft them for the person to approve; a brand they did not write will not feel
   like theirs.
 * Push back; do not just agree. On generic answers ("innovative", "quality", "customer-focused"):
   would a competitor say the same? What would they give up to keep it? When an answer contradicts an
   earlier one, name it and ask which holds.
-* Ask for their answer first. Only when they are stuck, offer two or three example answers to
-  unstick them, labelled as examples, and drawn from what they have already said where you can.
-  Examples pull answers toward the same place, so use them sparingly. Never record an answer they
-  have not given or confirmed.
+* Ask for their answer first, with no examples, seed words or suggested answers in the question,
+  not even ones drawn from what they said earlier. Offer two or three examples, labelled as
+  examples, only after they have tried and asked for help. Examples pull answers toward the same
+  place. A skip is not a request for help: the part they skipped stays empty. Never record an answer
+  they have not given or confirmed.
 * This may take two sittings. If they stop, offer to save the sections confirmed so far (as
   below); the rest stays empty, and next time you continue from `brand_read`.
 
@@ -111,15 +117,16 @@ Every exercise runs the same way:
    shares their notes, each person marks favorites, and the decider chooses.
 4. **Explore.** Follow up at most three times on what they chose, each time to make them explain,
    to push back on something generic, or to make them cut.
-5. **Close.** Play back the result in the exercise's shape, for them to confirm or correct in
-   writing. Then move to the next exercise.
+5. **Close.** Play back the result in the exercise's shape, including any part they skipped as
+   empty, and ask them to confirm or correct it in writing. Move to the next exercise only after
+   they answer. If they skipped the whole exercise, say it stays empty and move on.
 
 This is GV's note and vote. The personality sliders are the exception: there they place each slider
 directly, as below.
 
 If they are stuck, or the timebox has passed, do not keep circling: play back the best version of
-what they have said so far, mark it as a draft, and move on; come back to drafts at the end, before
-saving. They can also skip, go back or stop.
+what they have said so far, marked as a draft, and ask them to confirm it as a draft before moving
+on; come back to drafts at the end, before saving. They can also skip, go back or stop.
 
 1. **Roadmap** (about 20 minutes). Produces four short lines: where the brand is in 5, 10, 15 and 20
    years. Each is one directional line, a North Star, not a plan or a checklist. Ask: "Picture the
@@ -127,8 +134,8 @@ saving. They can also skip, go back or stop.
    years. A theme that runs through every horizon belongs in the next exercise, not here.
 2. **What, how, why** (about 30 minutes). Produces three sentences, one each.
    * What: what the brand makes or does.
-   * How: three high-level qualities that apply to anything it makes, the way Apple's are well
-     designed, easy to use and powerful. Not features or detail.
+   * How: three high-level qualities that apply to anything it makes, not features or detail.
+     (For you, not to say first: Apple's are well designed, easy to use and powerful.)
    * Why: why it exists. Keep asking "why does that matter?" until the answer stops being about the
      product.
 3. **Three values** (about 30 minutes). Produces three values, each with a line of meaning in the
@@ -141,7 +148,8 @@ saving. They can also skip, go back or stop.
    we..." line for each of: friend to authority, mass appeal to elite, young and innovative to mature
    and classic, playful to serious. The person may add one pair of their own. Have them place each
    slider before explaining it, since putting a judgment into words first can bend it. Push away from
-   5, which usually means undecided.
+   5, which usually means undecided. If they give a number and no "this means we..." line, keep the
+   number alone: never write the line for them.
 6. **Competitive landscape** (about 30 minutes). Produces six to ten competitors or comparable brands,
    adjacent and aspirational ones included, placed on two axes (classic to modern, expressive to
    reserved, or axes the person prefers), and a line on where this brand belongs and why that space
@@ -165,7 +173,11 @@ Map the result into the sections `brand_read` returns:
   claims; and the press release with its moment.
 * `audiences`: the primary and any secondary, each with what they need to believe.
 * `values`: the three values and their meanings.
-* `voice`: the sliders and their "this means we..." lines.
+* `voice`: the sliders and the "this means we..." lines they gave. A slider with only a number is
+  saved with only its number.
+
+Save only what the founder said or confirmed. Your own questions, open issues, notes and readings of
+what they meant stay in the conversation, never in a section.
 
 Leave `examples` and `ai_tells` alone, and every other section you did not work on. Colours and fonts
 go nowhere; they are the design system's. Show each section in full, beside what it replaces on a

@@ -56,3 +56,4 @@ from [adr-template.md](adr-template.md).
 | [0049](0049-the-cards-claude-shows-are-mcp-apps-written-in-react-and-built-into-one-page-each.md) | The cards Claude shows are MCP Apps, written in React and built into one page each | Proposed |
 | [0050](0050-a-brands-funnel-counts-visits-from-its-waitlist-form-as-daily-counts-behind-a-store-interface.md) | A brand's funnel counts visits from its waitlist form, as daily counts behind a store interface | Proposed |
 | [0051](0051-the-account-page-is-react-rendered-on-the-server-and-hydrated-in-the-browser.md) | The account page is React, rendered on the server and hydrated in the browser | Proposed |
+| [0052](0052-a-skill-is-evaluated-by-a-script-of-its-own-run-on-claude-only-when-a-maintainer-labels-the-pull-request.md) | A skill is evaluated by a script of its own, run on Claude only when a maintainer labels the pull request | Proposed |
