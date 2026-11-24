@@ -1,7 +1,7 @@
 {
   "name": "@cmokit/issuer",
   "version": "0.1.0",
-  "description": "CMOkit's issuer, as a Cloudflare Worker: signs a person in with an email code, Google, GitHub or Meta, keeps no password, and issues the tokens the content server checks.",
+  "description": "CMOKit's issuer, as a Cloudflare Worker: signs a person in with an email code, Google, GitHub or Meta, keeps no password, and issues the tokens the content server checks.",
   "license": "Apache-2.0",
   "author": "Growth Science LLC",
   "homepage": "https://github.com/cmokit/cmokit#readme",

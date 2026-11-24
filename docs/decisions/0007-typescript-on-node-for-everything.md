@@ -9,10 +9,10 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit is an Astro integration, Cloudflare Workers, a command line, a starter,
+CMOKit is an Astro integration, Cloudflare Workers, a command line, a starter,
 an MCP server, and the scripts and checks that keep its documents honest. Every one of those runs
 JavaScript or has its best-supported toolchain in it: Astro and Workers are JavaScript runtimes, and
-npm is where CMOkit is published. Something has to decide whether everything is written in one
+npm is where CMOKit is published. Something has to decide whether everything is written in one
 language, and which.
 
 Contributors are mostly agents, and adopters read the code they depend on. A second language costs
@@ -36,7 +36,7 @@ audit.
 ## Decision Outcome
 
 Chosen option: "TypeScript on Node, for packages, scripts and checks alike", because it is the
-language every runtime CMOkit targets already runs, and it types the interfaces CMOkit publishes.
+language every runtime CMOKit targets already runs, and it types the interfaces CMOKit publishes.
 
 > Everything in this repository is TypeScript, run on Node 24 or later, managed as npm workspaces.
 > Only TypeScript that Node can run by stripping types is written — no enums, namespaces or
@@ -87,5 +87,5 @@ adopters depend on.
 
 ## Revisit when
 
-* A job CMOkit must do in-house has a library worth having only in another language.
+* A job CMOKit must do in-house has a library worth having only in another language.
 * Node's type stripping supports the TypeScript syntax it now refuses, so the restriction can lift.

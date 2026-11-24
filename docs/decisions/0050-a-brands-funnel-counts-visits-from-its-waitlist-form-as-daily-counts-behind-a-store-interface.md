@@ -17,7 +17,7 @@ nothing before them, so no one can say what share of a page's visitors joined, o
 converts worst. Improving the page needs that rate.
 
 The engine measures visits through its edge Worker and PostHog (ADR-0010), but a hosted brand's site
-is often static, as CMO Kit's own is on GitHub Pages, with no edge in front of it. Reading the site's
+is often static, as CMOKit's own is on GitHub Pages, with no edge in front of it. Reading the site's
 own PostHog (ADR-0036) needs the brand to run PostHog and hand over a key. The question is how a
 hosted brand's visits are counted, and where the counts are kept.
 
@@ -55,7 +55,7 @@ keeps a later move to an analytics store a new adapter.
 
 ### Consequences
 
-* Good, because any brand's site that pastes the form gets its funnel, CMO Kit's and CFO Kit's
+* Good, because any brand's site that pastes the form gets its funnel, CMOKit's and CFO Kit's
   included, with no analytics account.
 * Good, because a visitor leaves no identity, cookie or address behind.
 * Bad, because a page counts only where the form is, so a visitor who leaves from another page is not

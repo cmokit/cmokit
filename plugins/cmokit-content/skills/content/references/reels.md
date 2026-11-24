@@ -1,7 +1,7 @@
 # Reels, carousels and Stories: the craft
 
 Read the part a step names. Figures from platforms are cited with the date they were read; figures
-from third parties are marked as theirs; starting points that are CMOkit's own are marked as ours.
+from third parties are marked as theirs; starting points that are CMOKit's own are marked as ours.
 The weekly review adjusts any starting point.
 
 ## Event patterns (step 1)

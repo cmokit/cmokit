@@ -1,4 +1,4 @@
-// shadcn's button, in CMOkit's look: primary for the one action a row asks for, the rest quiet.
+// shadcn's button, in CMOKit's look: primary for the one action a row asks for, the rest quiet.
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentProps } from 'react';
 import { cn } from './cn.ts';

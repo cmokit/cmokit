@@ -46,7 +46,7 @@ export function WaitlistCard({ people, change, view, expand }: {
     const done = emails.length - failed.length;
     setNotice(failed.length
       ? { tone: 'error', text: `Activated ${plural(done, 'person', 'people')}. ${failed.length} failed: ${failed[0].text}` }
-      : { tone: 'info', text: `Activated ${plural(done, 'person', 'people')}. CMO Kit sends no email yet, so tell them yourself.` });
+      : { tone: 'info', text: `Activated ${plural(done, 'person', 'people')}. CMOKit sends no email yet, so tell them yourself.` });
     setBusy(null);
   };
   const banner = notice && <Notice tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Notice>;
@@ -88,7 +88,7 @@ function Summary({ people, busy, notice, activate, expand }: Omit<Shared, 'act'>
         </ul>
       )}
       {confirming && (
-        <p className="m-0 text-xs text-muted">They get no email from CMO Kit, and the card can't undo an activation. Tap again to activate {these}.</p>
+        <p className="m-0 text-xs text-muted">They get no email from CMOKit, and the card can't undo an activation. Tap again to activate {these}.</p>
       )}
       <div className="flex gap-2">
         {top.length > 0 && (

@@ -1,4 +1,4 @@
-// shadcn's badge, in CMOkit's look: a person's state, or a count beside a filter.
+// shadcn's badge, in CMOKit's look: a person's state, or a count beside a filter.
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentProps } from 'react';
 import { cn } from './cn.ts';

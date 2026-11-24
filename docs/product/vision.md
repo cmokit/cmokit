@@ -1,4 +1,4 @@
-# CMOkit — Vision
+# CMOKit — Vision
 
 ## Why it exists
 
@@ -9,21 +9,21 @@ produced revenue. Each part exists as a bought tool. Wiring them together is whe
 months go, and the result is usually a page builder nobody can experiment in, analytics nobody reads,
 and a spreadsheet joining ad spend to revenue that is out of date the week after it is built.
 
-CMOkit is that machine, assembled once, opinionated, and open source. A business puts it in front of
+CMOKit is that machine, assembled once, opinionated, and open source. A business puts it in front of
 the site it already has, on whatever builds and hosts that site, configures the tools it buys, and
 gets a loop that runs from the first visit to the paid subscription and back to the next version of
 the page.
 
 ## What it is
 
-* **An engine, not a site.** A business's site is its content: copy, design, pages, offers. CMOkit is
+* **An engine, not a site.** A business's site is its content: copy, design, pages, offers. CMOKit is
   the dependency that serves it, experiments on it, measures it and hands its visitors onward. It
   works whatever the site is built with and wherever it is hosted, and a business that runs it itself
-  upgrades CMOkit the way it upgrades any other dependency.
+  upgrades CMOKit the way it upgrades any other dependency.
 * **Build little, buy the rest.** A variant is a page of the site, which an agent writes as easily as
-  a person. CMOkit itself is a small server part. Experimentation, analytics, messaging,
+  a person. CMOKit itself is a small server part. Experimentation, analytics, messaging,
   subscriptions and payment are bought, because each carries statistical, deliverability, regulatory
-  or card risk that is not worth owning. A credit balance carries none, so CMOkit counts credits
+  or card risk that is not worth owning. A credit balance carries none, so CMOKit counts credits
   itself.
 * **The loop is closed by an agent.** Every week, an agent reads what converted and what it earned,
   and proposes the next variants as a change to the site. A person approves the change.
@@ -31,51 +31,51 @@ the page.
   trial, the first charge, failed payments, cancellation and reactivation, so every dollar is
   attributed to the channel and the page that produced it.
 * **Found by agents as well as people.** More and more, a coding agent chooses a dependency for the
-  developer it works for. CMOkit, and every product built with it, is written to be found, chosen and
+  developer it works for. CMOKit, and every product built with it, is written to be found, chosen and
   used correctly by those agents: readable by them, installable by them, and measured on how well
   they use it.
 * **The standard subscription lifecycle, with usage credits.** A customer subscribes to a plan, which
   entitles its users to the product's features and grants it credits for metered usage. Usage draws
   down the customer's credit balance; top-ups add to it. The customer's access follows its
-  subscription and its balance. CMOkit uses the vocabulary every billing system already uses.
+  subscription and its balance. CMOKit uses the vocabulary every billing system already uses.
 * **Costs nothing while nothing happens.** A small business's traffic is low and uneven. Every part of
-  CMOkit scales to zero, so a quiet month costs what its bought tools charge and nothing more.
-* **One vendor to run it.** Everything CMOkit runs and stores is on Cloudflare, which already sits in
+  CMOKit scales to zero, so a quiet month costs what its bought tools charge and nothing more.
+* **One vendor to run it.** Everything CMOKit runs and stores is on Cloudflare, which already sits in
   front of the site. There is one account to secure and one vendor to list.
 * **The product is someone else's.** The business's product is reached through its own published API.
-  CMOkit asks the product for a few general things — give this customer access, revoke it, restore it
+  CMOKit asks the product for a few general things — give this customer access, revoke it, restore it
   — and learns from it only how much each user used.
 
 ## Also hosted, for people who sell through what they post
 
-CMOkit's content production is also offered as a commercial hosted service, for content marketers
+CMOKit's content production is also offered as a commercial hosted service, for content marketers
 and creators who post a lot of short-form video and sell something through it: an event, an offer, a
 launch, a subscription. Most of them are not developers. They work in Claude, on the desktop, on the
-web and on their phone, with no terminal and no repository. For them, CMOkit also runs their landing
-page, waitlist, referral links and messages, at their own domain by one DNS record they add. CMOkit
+web and on their phone, with no terminal and no repository. For them, CMOKit also runs their landing
+page, waitlist, referral links and messages, at their own domain by one DNS record they add. CMOKit
 stays open source, and anyone can still run the engine, and the content service, themselves.
 
-* **Very little to set up.** A customer creates a CMOkit account and subscribes, and connects the
+* **Very little to set up.** A customer creates a CMOKit account and subscribes, and connects the
   event platform they sell through and their site's analytics, if they have them. There is no
   terminal, no repository work and no Cloudflare account of their own.
-* **Set up by talking to Claude.** The customer sets CMOkit up in a conversation in Claude.
+* **Set up by talking to Claude.** The customer sets CMOKit up in a conversation in Claude.
 * **An account page of their own.** At `app.cmokit.ai`, a customer views and manages its profile,
   its brand context and the settings its skills use.
-* **Signing in is only signing in.** A CMOkit account signs in with an email address, Google, GitHub
+* **Signing in is only signing in.** A CMOKit account signs in with an email address, Google, GitHub
   or Meta. Signing in identifies the person and grants nothing else; anything more, such as
   connecting an event platform, is asked for on its own, when it is needed.
-* **Their own Claude does the thinking.** A solo creator runs CMOkit from the Claude account they
-  already have, through its plugins and connectors, beside any others they use. CMOkit's hosted
+* **Their own Claude does the thinking.** A solo creator runs CMOKit from the Claude account they
+  already have, through its plugins and connectors, beside any others they use. CMOKit's hosted
   services run no inference, so what they cost is storage, compute and bought tools, which is why the
   hosted offering can cost a solo creator very little each month.
-* **A plain monthly subscription.** Hosted CMOkit is billed as a monthly subscription; it meters
+* **A plain monthly subscription.** Hosted CMOKit is billed as a monthly subscription; it meters
   nothing.
 * **Content that sounds like them.** The content plugin turns what a business sells into a weekly
   batch of short videos, each with one call to action, written in the brand's own voice from a brand
   strategy the customer owns. It learns each week from what the customer edits, rejects and approves,
   and from what each piece brought in.
-* **CMOkit is its own first customer.** CMOkit's own site is built on GitHub Pages with CMOkit, and
-  the short-form content that markets CMOkit to creators is made with the content plugin.
+* **CMOKit is its own first customer.** CMOKit's own site is built on GitHub Pages with CMOKit, and
+  the short-form content that markets CMOKit to creators is made with the content plugin.
 
 ## What it is not
 
@@ -83,10 +83,10 @@ stays open source, and anyone can still run the engine, and the content service,
   has nothing to sign up for.
 * A data warehouse or a BI tool. Revenue and conversion are read where the bought tools already put
   them.
-* An ad platform. Ads run in the person's own ad account, where CMOkit traffics them after the
+* An ad platform. Ads run in the person's own ad account, where CMOKit traffics them after the
   person's approval and within the budget they set, analyzes them and plans the next round.
 * A billing system of record. The payment processor is that, for every subscription, invoice and
-  charge; CMOkit counts only credits.
+  charge; CMOKit counts only credits.
 
 ## Who it is for
 

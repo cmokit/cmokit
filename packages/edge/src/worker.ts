@@ -1,5 +1,5 @@
 // The Cloudflare Worker adapter. A site's Worker is `export default createWorker(config)`, with the
-// site's CMOkit configuration bundled into it at deploy (ADR-0008), routed in front of the site's own
+// site's CMOKit configuration bundled into it at deploy (ADR-0008), routed in front of the site's own
 // domain. The only host-specific code in the edge lives here.
 
 import { LIFECYCLE_EVENT, LIFECYCLE_LEAD, defineConfig, resolve, type Config } from '@cmokit/cli';

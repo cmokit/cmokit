@@ -71,7 +71,7 @@ export function stripe(options: StripeOptions): Payments {
       const held = await call<{ status: Subscription['status']; customer: string; metadata?: Record<string, string> }>('GET', `/subscriptions/${encodeURIComponent(id)}`);
       const customer = held.metadata?.cmokit_customer;
       const person = held.metadata?.cmokit_person;
-      // A subscription CMOkit's checkout did not start names no customer, and is not this product's.
+      // A subscription CMOKit's checkout did not start names no customer, and is not this product's.
       if (!customer || !person) return [];
       return [{ customer, person, billing: held.customer, status: held.status }];
     },

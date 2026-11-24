@@ -5,7 +5,7 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0028: Editing footage and posting stay with the person's own tools, and CMOkit records what was posted
+# ADR-0028: Editing footage and posting stay with the person's own tools, and CMOKit records what was posted
 
 **Requirements served:** `CNT-16`, `CNT-17`, `CNT-18`, `CNT-22`.
 
@@ -14,7 +14,7 @@ decision-makers: [Geoff]
 Nothing is posted without a person's approval, nothing is posted automatically and no direct message
 is automated (`CNT-16`). Each approved piece is handed off in a form the person's own editing and
 posting tools take, and what was posted, where and when, is recorded so its results can be attributed
-(`CNT-17`). Music rights and AI disclosure are reminders, not CMOkit's to enforce (`CNT-18`).
+(`CNT-17`). Music rights and AI disclosure are reminders, not CMOKit's to enforce (`CNT-18`).
 
 Posting through the platforms' APIs is gated. On Instagram, publishing needs
 `instagram_business_content_publish` (or `instagram_content_publish`) with Advanced Access, which
@@ -30,21 +30,21 @@ content to be labelled when posting.
 * A person approves and posts every piece (`CNT-16`).
 * The hand-off works with whatever app the person films, edits and posts in.
 * Music, labels and disclosures are chosen where the platform offers them, at posting.
-* No platform's review or audit stands between CMOkit and its first customer.
+* No platform's review or audit stands between CMOKit and its first customer.
 
 ## Considered Options
 
 * A hand-off the person takes to their own apps; the person tells Claude when it is posted, and
-  CMOkit records it
-* CMOkit posts through the platforms' APIs after the person approves
-* CMOkit hands pieces to a scheduling tool through its API
-* The person's own scheduler or editor connector, used by their Claude directly, with CMOkit brokering
+  CMOKit records it
+* CMOKit posts through the platforms' APIs after the person approves
+* CMOKit hands pieces to a scheduling tool through its API
+* The person's own scheduler or editor connector, used by their Claude directly, with CMOKit brokering
   nothing
 
 ## Decision Outcome
 
 Chosen option: "A hand-off the person takes to their own apps; the person tells Claude when it is
-posted, and CMOkit records it", because it keeps posting with the person, needs no platform's review,
+posted, and CMOKit records it", because it keeps posting with the person, needs no platform's review,
 and works with any app.
 
 > An approved piece is handed off as one card: hook, timed beats, on-screen text, caption with its call
@@ -52,7 +52,7 @@ and works with any app.
 > check's reminders (ADR-0033). The person films, edits and posts in their own apps, choosing music,
 > labels and disclosures there. When they say it is posted, with its link or time, the skill records
 > the post on the piece. A person whose Claude already has a scheduling or editing connector of their
-> own may ask Claude to pass the card to it; CMOkit is not part of that. CMOkit never posts, schedules
+> own may ask Claude to pass the card to it; CMOKit is not part of that. CMOKit never posts, schedules
 > or sends a direct message.
 
 ### Consequences
@@ -66,30 +66,30 @@ and works with any app.
 
 ### Confirmation
 
-Enforced by review: CMOkit has no adapter that posts to a social platform or sends a direct message,
+Enforced by review: CMOKit has no adapter that posts to a social platform or sends a direct message,
 and its server has no tool that does.
 
 ## Pros and Cons of the Options
 
-### A hand-off the person takes to their own apps; the person tells Claude when it is posted, and CMOkit records it
+### A hand-off the person takes to their own apps; the person tells Claude when it is posted, and CMOKit records it
 
 * Good, because it meets every driver.
 * Bad, because recording a post is one more step for the person.
 
-### CMOkit posts through the platforms' APIs after the person approves
+### CMOKit posts through the platforms' APIs after the person approves
 
 * Good, because posting and its record would be one step, and nothing would go unrecorded.
 * Bad, because Instagram's publishing needs App Review and Business Verification, and TikTok's
   unaudited clients post privately, so nothing posts publicly until both reviews pass.
-* Bad, because CMOkit would then answer for each platform's rules on music, labels and disclosure,
+* Bad, because CMOKit would then answer for each platform's rules on music, labels and disclosure,
   which the person's own app presents at the moment of posting.
 
-### CMOkit hands pieces to a scheduling tool through its API
+### CMOKit hands pieces to a scheduling tool through its API
 
 * Good, because the person sees the week laid out in a familiar calendar.
-* Bad, because it picks one scheduling vendor for everyone and puts CMOkit between the person and it.
+* Bad, because it picks one scheduling vendor for everyone and puts CMOKit between the person and it.
 
-### The person's own scheduler or editor connector, used by their Claude directly, with CMOkit brokering nothing
+### The person's own scheduler or editor connector, used by their Claude directly, with CMOKit brokering nothing
 
 * Good, because a person who has one gets scheduling for free.
 * Bad, because as the only path it would leave out everyone without one; it is kept as an addition
@@ -114,4 +114,4 @@ the hand-off.
 ## Revisit when
 
 * Most pieces go unrecorded as posted, so attribution suffers.
-* A platform lets an app post publicly for its users without a review CMOkit cannot pass.
+* A platform lets an app post publicly for its users without a review CMOKit cannot pass.

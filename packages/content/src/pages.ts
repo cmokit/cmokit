@@ -3,7 +3,7 @@
 // another a user accepts the server's terms (ADR-0039). The account page shows a signed-in person their
 // account (ADR-0041), where they add a brand (ADR-0042) and run the brand's waitlist (ADR-0043); it is
 // React, made by the package's build (ADR-0051), and this module wraps it in its page. Every page
-// wears CMOkit's own look, shared with the sign-in pages (ADR-0046).
+// wears CMOKit's own look, shared with the sign-in pages (ADR-0046).
 
 import { HEADER, LOOK } from '@cmokit/issuer/look';
 import type { InstagramAccount, WaitlistEntry } from './customer.ts';
@@ -20,12 +20,12 @@ ${page.problem ? `<p role="alert"><strong>${escape(page.problem)}</strong></p>` 
   <input id="key" name="key" type="password" autocomplete="off" required>
   <button type="submit" class="primary">Connect</button>
 </form>
-<p>CMOkit checks the key with ${escape(page.label)}, keeps it encrypted for this account alone, and never shows it again.</p>`, page.problem ? 400 : 200);
+<p>CMOKit checks the key with ${escape(page.label)}, keeps it encrypted for this account alone, and never shows it again.</p>`, page.problem ? 400 : 200);
 }
 
 export function donePage(label: string, calendar: string): Response {
   return html(`<h1>${escape(label)} is connected</h1>
-<p>CMOkit can now read the calendar ${escape(calendar)}. Close this page and go back to Claude.</p>`, 200);
+<p>CMOKit can now read the calendar ${escape(calendar)}. Close this page and go back to Claude.</p>`, 200);
 }
 
 export function gonePage(): Response {
@@ -34,8 +34,8 @@ export function gonePage(): Response {
 
 /** The one-time page on which a user accepts the server's terms (ADR-0039). */
 export function termsPage(page: { url: string; version: string; token: string; problem?: string }): Response {
-  return html(`<h1>CMOkit beta terms</h1>
-<p>Before you use CMOkit, read <a href="${escape(page.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a> (version ${escape(page.version)}).</p>
+  return html(`<h1>CMOKit beta terms</h1>
+<p>Before you use CMOKit, read <a href="${escape(page.url)}" target="_blank" rel="noopener noreferrer">the beta terms</a> (version ${escape(page.version)}).</p>
 ${page.problem ? `<p role="alert"><strong>${escape(page.problem)}</strong></p>` : ''}
 <form method="post">
   <input type="hidden" name="t" value="${escape(page.token)}">
@@ -68,7 +68,7 @@ export interface AccountView {
   /** The line shown after a change made on the page, as an error when the change failed. */
   notice?: { text: string; tone: 'info' | 'error' };
   /**
-   * For a person nobody activated, where CMO Kit's waitlist is joined, or null when no site of its
+   * For a person nobody activated, where CMOKit's waitlist is joined, or null when no site of its
    * is known; absent where a person subscribes instead.
    */
   join?: string | null;
@@ -88,7 +88,7 @@ export interface AccountView {
       sites: string[];
       /** The form and script a site pastes into a page. */
       snippet: string;
-      /** Whether activating someone on this list lets them use CMOkit itself, as on CMOkit's own brand. */
+      /** Whether activating someone on this list lets them use CMOKit itself, as on CMOKit's own brand. */
       grantsCmokit: boolean;
       /** The brand's own Instagram account, when an Instagram app is set up (ADR-0045); null until connected. */
       instagram?: InstagramAccount | null;
@@ -141,7 +141,7 @@ export function portalPage(portal: Portal, view: AccountView, tab: AccountTab): 
   const data = JSON.stringify({ view, tab }).replace(/</g, '\\u003c');
   return new Response(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark"><meta name="referrer" content="same-origin"><title>CMO Kit</title>
+<meta name="color-scheme" content="light dark"><meta name="referrer" content="same-origin"><title>CMOKit</title>
 <style>${portal.style}</style>
 </head><body>
 <div id="root">${portal.render(view, tab)}</div>
@@ -165,7 +165,7 @@ export function signedOutPage(): Response {
 function html(body: string, status: number): Response {
   return new Response(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="referrer" content="same-origin"><title>CMOkit</title>
+<meta name="referrer" content="same-origin"><title>CMOKit</title>
 <style>${LOOK}</style>
 </head><body>
 ${HEADER}

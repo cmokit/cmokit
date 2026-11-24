@@ -1,4 +1,4 @@
-# A CMOkit site
+# A CMOKit site
 
 A static Astro site with landing-page experiments and a sequence of emails to each lead, made with
 `npm create cmokit`.

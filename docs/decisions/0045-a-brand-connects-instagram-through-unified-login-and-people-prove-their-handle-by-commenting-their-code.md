@@ -18,7 +18,7 @@ brand's Reels that handle commented on. A handle a person types proves neither, 
 type another person's handle.
 
 Meta offers two ways to reach the Instagram API. Instagram Login is not offered to new Meta apps:
-CMOkit's app, made on November 11, 2026, says "API setup with Instagram login is not available for
+CMOKit's app, made on November 11, 2026, says "API setup with Instagram login is not available for
 newer apps. Your app uses API setup with Unified login instead." Unified Login is built on Facebook
 Login for Business: the person logging in picks a business portfolio, and the token is the
 portfolio's, which does not expire. Every person on a waitlist would need a business portfolio of
@@ -29,7 +29,7 @@ commenter's username and the comment's text.
 
 * A person's place moves only for a handle proven to be theirs.
 * A person on the waitlist takes part with what they already have: an Instagram account of any kind,
-  and no login to CMOkit's Meta app.
+  and no login to CMOKit's Meta app.
 * The brand sets it up with no terminal or developer step (`HST-01`), and one brand's Instagram is
   never read for another (`HST-10`).
 
@@ -49,7 +49,7 @@ without asking each person for a business portfolio.
 
 > The content server has one Meta app, with a Facebook Login for Business configuration made under
 > API setup with Unified login, whose redirect address is the account page's `/instagram/callback`.
-> A user of the brand connects the brand's account from the account page; CMOkit keeps the first
+> A user of the brand connects the brand's account from the account page; CMOKit keeps the first
 > Instagram account the portfolio shares, by its ID and username, with the portfolio's token sealed
 > with the brand's other credentials. Once the brand is connected, joining the waitlist answers with
 > the brand's account and the person's referral code, and the form's third step asks them to comment
@@ -65,12 +65,12 @@ without asking each person for a business portfolio.
 
 * Good, because only a proven handle moves a person up, and a person with a personal account can
   take part.
-* Good, because CMOkit holds no token of anyone but the brand.
-* Good, because CMOkit's own brand needs no App Review: its users have a role on the Meta app.
+* Good, because CMOKit holds no token of anyone but the brand.
+* Good, because CMOKit's own brand needs no App Review: its users have a role on the Meta app.
 * Bad, because a code commented on a Reel is public, and the first commenter of a code wins it; a
   person whose code was taken by someone else asks the brand.
 * Bad, because another brand can connect only after Meta's App Review grants Advanced Access and
-  Meta verifies CMOkit's business portfolio.
+  Meta verifies CMOKit's business portfolio.
 * Bad, because counting is a button, so a ranking is only as fresh as the last count.
 
 ### Confirmation

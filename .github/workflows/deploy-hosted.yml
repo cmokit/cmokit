@@ -1,4 +1,4 @@
-# Deploys hosted CMOkit (ADR-0016) to CMOkit's own Cloudflare account: the issuer at auth.cmokit.ai,
+# Deploys hosted CMOKit (ADR-0016) to CMOKit's own Cloudflare account: the issuer at auth.cmokit.ai,
 # then the content server at mcp.cmokit.ai. It runs on every push to main, so merging a pull request
 # deploys, and a maintainer can also start it from the Actions tab. It deploys only from main: the job
 # runs in the production environment, which only main may deploy to, and holds the deploy's
@@ -88,7 +88,7 @@ jobs:
           TERMS_URL: ${{ vars.TERMS_URL }}
           TERMS_VERSION: ${{ vars.TERMS_VERSION }}
 
-      # The billing lifecycle is CMOkit's own site's lifecycle Worker, which binds back to the content
+      # The billing lifecycle is CMOKit's own site's lifecycle Worker, which binds back to the content
       # server, so neither can be deployed first with the other's binding. Until it exists, the content
       # server is deployed without it; once it does, running this workflow again adds it.
       - name: Deploy the content server

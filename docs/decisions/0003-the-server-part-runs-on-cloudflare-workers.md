@@ -11,7 +11,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit has one server part. It has two kinds of work:
+CMOKit has one server part. It has two kinds of work:
 
 * **Edge work, in front of the site:** resolving a visitor's variant before the page is sent
   (`SRV-03`), and recording the conversion server-side (`MSR-03`). It must sit in the request path
@@ -26,7 +26,7 @@ pages of the site, and the server-side conversion is passed on to analytics. Lif
 store is the credit ledger, a Durable Object per customer (ADR-0006); subscriptions and invoices are
 the payment processor's (ADR-0012).
 
-CMOkit's adopters are small businesses. Their traffic and their events are few and uneven, so every
+CMOKit's adopters are small businesses. Their traffic and their events are few and uneven, so every
 part must scale to zero (`NFR-06`). The edge already puts Cloudflare in every visitor's request path,
 and in front of the site's domain.
 
@@ -44,7 +44,7 @@ the region their data stays in.
 * Every part scales to zero (`NFR-06`).
 * Variant resolution is in the request path, with no flash of the default (`SRV-03`), and is fast
   for a visitor's first page wherever they are.
-* One vendor, one runtime and one deployment for everything CMOkit runs.
+* One vendor, one runtime and one deployment for everything CMOKit runs.
 * Tests run with Node's test runner and no account at any bought tool (`NFR-04`).
 * Secrets come from the deploying environment (`NFR-05`).
 
@@ -66,20 +66,20 @@ request path, with one runtime to build, test and deploy.
 > Durable Objects. Edge work keeps no state. Handlers are written against the web-standard `Request`
 > and `Response`, with Cloudflare's own APIs — bindings, Durable Objects, alarms — in the adapters
 > that wire them, so the handlers are tested with Node's test runner and the adapters under Wrangler.
-> CMOkit runs nowhere else.
+> CMOKit runs nowhere else.
 
 ### Consequences
 
 * Good, because nothing runs, and nothing is billed, while nobody visits and no event arrives.
 * Good, because a visitor's first page is resolved in a city near them, with no cold start.
-* Good, because an adopter deploys one vendor's Workers and nothing else, and CMOkit supports and
+* Good, because an adopter deploys one vendor's Workers and nothing else, and CMOKit supports and
   tests one runtime.
 * Good, because an audited adopter whose auditor carves Cloudflare out adds only its controls over
   the Cloudflare account and its secrets.
 * Bad, because an audited adopter lists Cloudflare among its subprocessors, since leads' contact
   details and customers' usage are held there.
 * Bad, because an adopter that cannot use Cloudflare for lifecycle work — regulated data, or contracts
-  that fix its vendors or its data's region — cannot use CMOkit's lifecycle.
+  that fix its vendors or its data's region — cannot use CMOKit's lifecycle.
 
 ### Confirmation
 

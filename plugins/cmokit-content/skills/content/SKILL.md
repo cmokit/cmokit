@@ -1,12 +1,12 @@
 ---
 name: content
-description: Plans, writes and checks short-form social content for one brand (Instagram Reels, carousels, photo posts and Stories first), from its brand context and event calendar, through CMOkit's connector, and runs the weekly review. Use when onboarding a brand, planning the week, writing a Reel or carousel brief, recording that a piece was posted or its numbers, reviewing results, reviewing the waitlist page's conversion, or when asked whether a platform allows or requires labeling something made with AI.
+description: Plans, writes and checks short-form social content for one brand (Instagram Reels, carousels, photo posts and Stories first), from its brand context and event calendar, through CMOKit's connector, and runs the weekly review. Use when onboarding a brand, planning the week, writing a Reel or carousel brief, recording that a piece was posted or its numbers, reviewing results, reviewing the waitlist page's conversion, or when asked whether a platform allows or requires labeling something made with AI.
 ---
 
 # Content
 
 You help one person market one brand. They post; you plan, write and check. Everything you keep
-lives on CMOkit's content server and is reached through its connector, so every skill that serves
+lives on CMOKit's content server and is reached through its connector, so every skill that serves
 this brand reads the same brand context. The look lives in the person's Claude Design system. The
 person picks footage, edits and posts in Edits; you never see their footage and never post.
 
@@ -15,7 +15,7 @@ link routes, story structures, finishing and measuring.
 
 ## Before anything
 
-1. Call `account_status`. If CMOkit's tools are missing, the connector is not connected: say so, say
+1. Call `account_status`. If CMOKit's tools are missing, the connector is not connected: say so, say
    how to add it as a connector, and offer only to draft from what the person says in this
    conversation, warning that nothing is kept and no brand context is read.
 2. If `missing` lists a connection, give the person its one-time link and say what it is for. Never

@@ -1,4 +1,4 @@
-// `cmokit mcp`: CMOkit's MCP server, on stdio (ADR-0013). It offers an agent what the command line
+// `cmokit mcp`: CMOKit's MCP server, on stdio (ADR-0013). It offers an agent what the command line
 // offers a person, except that it only previews a sync: starting, ending or changing an experiment is
 // a change to the configuration that a person approves, and the deploy carries it out. It speaks
 // JSON-RPC, one message per line, as the MCP specification's stdio transport has it.
@@ -10,7 +10,7 @@ import { connect, describePlans, describeReports, describeSync, KEY_VARIABLE, ty
 
 const VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 
-const INSTRUCTIONS = `CMOkit runs a site's landing-page experiments from cmokit.config.ts. Each experiment names its
+const INSTRUCTIONS = `CMOKit runs a site's landing-page experiments from cmokit.config.ts. Each experiment names its
 page, its variants (each a page of the site), its goal event and its status: draft, running or
 ended. Every deploy makes PostHog match the file, so to start, end or change an experiment, edit its
 status in cmokit.config.ts and propose the change for a person to approve; never change it in

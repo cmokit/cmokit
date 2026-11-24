@@ -1,6 +1,6 @@
-# Set up hosted CMOkit
+# Set up hosted CMOKit
 
-This guide is for whoever runs hosted CMOkit (ADR-0016) on CMOkit's own Cloudflare account. It
+This guide is for whoever runs hosted CMOKit (ADR-0016) on CMOKit's own Cloudflare account. It
 covers each account to make, each value to copy, and where to enter it. Every name it uses is in the
 [deployment reference](../reference/deployment.md).
 
@@ -66,9 +66,9 @@ The command prints nothing and puts the key on your clipboard. Paste it as the s
 ## 3. Sign in with Google
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create a project named
-   CMOkit.
-2. Open **Google Auth Platform**. Under **Branding**, enter the app name CMOkit and a support email,
-   and leave the logo empty. Under **Audience**, choose **External**, then **Publish app**. CMOkit
+   CMOKit.
+2. Open **Google Auth Platform**. Under **Branding**, enter the app name CMOKit and a support email,
+   and leave the logo empty. Under **Audience**, choose **External**, then **Publish app**. CMOKit
    asks only for `openid`, `email` and `profile`, which need no review from Google (ADR-0018).
 3. Under **Clients**, choose **Create client**, with the type **Web application**. Under **Authorized
    redirect URIs**, add exactly:
@@ -84,7 +84,7 @@ The command prints nothing and puts the key on your clipboard. Paste it as the s
 
 1. Make the app under the cmokit organization, so it doesn't hang off a personal account: open
    **github.com/organizations/cmokit/settings/applications**, then **OAuth Apps > New OAuth App**.
-2. Enter the name CMOkit, the homepage URL `https://cmokit.ai`, and this **Authorization callback
+2. Enter the name CMOKit, the homepage URL `https://cmokit.ai`, and this **Authorization callback
    URL**:
 
    ```
@@ -127,19 +127,19 @@ Facebook.
 ## 7. Activate your own account
 
 During the closed beta, a person gets in without paying when their email address is on hosted
-CMOkit's list of activated addresses. Save the variable `ACTIVATED_EMAILS` with your own address.
+CMOKit's list of activated addresses. Save the variable `ACTIVATED_EMAILS` with your own address.
 For more than one, separate them with commas.
 
 Use the address your sign-in proves: the primary email address on your GitHub account, or your Google
-address. Facebook never counts, because CMOkit doesn't take its address as proven. The first time
-you use CMOkit after signing in, you become CMOkit's customer: it makes your first brand, with you as
+address. Facebook never counts, because CMOKit doesn't take its address as proven. The first time
+you use CMOKit after signing in, you become CMOKit's customer: it makes your first brand, with you as
 its only user. You can add more brands on your account page at `app.cmokit.ai`.
 
-To let people in from CMOkit's own waitlist, open your account page, copy the slug after "Brand",
+To let people in from CMOKit's own waitlist, open your account page, copy the slug after "Brand",
 save it as the variable `WAITLIST_CUSTOMER`, and deploy again. Then, under Waitlist on your account
 page, save your site's address, such as `https://cmokit.ai`, and paste the form the page gives you
 into your site. Your account page lists everyone who joins, most referrals first, with an Activate
-button for each. Activating someone lets them sign in and use CMOkit. CMOkit sends no email yet, so
+button for each. Activating someone lets them sign in and use CMOKit. CMOKit sends no email yet, so
 tell them yourself.
 
 To ask every user to accept the beta terms first, publish them, then save the variable `TERMS_URL`
@@ -186,7 +186,7 @@ Creators sign in with their Instagram account, through the same Meta app (ADR-00
 account must be a business or creator account in a business portfolio, as your brand's is.
 
 1. Under **Facebook Login for Business > Configurations**, choose **Create configuration**. Name it
-   (for example "Sign in to CMO Kit"), keep the **General** login variation, choose a **System-user
+   (for example "Sign in to CMOKit"), keep the **General** login variation, choose a **System-user
    access token** that expires in 60 days, require **Instagram accounts** as the asset, and choose
    only the permission `instagram_basic`. A configuration has no redirect address of its own.
 2. Under **Facebook Login for Business > Settings**, add this to **Valid OAuth Redirect URIs**, beside
@@ -216,11 +216,11 @@ After you change a value above, open **Actions > deploy-hosted > Run workflow**,
 
 ## 9. Subscriptions
 
-Hosted CMOkit is billed by the lifecycle of CMOkit's own site (ADR-0017), so this part is set up in
+Hosted CMOKit is billed by the lifecycle of CMOKit's own site (ADR-0017), so this part is set up in
 that site's repository, the one made from the starter, not in this one. Do it in a Stripe sandbox
 first, then again in live mode.
 
-1. In Stripe, open **Product catalog > Add product**. Name it CMOkit and give it a recurring price.
+1. In Stripe, open **Product catalog > Add product**. Name it CMOKit and give it a recurring price.
    Copy the price's id, which starts with `price_`. In the site's `cmokit.config.ts`, add:
 
    ```ts

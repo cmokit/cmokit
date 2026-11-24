@@ -13,10 +13,10 @@ decision-makers: [Geoff]
 
 ADR-0039 had each user accept the beta terms on a one-time page that account_status links to, after
 their Claude had connected. In the onboarding flow that design produced, a creator signs in, names
-their brand, adds CMOkit to Claude Desktop, signs in again from Claude, and only then meets a
+their brand, adds CMOKit to Claude Desktop, signs in again from Claude, and only then meets a
 second page to accept the terms before anything works. That is one more stop than the flow needs,
 at the point where a new user is most likely to give up. The person already looks at one screen of
-CMOkit's own before anything else happens: the issuer's sign-in screen. Something has to say
+CMOKit's own before anything else happens: the issuer's sign-in screen. Something has to say
 whether acceptance can happen there, without the issuer keeping a record no customer's export
 carries, which is why ADR-0039 turned that option down.
 

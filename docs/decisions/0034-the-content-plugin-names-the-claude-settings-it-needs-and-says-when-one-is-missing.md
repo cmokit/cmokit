@@ -24,7 +24,7 @@ From Anthropic's documentation, read on 2026-10-30:
 | A plan with plugins | Pro, Max, Ultra, Team and Enterprise; not Free |
 | The plugin added | Customize, then Plugins, on the web or desktop, from a marketplace's Git repository; adding one from the mobile apps is not documented. Once added, its skills and remote connectors work in chat on the web, desktop and mobile |
 | Code execution on | Skills run in the code sandbox, so "Code execution and file creation" must be on |
-| CMOkit's connector connected | Installing a plugin connects nothing; each connector is connected from the plugin's Connectors tab. Connecting on mobile is in beta; a connector connected on the web or desktop is available on iOS and Android |
+| CMOKit's connector connected | Installing a plugin connects nothing; each connector is connected from the plugin's Connectors tab. Connecting on mobile is in beta; a connector connected on the web or desktop is available on iOS and Android |
 | Claude Design | A template inside Claude, on by default; on the phone a design is asked for in chat and viewed in the Artifacts tab |
 | A design system, published as default | Beta on Pro, Max, Team and Enterprise; off on Enterprise until an Owner turns it on |
 | Scheduled tasks (optional) | All paid plans; they run in Anthropic's cloud with the person's connectors and plugins, and can be created from any conversation |
@@ -43,7 +43,7 @@ for the organization.
 
 * Required and optional settings listed in the plugin's documentation and checked by the skill and the
   server at the start of each task, each with its own fallback
-* A setup checklist on CMOkit's website
+* A setup checklist on CMOKit's website
 * Require every setting before anything works
 
 ## Decision Outcome
@@ -53,16 +53,16 @@ the skill and the server at the start of each task, each with its own fallback",
 happens where the missing setting is noticed, and each fallback keeps what still works.
 
 > **Required:** a plan with plugins, the content plugin added on the web or desktop, code execution
-> on, and CMOkit's connector connected and signed in. **For visuals:** Claude Design and a design
+> on, and CMOKit's connector connected and signed in. **For visuals:** Claude Design and a design
 > system published as the default. **Optional:** a weekly scheduled task, and any scheduler or
 > editor connector the person already has. The plugin's README lists them, with where each is turned
 > on.
 >
 > When one is missing:
 >
-> * **Code execution off, or the plugin not added.** The skill cannot load, so CMOkit's server says
+> * **Code execution off, or the plugin not added.** The skill cannot load, so CMOKit's server says
 >   so: its instructions tell the model to tell the person how to turn it on.
-> * **CMOkit's connector not connected.** The skill says so and how to connect it, and offers only to
+> * **CMOKit's connector not connected.** The skill says so and how to connect it, and offers only to
 >   draft from what the person says in this conversation, warning that nothing is kept and no brand
 >   context is read.
 > * **No design system.** The skill writes each piece without visuals, says why, and offers to make a
@@ -93,10 +93,10 @@ each release, by review.
 * Good, because it meets every driver.
 * Bad, because the checks and fallbacks are behaviour of the skill to evaluate and maintain.
 
-### A setup checklist on CMOkit's website
+### A setup checklist on CMOKit's website
 
 * Good, because the whole list is visible in one place.
-* Bad, because the person meets a missing setting in Claude, not on CMOkit's site, so the checklist
+* Bad, because the person meets a missing setting in Claude, not on CMOKit's site, so the checklist
   is never where it is needed.
 
 ### Require every setting before anything works

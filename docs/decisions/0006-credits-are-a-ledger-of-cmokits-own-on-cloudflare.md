@@ -5,7 +5,7 @@ date: 2026-10-24
 decision-makers: [Geoff]
 ---
 
-# ADR-0006: Credits are a ledger of CMOkit's own, in a Durable Object per customer, and all of CMOkit's storage is on Cloudflare
+# ADR-0006: Credits are a ledger of CMOKit's own, in a Durable Object per customer, and all of CMOKit's storage is on Cloudflare
 
 **Requirements served:** `CRD-01`, `CRD-02`, `CRD-03`, `CRD-04`, `CRD-05`, `CRD-06`, `CRD-08`, `CUS-02`, `SUB-06`, `PRD-04`, `NFR-04`, `NFR-06`, `AGT-06`.
 
@@ -28,7 +28,7 @@ credit balance are an early-access preview. Billing tools that keep a running ba
 commercial services, sitting between an adopter and its own Stripe account, or open-source servers
 that need Kafka or always-on workers and so do not scale to zero (ADR-0012).
 
-Every part of CMOkit must scale to zero (`NFR-06`), and its tests, and an agent running it locally,
+Every part of CMOKit must scale to zero (`NFR-06`), and its tests, and an agent running it locally,
 need no account at any bought tool (`NFR-04`, `AGT-06`). Cloudflare already runs the edge.
 A Durable Object is a single instance, addressed by name, that handles one request at a time over a
 SQLite database of its own; it is billed for requests, rows and storage, not while idle, and is
@@ -47,14 +47,14 @@ offered on Workers' free plan.
 
 ## Considered Options
 
-* A ledger of CMOkit's own, in a Durable Object per customer
-* A ledger of CMOkit's own, in one Cloudflare D1 database
+* A ledger of CMOKit's own, in a Durable Object per customer
+* A ledger of CMOKit's own, in one Cloudflare D1 database
 * A billing tool that keeps running balances, behind an interface
 * The payment processor's own billing credits
 
 ## Decision Outcome
 
-Chosen option: "A ledger of CMOkit's own, in a Durable Object per customer", because one instance per
+Chosen option: "A ledger of CMOKit's own, in a Durable Object per customer", because one instance per
 customer, handling one request at a time over its own SQLite database, makes every debit and every
 crossing exact, and costs nothing while the customer is idle.
 
@@ -72,7 +72,7 @@ crossing exact, and costs nothing while the customer is idle.
 > object's alarm delivers the outbox until each action is acknowledged. Every action sets a state, so
 > delivering it twice is delivering it once.
 >
-> **All storage on Cloudflare.** The ledger is CMOkit's only store, beside the Workers that use it
+> **All storage on Cloudflare.** The ledger is CMOKit's only store, beside the Workers that use it
 > (ADR-0003). No package depends on a database client.
 >
 > **Written apart from its runtime.** The ledger's logic is written against a small SQL interface. The
@@ -81,14 +81,14 @@ crossing exact, and costs nothing while the customer is idle.
 
 ### Consequences
 
-* Good, because nothing of CMOkit's runs or is billed while idle, and a small business's ledger fits
+* Good, because nothing of CMOKit's runs or is billed while idle, and a small business's ledger fits
   Workers' free plan.
 * Good, because every debit and every crossing is exact: no estimates from invoice previews, no
   window after which a repeated usage event counts twice.
 * Good, because a product can ask for a customer's balance and get it at once, so a hard stop needs no
   extra tool.
 * Good, because no vendor sits between an adopter and its Stripe account.
-* Bad, because CMOkit owns the correctness of something access depends on, so the ledger's tests must
+* Bad, because CMOKit owns the correctness of something access depends on, so the ledger's tests must
   cover repeated events, concurrent debits, expiry order and every crossing.
 * Bad, because customers' balances and usage are held by Cloudflare, which an audited adopter lists
   among its subprocessors.
@@ -103,12 +103,12 @@ The boundary check fails the build if any package depends on a database client.
 
 ## Pros and Cons of the Options
 
-### A ledger of CMOkit's own, in a Durable Object per customer
+### A ledger of CMOKit's own, in a Durable Object per customer
 
 * Good, because it meets every driver.
-* Bad, because the ledger is CMOkit's to build and keep correct.
+* Bad, because the ledger is CMOKit's to build and keep correct.
 
-### A ledger of CMOkit's own, in one Cloudflare D1 database
+### A ledger of CMOKit's own, in one Cloudflare D1 database
 
 * Good, because one database is simpler to query across customers.
 * Bad, because D1 runs statements in batches, not interactive transactions, so reading a balance and

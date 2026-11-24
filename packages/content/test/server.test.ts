@@ -40,7 +40,7 @@ test('Protected Resource Metadata names the issuer, and a call without a valid t
   const metadata = await handle(new Request(`${ORIGIN}/.well-known/oauth-protected-resource/customers/acme/mcp`));
   assert.deepEqual(await metadata.json(), {
     resource: `${ORIGIN}/customers/acme/mcp`, authorization_servers: ['https://auth.example'],
-    bearer_methods_supported: ['header'], resource_name: 'CMOkit',
+    bearer_methods_supported: ['header'], resource_name: 'CMOKit',
   });
   for (const token of [undefined, 'forged', 'other-audience']) {
     const refused = await rpc('acme', token, 'tools/list');
@@ -54,7 +54,7 @@ test('the hosted address serves the customer chosen at sign-in, and only to its 
   const metadata = await handle(new Request(`${ORIGIN}/.well-known/oauth-protected-resource/mcp`));
   assert.deepEqual(await metadata.json(), {
     resource: `${ORIGIN}/mcp`, authorization_servers: ['https://auth.example'],
-    bearer_methods_supported: ['header'], resource_name: 'CMOkit',
+    bearer_methods_supported: ['header'], resource_name: 'CMOKit',
   });
   const refused = await rpc(null, undefined, 'tools/list');
   assert.equal(refused.status, 401);
@@ -96,7 +96,7 @@ test('a person who had no customer at sign-in is served the one they have now, o
   // No customer yet: account_status alone, with a checkout link that comes back to the server's own page.
   assert.deepEqual((await rpc('tools/list')).result.tools!.map((t) => t.name), ['account_status']);
   const status = (await rpc('tools/call', { name: 'account_status', arguments: {} })).result.structuredContent;
-  assert.deepEqual(status, { access: 'none', connections: [], missing: [{ what: 'subscription', label: 'CMOkit', link: 'https://checkout.example/c/1' }] });
+  assert.deepEqual(status, { access: 'none', connections: [], missing: [{ what: 'subscription', label: 'CMOKit', link: 'https://checkout.example/c/1' }] });
   assert.deepEqual(asked, [{ person: 'ada', successUrl: `${ORIGIN}/subscription?s=started`, cancelUrl: `${ORIGIN}/subscription?s=cancelled` }]);
   assert.equal((await rpc('tools/call', { name: 'brand_read', arguments: {} })).result.isError, true);
   const page = await handle(new Request(`${ORIGIN}/subscription?s=started`));

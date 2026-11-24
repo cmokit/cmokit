@@ -53,7 +53,7 @@ test('a forged, stale or replayed signature is refused, and an event about somet
   assert.equal(await s.payments.subscriptions(signed(event, NOW / 1000, 'whsec_other')), undefined);
   assert.equal(await s.payments.subscriptions(signed(event, NOW / 1000 - 301)), undefined);
   assert.equal(await s.payments.subscriptions(new Request('https://site.example', { method: 'POST', body: event })), undefined);
-  // A subscription CMOkit's checkout did not start names no customer.
+  // A subscription CMOKit's checkout did not start names no customer.
   assert.deepEqual(await s.payments.subscriptions(signed(event)), []);
   const invoice = JSON.stringify({ type: 'invoice.paid', data: { object: { id: 'in_1', object: 'invoice' } } });
   assert.deepEqual(await s.payments.subscriptions(signed(invoice)), []);

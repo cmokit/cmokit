@@ -14,14 +14,14 @@ decision-makers: [Geoff]
 A subscription's lifecycle changes what a customer's users may do in the product: a new customer is
 given access with the person who paid as its first user, one whose subscription lapses has its
 access revoked, one whose credit balance is exhausted has its metered features blocked, and one that
-reactivates or tops up has its access restored. CMOkit and the product have to exchange those facts,
+reactivates or tops up has its access restored. CMOKit and the product have to exchange those facts,
 and someone has to decide which side starts each exchange.
 
-The events that drive the lifecycle start at the payment processor, which sends them to CMOkit as
+The events that drive the lifecycle start at the payment processor, which sends them to CMOKit as
 signed webhook events and retries them, and at the credit ledger, which delivers its own actions
-until each is acknowledged (ADR-0006). What CMOkit needs from the product is mostly an action (give
+until each is acknowledged (ADR-0006). What CMOKit needs from the product is mostly an action (give
 access, revoke it, block metered features, restore access) and occasionally a current fact (does this
-customer still exist before renewal). Products differ in everything else, and CMOkit must contain
+customer still exist before renewal). Products differ in everything else, and CMOKit must contain
 no code specific to one (`PRD-02`).
 
 Usage is a different exchange: only the product sees it, so it starts there. It is decided in
@@ -29,44 +29,44 @@ ADR-0005, and this record covers the lifecycle alone.
 
 ## Decision Drivers
 
-* No code specific to one product in CMOkit (`PRD-02`).
+* No code specific to one product in CMOKit (`PRD-02`).
 * A product needs nothing new to be reached beyond a published API and a standard identity provider.
 * An unreachable product delays an action and loses nothing (`PRD-04`).
-* CMOkit holds only the privileges its calls need (`PRD-03`).
+* CMOKit holds only the privileges its calls need (`PRD-03`).
 
 ## Considered Options
 
-* CMOkit calls the product's API, configured per lifecycle event
-* The product sends CMOkit events by webhook
+* CMOKit calls the product's API, configured per lifecycle event
+* The product sends CMOKit events by webhook
 * A shared queue both sides read and write
 
 ## Decision Outcome
 
-Chosen option: "CMOkit calls the product's API, configured per lifecycle event", because the events
-already arrive at CMOkit from the payment processor and the ledger, and calling out needs nothing of
+Chosen option: "CMOKit calls the product's API, configured per lifecycle event", because the events
+already arrive at CMOKit from the payment processor and the ledger, and calling out needs nothing of
 a product but its API.
 
-> CMOkit signs a new user in through the product's identity provider by OpenID Connect, or
+> CMOKit signs a new user in through the product's identity provider by OpenID Connect, or
 > authorizes their agent client by OAuth, and authenticates to the product's API as an OAuth client.
 > For each lifecycle event, configuration names the call to make, and every call names the customer it
-> acts on. The product sends CMOkit no lifecycle event. A call that fails is retried from the retry of
+> acts on. The product sends CMOKit no lifecycle event. A call that fails is retried from the retry of
 > the event that caused it, and is safe to repeat.
 >
-> A product whose Worker runs on the same Cloudflare account as the lifecycle, as hosted CMOkit's
+> A product whose Worker runs on the same Cloudflare account as the lifecycle, as hosted CMOKit's
 > content server does, is reached instead by a service binding to a named entrypoint of that Worker,
-> whose calls are fixed in its code rather than configured. CMOkit's own issuer gives tokens only to a
+> whose calls are fixed in its code rather than configured. CMOKit's own issuer gives tokens only to a
 > person who signs in (ADR-0018, ADR-0035), so it has none for the lifecycle as an OAuth client.
 
 ### Consequences
 
 * Good, because a product needs only a published API and a standard identity provider.
-* Good, because the payment processor's retries carry CMOkit's, and the ledger's outbox carries its
-  own, so CMOkit keeps no queue.
+* Good, because the payment processor's retries carry CMOKit's, and the ledger's outbox carries its
+  own, so CMOKit keeps no queue.
 * Bad, because a fact the product knows first, such as a customer deleting its account, reaches
-  CMOkit only when CMOkit next asks. CMOkit asks before each renewal.
+  CMOKit only when CMOKit next asks. CMOKit asks before each renewal.
 * Bad, because a call the product refuses for good, after its retries stop, needs a person, so it is
   alerted.
-* Bad, because a product on CMOkit's own account is reached by calls fixed in code, so changing them
+* Bad, because a product on CMOKit's own account is reached by calls fixed in code, so changing them
   means a release of both Workers rather than a change of configuration.
 
 ### Confirmation
@@ -76,19 +76,19 @@ assert the configured call, and repeat it to show acting twice has the effect of
 
 ## Pros and Cons of the Options
 
-### CMOkit calls the product's API, configured per lifecycle event
+### CMOKit calls the product's API, configured per lifecycle event
 
 * Good, because it meets every driver.
-* Bad, because CMOkit learns of changes in the product only when it asks.
+* Bad, because CMOKit learns of changes in the product only when it asks.
 
-### The product sends CMOkit events by webhook
+### The product sends CMOKit events by webhook
 
-* Good, because a change in the product reaches CMOkit at once.
-* Bad, because every product must build signing, retries and delivery to CMOkit for lifecycle facts
-  CMOkit mostly already has. (Usage, which CMOkit cannot have otherwise, is sent this way; see
+* Good, because a change in the product reaches CMOKit at once.
+* Bad, because every product must build signing, retries and delivery to CMOKit for lifecycle facts
+  CMOKit mostly already has. (Usage, which CMOKit cannot have otherwise, is sent this way; see
   ADR-0005.)
 * Bad, because the lifecycle's events start at the payment processor, not the product, so the product
-  would mostly relay what CMOkit already knows.
+  would mostly relay what CMOKit already knows.
 
 ### A shared queue both sides read and write
 
@@ -103,7 +103,7 @@ nothing already configured would change.
 
 ## Revisit when
 
-* CMOkit's issuer can give a token to a client that no person signed in, so the lifecycle can reach
-  a product on CMOkit's own account the same way it reaches any other.
+* CMOKit's issuer can give a token to a client that no person signed in, so the lifecycle can reach
+  a product on CMOKit's own account the same way it reaches any other.
 * A product's own events need to reach messaging quickly, such as a milestone that should trigger a
   nurture step, and asking on a schedule is too slow.

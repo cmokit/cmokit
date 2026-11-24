@@ -1,4 +1,4 @@
-// CMOkit's own look (ADR-0046): one stylesheet on every page, and fonts served from the page's own origin.
+// CMOKit's own look (ADR-0046): one stylesheet on every page, and fonts served from the page's own origin.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

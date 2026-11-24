@@ -17,7 +17,7 @@ person's own Claude.
 - **Account page:** with the renderer the build writes to `dist/apps/portal.js` passed in as
   `portal`, the account page is React rendered on the server and hydrated by `/portal.js`, its forms
   posting to the server's routes (ADR-0051). Without it the account page answers 503.
-- **Sign-in:** it checks bearer tokens issued for its own audience by CMOkit's issuer, which it
+- **Sign-in:** it checks bearer tokens issued for its own audience by CMOKit's issuer, which it
   names in its Protected Resource Metadata, and issues none. A person must be a user of the customer
   the path names, or, at `/mcp`, of the customer their sign-in chose.
 - **Connections:** a calendar key is entered on a one-time page of the server's own, never in the
@@ -43,7 +43,7 @@ export default worker;
 `Access` is the entrypoint the lifecycle's `PRODUCT` binding names, which makes a customer at its
 first checkout and gives or revokes its access (ADR-0017). A person whose proven email address is
 in `ACTIVATED_EMAILS`, or who was activated on the waitlist of the brand `WAITLIST_CUSTOMER` names,
-becomes CMOkit's customer at their first call, with no checkout: the server makes their first
+becomes CMOKit's customer at their first call, with no checkout: the server makes their first
 brand, with them as its first user. On the account page they add more brands (ADR-0042), and each
 brand runs a waitlist of its own: its users list the brand's site addresses, paste the form the
 page gives them into any page on those sites, which posts to `/join/<brand>`, and activate people

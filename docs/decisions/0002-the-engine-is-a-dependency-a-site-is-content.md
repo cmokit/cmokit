@@ -11,13 +11,13 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit serves many businesses, each with its own site, copy, design and offers. Something has to
-decide how a business's site relates to CMOkit's code: whether a site is a copy of CMOkit, a layer on
-top of it, or something that depends on it. The answer decides how a site gets CMOkit's fixes, where
+CMOKit serves many businesses, each with its own site, copy, design and offers. Something has to
+decide how a business's site relates to CMOKit's code: whether a site is a copy of CMOKit, a layer on
+top of it, or something that depends on it. The answer decides how a site gets CMOKit's fixes, where
 an agent proposing variants writes, and what an adopter owns.
 
 A site may be built with any static site generator or CMS and hosted anywhere (`SRV-01`). The parts
-CMOkit supplies are its configuration and a command line, a browser script the edge serves and any
+CMOKit supplies are its configuration and a command line, a browser script the edge serves and any
 site includes with one tag, integrations for site builders that want one (the first is Astro's), a
 server part in two pieces deployed apart (ADR-0003) — the edge (variant resolution, the server-side
 conversion) and the lifecycle (lead capture, the payment processor's events, the credit ledger, the
@@ -26,27 +26,27 @@ plugin for the weekly loop.
 
 ## Decision Drivers
 
-* An adopter gets CMOkit's fixes by changing a version, not by merging (`NFR-01`).
+* An adopter gets CMOKit's fixes by changing a version, not by merging (`NFR-01`).
 * A variant is a content change in the adopter's site (`SRV-02`, `LOOP-01`).
 * An adopter owns everything that is theirs, and nothing that is not.
 
 ## Considered Options
 
-* CMOkit as published packages a site depends on, with a starter that creates a new site
+* CMOKit as published packages a site depends on, with a starter that creates a new site
 * A template repository each site is created from
-* A fork of CMOkit per site
+* A fork of CMOKit per site
 
 ## Decision Outcome
 
-Chosen option: "CMOkit as published packages a site depends on, with a starter that creates a new
+Chosen option: "CMOKit as published packages a site depends on, with a starter that creates a new
 site", because it is the only option in which a fix reaches every site as a version change.
 
-> CMOkit is published as packages. On npm: `@cmokit/cli` (configuration and the `cmokit` command),
+> CMOKit is published as packages. On npm: `@cmokit/cli` (configuration and the `cmokit` command),
 > `@cmokit/astro` (the Astro integration), `@cmokit/edge` and `@cmokit/lifecycle` (the two pieces of
 > the server part, one package each so that neither carries the other's dependencies), and
 > `create-cmokit` (the starter). The deployment workflows are reusable GitHub Actions workflows, and
 > the weekly loop is an agent plugin. A site is the adopter's own, built and hosted however they
-> choose. Its CMOkit configuration lives in a repository of the adopter's own that depends on those
+> choose. Its CMOKit configuration lives in a repository of the adopter's own that depends on those
 > packages and deploys the edge; for a site kept in git it is the site's own repository. The starter
 > creates a new site, and is not depended on after.
 
@@ -57,7 +57,7 @@ site", because it is the only option in which a fix reaches every site as a vers
   writes.
 * Bad, because the configuration and the integration's options are a published interface with
   compatibility obligations of their own.
-* Neutral, because a site that needs something CMOkit does not do adds it in its own repository.
+* Neutral, because a site that needs something CMOKit does not do adds it in its own repository.
 
 ### Confirmation
 
@@ -66,7 +66,7 @@ fresh site fails before it is published.
 
 ## Pros and Cons of the Options
 
-### CMOkit as published packages a site depends on, with a starter that creates a new site
+### CMOKit as published packages a site depends on, with a starter that creates a new site
 
 * Good, because it meets every driver.
 * Bad, because it needs package releases and versioning from the start.
@@ -77,7 +77,7 @@ fresh site fails before it is published.
 * Bad, because a fix after creation reaches a site only by hand, and every site drifts from the
   template on its first day.
 
-### A fork of CMOkit per site
+### A fork of CMOKit per site
 
 * Good, because upstream fixes arrive by merge.
 * Bad, because content and engine share one repository, so every merge risks the adopter's content

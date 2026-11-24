@@ -19,7 +19,7 @@ person sees it (`CNT-06`), and nothing invents a person, a testimonial or a resu
 check that the light check flags what it is meant to flag (`CNT-26`).
 
 Some of this is matching words: a listed AI tell, a phrase such as "cures" or "before and after".
-Some is judgment: whether a sentence makes a health claim in other words. CMOkit's hosted services run
+Some is judgment: whether a sentence makes a health claim in other words. CMOKit's hosted services run
 no model (`HST-09`), so judgment can only happen in the person's Claude. The rules the flags point at
 are real: the FTC's Endorsement Guides, its rule against fake reviews and testimonials, TikTok's and
 Meta's requirements to label AI-generated content and disclose paid partnerships, and their limits
@@ -28,7 +28,7 @@ on music for business accounts.
 ## Decision Drivers
 
 * Flags appear with the draft, before the person sees it (`CNT-06`).
-* Judgment happens in the person's own Claude, never in CMOkit (`HST-09`).
+* Judgment happens in the person's own Claude, never in CMOKit (`HST-09`).
 * The check never stops a piece; the person decides.
 * Its word lists are versioned and evaluated with the skill (`CNT-26`).
 
@@ -36,7 +36,7 @@ on music for business accounts.
 
 * In the skill: a script in the skill matches lists, and Claude reads the draft against the brand's
   lines and the check's categories; flags are shown, never enforced
-* A tool on CMOkit's server that matches lists when a piece is saved
+* A tool on CMOKit's server that matches lists when a piece is saved
 * Both, with the server checking again when a piece is saved
 * A check that blocks a flagged piece until the person resolves it
 
@@ -58,7 +58,7 @@ the skill's own sandbox.
 
 ### Consequences
 
-* Good, because the check needs nothing of CMOkit's and costs nothing to run.
+* Good, because the check needs nothing of CMOKit's and costs nothing to run.
 * Good, because its lists sit beside the skill's text and are evaluated with it.
 * Bad, because a person who ignores every flag still can; the check informs, it does not protect.
 * Neutral, because a word list catches only what it lists, and Claude's reading catches more but not
@@ -76,7 +76,7 @@ assert the check flags each and blocks none (`CNT-26`).
 * Good, because it meets every driver.
 * Bad, because it depends on code execution being on, as the whole skill does.
 
-### A tool on CMOkit's server that matches lists when a piece is saved
+### A tool on CMOKit's server that matches lists when a piece is saved
 
 * Good, because the lists would apply the same way however the piece was written.
 * Bad, because without a model the server only matches words, and it would flag a piece after the

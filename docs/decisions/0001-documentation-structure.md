@@ -9,7 +9,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit is developed largely by agents and is meant to take contributors and adopters. Each kind of
+CMOKit is developed largely by agents and is meant to take contributors and adopters. Each kind of
 writing it produces has a different reader and lifecycle: the vision changes rarely, requirements
 churn until agreed, decisions churn until people depend on them, rules for an agent are read every
 session, and adopters read guides without ever seeing the source. In one undifferentiated tree each
@@ -105,7 +105,7 @@ the files.
 
 ## More Information
 
-**Reversal cost.** Low while CMOkit has few documents; it rises with every adopter who links to one.
+**Reversal cost.** Low while CMOKit has few documents; it rises with every adopter who links to one.
 
 ## Revisit when
 

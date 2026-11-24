@@ -1,6 +1,6 @@
 # @cmokit/lifecycle
 
-The lifecycle, as a Cloudflare Worker. It sends each lead the sequence of messages a CMOkit site
+The lifecycle, as a Cloudflare Worker. It sends each lead the sequence of messages a CMOKit site
 declares in its `cmokit.config.ts`. Each lead's place in its sequence is kept in a Durable Object of
 its own, and email is sent through SendGrid. The Worker has no route of its own; the edge reaches it
 through a service binding.
@@ -36,5 +36,5 @@ export default worker;
 Each message is `messages/<template>.md`, a markdown file with a `subject` in its front matter.
 `npm create cmokit` sets all of this up.
 
-Part of [CMOkit](https://github.com/cmokit/cmokit), an opinionated, open-source growth engine for
+Part of [CMOKit](https://github.com/cmokit/cmokit), an opinionated, open-source growth engine for
 subscription businesses.

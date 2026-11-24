@@ -5,7 +5,7 @@
     {
       "name": "cmokit-content",
       "source": "./plugins/cmokit-content",
-      "description": "Plans, writes and checks a brand's Reels, carousels and Stories from its brand context and event calendar, through CMOkit's connector."
+      "description": "Plans, writes and checks a brand's Reels, carousels and Stories from its brand context and event calendar, through CMOKit's connector."
     }
   ]
 }

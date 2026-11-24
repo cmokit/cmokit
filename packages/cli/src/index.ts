@@ -1,4 +1,4 @@
-// A site's CMOkit configuration, which is deployed with the edge and the lifecycle (ADR-0009) and
+// A site's CMOKit configuration, which is deployed with the edge and the lifecycle (ADR-0009) and
 // declares each experiment's plan and status (ADR-0013), each sequence of messages to leads, and the
 // site's waitlist (ADR-0014).
 
@@ -326,7 +326,7 @@ export function parseTemplate(template: string): { subject: string; body: string
 /** Checks a configuration and returns it, so `cmokit.config.ts` fails as soon as it is loaded. */
 export function defineConfig(config: Config): Config {
   const found = problems(config);
-  if (found.length > 0) throw new Error(`CMOkit configuration:\n  ${found.join('\n  ')}`);
+  if (found.length > 0) throw new Error(`CMOKit configuration:\n  ${found.join('\n  ')}`);
   return config;
 }
 

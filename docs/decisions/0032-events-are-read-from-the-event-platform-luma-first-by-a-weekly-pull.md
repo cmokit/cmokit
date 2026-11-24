@@ -11,7 +11,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-An event business sells through an event platform, not through CMOkit's checkout, so for it the
+An event business sells through an event platform, not through CMOKit's checkout, so for it the
 conversion is a registration on that platform (`CNT-11`). Its upcoming events are what content is
 planned from (`CNT-10`), and are read from the platform, never entered a second time (`CNT-11`).
 Registrations are attributed to pieces and read weekly (`CNT-19`). Real capacity and check-ins can
@@ -37,8 +37,8 @@ own.
 
 ## Decision Drivers
 
-* No event is kept in CMOkit; the platform is the source of truth (`CNT-11`).
-* Guests' personal data stays between the platform and CMOkit, and only counts reach the model.
+* No event is kept in CMOKit; the platform is the source of truth (`CNT-11`).
+* Guests' personal data stays between the platform and CMOKit, and only counts reach the model.
 * Nothing runs between reviews, and nothing needs a receiver to be up (`NFR-06`).
 * The least the customer has to set up in the platform.
 * The next platform is an adapter (`NFR-03`).
@@ -48,9 +48,9 @@ own.
 * An events interface with a Luma adapter, reading upcoming events when a plan is made and
   registrations when results are read
 * The same, with a webhook receiver recording registrations as they happen
-* The customer's own Luma connector in their Claude, with CMOkit holding no key
+* The customer's own Luma connector in their Claude, with CMOKit holding no key
 * A guest list the person exports from Luma and uploads to the conversation
-* Events entered in CMOkit by hand
+* Events entered in CMOKit by hand
 
 ## Decision Outcome
 
@@ -60,7 +60,7 @@ copy, needs no receiver and asks nothing of the customer in Luma beyond a key.
 
 > The events interface lists a calendar's upcoming events (name, page, start, capacity where the
 > platform gives it) and reads an event's registrations and check-ins, each with its attribution
-> parameters. Its first adapter is Luma's, with a calendar key the customer enters on CMOkit's page
+> parameters. Its first adapter is Luma's, with a calendar key the customer enters on CMOKit's page
 > (ADR-0019), kept encrypted in the customer's object (ADR-0030). `offers_list` reads upcoming
 > events when the week is planned. `results_read` reads each recent event's guests and, per
 > `utm_content`, counts registrations and check-ins and sums revenue: what the guests paid for their
@@ -71,7 +71,7 @@ copy, needs no receiver and asks nothing of the customer in Luma beyond a key.
 
 ### Consequences
 
-* Good, because the customer sets up nothing in Luma beyond a key, and CMOkit keeps no attendee.
+* Good, because the customer sets up nothing in Luma beyond a key, and CMOKit keeps no attendee.
 * Good, because a week's read is a handful of calls per event, well inside Luma's rate limit.
 * Bad, because results are as fresh as the last read, not live.
 * Bad, because Luma's API needs Luma Plus, a cost the customer bears, and a calendar key that can also
@@ -94,11 +94,11 @@ adapter but those counts and sums, and that no handler names Luma.
 
 * Good, because registrations would be counted the moment they happen.
 * Bad, because nothing in content needs them before the weekly review, and a webhook would have to be
-  created in Luma, while CMOkit verifies, deduplicates and stores each event.
+  created in Luma, while CMOKit verifies, deduplicates and stores each event.
 
-### The customer's own Luma connector in their Claude, with CMOkit holding no key
+### The customer's own Luma connector in their Claude, with CMOKit holding no key
 
-* Good, because CMOkit would hold no Luma key at all.
+* Good, because CMOKit would hold no Luma key at all.
 * Bad, because guests' names and emails would reach the model, and counting them per piece would be
   left to the model.
 
@@ -108,7 +108,7 @@ adapter but those counts and sums, and that no handler names Luma.
 * Bad, because the export is every guest's personal data in the conversation, and it is a chore every
   week, awkward on a phone.
 
-### Events entered in CMOkit by hand
+### Events entered in CMOKit by hand
 
 * Good, because it works with any platform, or none.
 * Bad, because every event is entered twice and goes stale, which `CNT-11` rules out.
@@ -133,5 +133,5 @@ interface.
 
 * A customer needs registrations sooner than the weekly review, such as to change copy while an event
   is filling.
-* Luma documents OAuth for third-party apps or a read-only key, so CMOkit can hold less.
+* Luma documents OAuth for third-party apps or a read-only key, so CMOKit can hold less.
 * A customer's events are on another platform.

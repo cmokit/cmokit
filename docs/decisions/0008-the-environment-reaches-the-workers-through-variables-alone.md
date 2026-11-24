@@ -11,10 +11,10 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit runs as Cloudflare Workers (ADR-0003), deployed from a repository of the adopter's own
-(ADR-0002). Two kinds of setting reach them. CMOkit's configuration — plans, credit grants,
+CMOKit runs as Cloudflare Workers (ADR-0003), deployed from a repository of the adopter's own
+(ADR-0002). Two kinds of setting reach them. CMOKit's configuration — plans, credit grants,
 experiments, the calls to the product — is reviewed like code (`SUB-05`, `CRD-02`, `EXP-06`). The
-rest differs by environment: the addresses CMOkit calls, and secrets, which only the deploying
+rest differs by environment: the addresses CMOKit calls, and secrets, which only the deploying
 environment holds (`NFR-05`). A contributor or an agent has to run both Workers locally with no
 account (`NFR-04`, `AGT-06`), and an adopter upgrades by changing a version (`NFR-01`).
 
@@ -27,21 +27,21 @@ account (`NFR-04`, `AGT-06`), and an adopter upgrades by changing a version (`NF
 
 ## Considered Options
 
-* CMOkit's configuration bundled into the Workers at deploy; Worker variables and secrets for the
+* CMOKit's configuration bundled into the Workers at deploy; Worker variables and secrets for the
   rest, listed in one reference
 * Everything, the configuration included, in Worker variables
 * The configuration read at runtime from a store, editable without a deploy
 
 ## Decision Outcome
 
-Chosen option: "CMOkit's configuration bundled into the Workers at deploy; Worker variables and
+Chosen option: "CMOKit's configuration bundled into the Workers at deploy; Worker variables and
 secrets for the rest, listed in one reference", because what is reviewed then ships as reviewed, and
 a deployment supplies only what differs by environment.
 
-> CMOkit's configuration lives in the adopter's repository and is bundled into the Workers when they
+> CMOKit's configuration lives in the adopter's repository and is bundled into the Workers when they
 > are deployed; it holds no secret. Everything else is a Worker variable or secret, which the deploy
 > sets from the deploying environment's own secret store, and the adapters read it from the Worker's
-> environment and pass it to the handlers. CMOkit reads nothing else from its environment. Every
+> environment and pass it to the handlers. CMOKit reads nothing else from its environment. Every
 > variable and secret is listed in one reference document, and that list is the contract a
 > deployment meets. Locally, Wrangler runs both Workers and their Durable Objects with the same
 > variables, from a file that is never committed.
@@ -60,7 +60,7 @@ check fails the build if an adapter reads a variable or secret the reference doc
 
 ## Pros and Cons of the Options
 
-### CMOkit's configuration bundled into the Workers at deploy; Worker variables and secrets for the rest, listed in one reference
+### CMOKit's configuration bundled into the Workers at deploy; Worker variables and secrets for the rest, listed in one reference
 
 * Good, because it meets every driver.
 * Bad, because every configuration change is a deploy.

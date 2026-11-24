@@ -1,5 +1,5 @@
-// CMOkit's own look (ADR-0046): the one stylesheet of the sign-in pages and the content server's
-// pages, built from CMO Kit's design system, and the two fonts each Worker serves from its own origin.
+// CMOKit's own look (ADR-0046): the one stylesheet of the sign-in pages and the content server's
+// pages, built from CMOKit's design system, and the two fonts each Worker serves from its own origin.
 // A page puts `LOOK` in its <style> and `HEADER` at the top of its <body>; nothing else in a page sets
 // a color, a font or a size. Beside plain markup it styles three pieces: a bottom tab bar (`nav.tabs`,
 // the current tab marked `aria-current`), stacked list rows (`ul.rows`) and a status badge (`.badge`, `.badge.next` for the step to take next).
@@ -37,7 +37,7 @@ export function fontResponse(request: Request, fonts: Fonts | undefined): Respon
 const MARK = '<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10.5" fill="none" stroke="currentColor" stroke-width="5" stroke-dasharray="52 14" stroke-linecap="round" transform="rotate(-50 16 16)"/></svg>';
 
 /** The app header every page opens with. */
-export const HEADER = `<header class="bar"><span class="wordmark">${MARK}CMO Kit</span></header>`;
+export const HEADER = `<header class="bar"><span class="wordmark">${MARK}CMOKit</span></header>`;
 
 /** The stylesheet, minified only by hand. Light follows the person's setting, and dark is defined for every color. */
 export const LOOK = `

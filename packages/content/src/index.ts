@@ -1,4 +1,4 @@
-// The content server (ADR-0029): CMOkit's remote MCP server for the content plugin, serving MCP over
+// The content server (ADR-0029): CMOKit's remote MCP server for the content plugin, serving MCP over
 // Streamable HTTP with no session, and the one-time pages that take a key (ADR-0019). Each customer
 // has its own path, `/customers/<slug>/mcp`. The content plugin declares one hosted address, with the
 // path `/mcp`, and a call there is routed to the customer the person chose when signing in, which the
@@ -143,7 +143,7 @@ const HOSTED = '/mcp';
 const HOSTED_METADATA = '/.well-known/oauth-protected-resource/mcp';
 const CONNECT = new RegExp(`^/customers/${SLUG}/connect$`);
 const TERMS_PAGE = new RegExp(`^/customers/${SLUG}/terms$`);
-const UNACCEPTED = 'Accept CMOkit\'s beta terms first. Call account_status for the link to read and accept them.';
+const UNACCEPTED = 'Accept CMOKit\'s beta terms first. Call account_status for the link to read and accept them.';
 const SUBSCRIPTION = '/subscription';
 const JOIN = new RegExp(`^/join/${SLUG}$`);
 const INSTAGRAM_CALLBACK = '/instagram/callback';
@@ -262,7 +262,7 @@ export function createContentServer(options: ContentServerOptions) {
       const { terms } = options;
       const unaccepted = terms && !(await accepted(customer, checked, terms)) ? async () => {
         const { token, expires } = await customer.termsLink(checked.person);
-        return { what: 'terms', label: 'CMOkit beta terms', terms: terms.url, link: `${base}/terms?t=${token}`, expires };
+        return { what: 'terms', label: 'CMOKit beta terms', terms: terms.url, link: `${base}/terms?t=${token}`, expires };
       } : undefined;
       const answer = await respond(message, { person: checked.person, base, customer }, manage, unaccepted, options.apps);
       return Response.json(answer);
@@ -285,7 +285,7 @@ export async function accepted(customer: CustomerPages, checked: { person: strin
 
 function metadata(request: Request, resource: string, issuer: string): Response {
   if (request.method !== 'GET') return new Response(null, { status: 405, headers: { allow: 'GET' } });
-  return Response.json({ resource, authorization_servers: [issuer], bearer_methods_supported: ['header'], resource_name: 'CMOkit' });
+  return Response.json({ resource, authorization_servers: [issuer], bearer_methods_supported: ['header'], resource_name: 'CMOKit' });
 }
 
 function initialized(id: string | number | null, params: Record<string, any>, apps?: Apps) {
@@ -293,7 +293,7 @@ function initialized(id: string | number | null, params: Record<string, any>, ap
   return success(id, {
     protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
     capabilities: apps ? { tools: {}, resources: {} } : { tools: {} },
-    serverInfo: { name: 'cmokit-content', title: 'CMOkit', version: '0.1.0' },
+    serverInfo: { name: 'cmokit-content', title: 'CMOKit', version: '0.1.0' },
     instructions: INSTRUCTIONS,
   });
 }
@@ -345,10 +345,10 @@ async function respondUnsubscribed(message: Message, person: string, billing: Bi
   if (method === 'ping') return success(id, {});
   if (method === 'tools/list') return success(id, { tools: [listed(status)] });
   if (method === 'tools/call') {
-    if (params.name !== status.name) return refused(id, 'This account has no CMOkit subscription yet. Call account_status for the link to start one.');
+    if (params.name !== status.name) return refused(id, 'This account has no CMOKit subscription yet. Call account_status for the link to start one.');
     if (!billing) return refused(id, 'This account is not a user of any customer on this server. Ask whoever runs it to add you.');
     const link = await billing.checkout(person, { successUrl: back('started'), cancelUrl: back('cancelled') });
-    return result(id, { access: 'none', connections: [], missing: [{ what: 'subscription', label: 'CMOkit', link }] });
+    return result(id, { access: 'none', connections: [], missing: [{ what: 'subscription', label: 'CMOKit', link }] });
   }
   return failure(id, -32601, `Method not found: ${method}`);
 }

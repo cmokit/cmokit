@@ -8,11 +8,11 @@
 // slug its path carries (ADR-0030). `Access` is the API the lifecycle calls, over a service binding to
 // this entrypoint, to make a customer at its first checkout and to give and revoke its access
 // (ADR-0017); the server asks the lifecycle for checkout and portal links over the LIFECYCLE binding. Every variable and secret it reads is in the deployment
-// reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOkit's own
+// reference. How tokens are checked is passed in; `issuerTokens` is the adapter for CMOKit's own
 // issuer (ADR-0018, ADR-0029), which checks each token with the issuer over the ISSUER service
 // binding. A person whose proven email address is in ACTIVATED_EMAILS, or whom a user of the brand
-// WAITLIST_CUSTOMER names, CMOkit's own, activated on that brand's waitlist, by that address or by the
-// Instagram handle they proved and then signed in with (ADR-0048), becomes CMOkit's customer
+// WAITLIST_CUSTOMER names, CMOKit's own, activated on that brand's waitlist, by that address or by the
+// Instagram handle they proved and then signed in with (ADR-0048), becomes CMOKit's customer
 // at their first call, with no checkout: the server makes their first brand, with them as its first
 // user (CUS-03, ADR-0043). On the account page they add more brands (ADR-0042), and each brand runs a
 // waitlist of its own that any page on its sites joins (ADR-0043); the JOINS rate limit, when bound,
@@ -37,13 +37,13 @@ export interface ContentEnv {
   AUDIENCE: string;
   /** 32 random bytes as base64, which seal each customer's credentials. A secret. */
   CREDENTIAL_KEY: string;
-  /** CMOkit's issuer, as a service binding, when its tokens are checked with `issuerTokens`. */
+  /** CMOKit's issuer, as a service binding, when its tokens are checked with `issuerTokens`. */
   ISSUER?: IssuerBinding;
-  /** CMOkit's lifecycle, as a service binding, when the server sells a subscription (ADR-0017). */
+  /** CMOKit's lifecycle, as a service binding, when the server sells a subscription (ADR-0017). */
   LIFECYCLE?: { fetch(input: string, init?: RequestInit): Promise<Response> };
   /**
    * The email addresses activated without a checkout, as in a closed beta, separated by commas or
-   * spaces. A person whose proven address is one of them becomes CMOkit's customer at their first
+   * spaces. A person whose proven address is one of them becomes CMOKit's customer at their first
    * call, with a first brand made for them. A variable.
    */
   ACTIVATED_EMAILS?: string;
@@ -54,8 +54,8 @@ export interface ContentEnv {
   /** Where the account page is served, as https://app.cmokit.ai; no account page without it (ADR-0041). A variable. */
   APP_URL?: string;
   /**
-   * The slug of the brand, CMOkit's own, whose waitlist lets people use CMOkit: a person activated on
-   * it becomes CMOkit's customer at their first call (ADR-0043). A variable.
+   * The slug of the brand, CMOKit's own, whose waitlist lets people use CMOKit: a person activated on
+   * it becomes CMOKit's customer at their first call (ADR-0043). A variable.
    */
   WAITLIST_CUSTOMER?: string;
   /** The Meta app's ID, from App settings > Basic (ADR-0045). A variable. */
@@ -68,7 +68,7 @@ export interface ContentEnv {
   JOINS?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 
-/** What CMOkit's issuer offers the content server over its service binding. */
+/** What CMOKit's issuer offers the content server over its service binding. */
 export interface IssuerBinding {
   /** The issuer's own routes, as its token endpoint, which the account page signs in through. */
   fetch?(input: string, init?: RequestInit): Promise<Response>;
@@ -133,7 +133,7 @@ export async function activatedSlug(person: string): Promise<string> {
   return `c${[...digest].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 15)}`;
 }
 
-/** Checks tokens with CMOkit's own issuer, for the content server's audience alone. */
+/** Checks tokens with CMOKit's own issuer, for the content server's audience alone. */
 export function issuerTokens(env: ContentEnv): Tokens {
   return {
     async check(token) {

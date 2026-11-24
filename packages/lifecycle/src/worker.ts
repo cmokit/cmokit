@@ -4,7 +4,7 @@
 //   export { Lead };
 //   export default worker;
 //
-// with the site's CMOkit configuration and its message templates bundled into it at deploy
+// with the site's CMOKit configuration and its message templates bundled into it at deploy
 // (ADR-0008), and `Lead` bound as the Durable Object class LEADS. The site's waitlist is one more
 // object of that class, named `waitlist`, so a waitlist needs no binding of its own (ADR-0014). It has
 // no route of its own: the edge reaches it through a service binding, and so does a product's Worker
@@ -87,7 +87,7 @@ export function templateProblems(config: Resolved, templates: Record<string, str
 export function createLifecycleWorker(config: Config, templates: Record<string, string>): LifecycleWorker {
   const resolved = resolve(defineConfig(config));
   const problems = templateProblems(resolved, templates);
-  if (problems.length > 0) throw new Error(`CMOkit messages:\n  ${problems.join('\n  ')}`);
+  if (problems.length > 0) throw new Error(`CMOKit messages:\n  ${problems.join('\n  ')}`);
   const analytics = posthog({ key: resolved.analytics.posthog.key, host: resolved.analytics.posthog.host });
 
   const messagingFor = (env: LifecycleEnv): Messaging => {

@@ -33,7 +33,7 @@ test('the card sorts by when people joined, and searches addresses and proved ha
   assert.deepEqual(emails(shown(people, 'waiting', 'engaged', 'ed@')), [], 'a search does not reach past the filter');
 });
 
-test('the card\'s theme is CMOkit\'s own look, token for token, in light and dark', async () => {
+test('the card\'s theme is CMOKit\'s own look, token for token, in light and dark', async () => {
   const { readFileSync } = await import('node:fs');
   const { LOOK } = await import('@cmokit/issuer/look');
   const theme = readFileSync(new URL('../apps/theme.css', import.meta.url), 'utf8');

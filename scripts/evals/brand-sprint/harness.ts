@@ -1,5 +1,5 @@
 // Runs one brand-sprint scenario: the skill under test talks with a model playing the founder,
-// through CMOkit's real brand tools on a customer held in Node's SQLite, and the checks read the
+// through CMOKit's real brand tools on a customer held in Node's SQLite, and the checks read the
 // transcript. The founder model only chooses which fixture lines to say; the words are always the
 // fixture's, so the founder can never invent an answer.
 
@@ -103,7 +103,7 @@ const tools = (): { defs: Anthropic.Tool[]; byName: Map<string, Tool> } => {
   };
 };
 
-const skillSystem = `You are Claude, talking with a person in the Claude app. The cmokit-content plugin is installed and CMOkit's connector is connected, so its tools are available. The person asked to run a brand sprint, and you loaded this skill:
+const skillSystem = `You are Claude, talking with a person in the Claude app. The cmokit-content plugin is installed and CMOKit's connector is connected, so its tools are available. The person asked to run a brand sprint, and you loaded this skill:
 
 <skill name="brand-sprint">
 ${SKILL}

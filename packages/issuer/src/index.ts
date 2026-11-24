@@ -1,4 +1,4 @@
-// CMOkit's issuer (ADR-0018): the sign-in a person's Claude sends them to when it connects to the
+// CMOKit's issuer (ADR-0018): the sign-in a person's Claude sends them to when it connects to the
 // content server. It signs a person in with Instagram, an email code, Google, GitHub or Meta, keeps no password,
 // and finishes the authorization with a grant that names the person and the customer the connection
 // serves, chosen here: the content plugin declares one hosted address, and signing in routes the
@@ -184,7 +184,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     const parsed = await oauth.parseAuthRequest(request);
     const client = await oauth.lookupClient(parsed.clientId);
     if (!client || !client.redirectUris.every((uri) => allowedRedirect(uri, options.redirects))) {
-      return problemPage('This app sends sign-ins somewhere CMOkit does not allow, so it cannot connect.');
+      return problemPage('This app sends sign-ins somewhere CMOKit does not allow, so it cannot connect.');
     }
     return signIn(request, parsed, new Headers());
   }

@@ -21,7 +21,7 @@ fetches. So each rule carries its own source, quoted evidence, date and status, 
 checked every month by a process a person reviews (`CNT-30`).
 
 The rules are the same for every customer, so checking them is one global job, not per-customer
-inference: CMOkit's hosted services still run no model (`HST-09`), and each person's own Claude does
+inference: CMOKit's hosted services still run no model (`HST-09`), and each person's own Claude does
 the per-piece work. The job needs the project's own model key, a secret of the CI environment
 (`NFR-05`).
 

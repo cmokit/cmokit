@@ -5,20 +5,20 @@ date: 2026-11-12
 decision-makers: [Geoff]
 ---
 
-# ADR-0046: CMOkit's own pages share one stylesheet from its design system, and serve their fonts themselves
+# ADR-0046: CMOKit's own pages share one stylesheet from its design system, and serve their fonts themselves
 
 **Requirements served:** `HST-17`, `HST-01`, `HST-11`.
 
 ## Context and Problem Statement
 
-A person meets CMOkit on two sets of pages: the issuer's sign-in pages at `auth.cmokit.ai`
+A person meets CMOKit on two sets of pages: the issuer's sign-in pages at `auth.cmokit.ai`
 (ADR-0018) and the content server's pages, the account page at `app.cmokit.ai` among them
 (ADR-0041, `HST-17`). Each set has a small inline stylesheet of its own, in the system font, black
 and white, and the two look like different products. Most people arrive on a phone, from the
-Instagram app. CMO Kit's design system, kept in Claude Design and rendered for CMOkit's own site in
+Instagram app. CMOKit's design system, kept in Claude Design and rendered for CMOKit's own site in
 `cmokit-site`, gives the colors, type, spacing and components these pages should wear.
 
-The pages are CMOkit's own product, not an adopter's site, so their look belongs in this repository
+The pages are CMOKit's own product, not an adopter's site, so their look belongs in this repository
 (ADR-0002 keeps adopters' design out of it). The question is where the one look lives, and how the
 pages get their two fonts while their content security policy stays tight.
 
@@ -35,7 +35,7 @@ pages get their two fonts while their content security policy stays tight.
 * One stylesheet in the issuer package, inlined in every page, with the fonts served by each Worker
   from its own origin
 * A new package for the look
-* A stylesheet and fonts served from CMOkit's site
+* A stylesheet and fonts served from CMOKit's site
 * Fonts from Google Fonts
 
 ## Decision Outcome
@@ -43,7 +43,7 @@ pages get their two fonts while their content security policy stays tight.
 Chosen option: "One stylesheet in the issuer package, inlined in every page, with the fonts served
 by each Worker from its own origin", because it is the only option that meets every driver.
 
-> `@cmokit/issuer/look` exports the stylesheet, the app header with the CMO Kit wordmark, and
+> `@cmokit/issuer/look` exports the stylesheet, the app header with the CMOKit wordmark, and
 > `fontResponse`. Both the issuer's pages and the content server's pages put the stylesheet in
 > their one `<style>` and the header at the top of their body, and nothing else in a page sets a
 > color, a font or a size. The stylesheet styles plain markup: headings, text, links, fields,
@@ -51,7 +51,7 @@ by each Worker from its own origin", because it is the only option that meets ev
 > problems (`role="alert"` or `.problem`), in the design system's tokens, light and dark. The
 > content server depends on the issuer package for it. Each Worker serves Schibsted Grotesk and
 > Instrument Sans at `/fonts/display.woff2` and `/fonts/body.woff2` when its adapter passes them in;
-> hosted CMOkit's adapters bundle them as data from the Fontsource packages, under the SIL Open Font
+> hosted CMOKit's adapters bundle them as data from the Fontsource packages, under the SIL Open Font
 > License. Without them a page uses the system font. Both pages' policies add `font-src 'self'`.
 
 ### Consequences
@@ -85,11 +85,11 @@ the fonts ahead of every other route. `npm run check:hosted` bundles the fonts i
 * Good, because neither server would depend on the other.
 * Bad, because its first publish needs a step at Geoff's laptop, which the fourth driver rules out.
 
-### A stylesheet and fonts served from CMOkit's site
+### A stylesheet and fonts served from CMOKit's site
 
 * Good, because the site already has them.
 * Bad, because every page would load from another origin, and a self-hosted deployment would load
-  CMOkit's site, which the second and third drivers rule out.
+  CMOKit's site, which the second and third drivers rule out.
 
 ### Fonts from Google Fonts
 

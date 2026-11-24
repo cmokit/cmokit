@@ -141,7 +141,7 @@ test('lifecycleBilling asks the lifecycle for checkout and portal links', async 
   ]);
 });
 
-test('a person whose proven address is activated becomes CMOkit\'s customer at their first call, with one first brand and no checkout', async () => {
+test('a person whose proven address is activated becomes CMOKit\'s customer at their first call, with one first brand and no checkout', async () => {
   const people: Record<string, { token: string; email: string | null }> = {
     ada: { token: 'ta', email: 'Ada@Example.com' },
     bob: { token: 'tb', email: 'bob@example.com' },
@@ -161,7 +161,7 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
   const env = {
     ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY,
     ACTIVATED_EMAILS: ' ada@example.com,  someone@example.com ',
-    // CMOkit's own brand, on whose waitlist a user activated Dee.
+    // CMOKit's own brand, on whose waitlist a user activated Dee.
     WAITLIST_CUSTOMER: 'cmokit-own',
     ISSUER: {
       validateToken: async () => null,
@@ -219,12 +219,12 @@ test('a person whose proven address is activated becomes CMOkit\'s customer at t
   assert.equal(theirs.bob, undefined, 'on the waitlist but not activated');
   assert.deepEqual([...objects.keys()], ['cmokit-own', slug]);
 
-  // Dee was activated on CMOkit's own waitlist, not in ACTIVATED_EMAILS: her first call makes her customer too.
+  // Dee was activated on CMOKit's own waitlist, not in ACTIVATED_EMAILS: her first call makes her customer too.
   assert.ok((await tools('td')).length > 1);
   assert.deepEqual(theirs.dee, [await activatedSlug('dee')]);
 });
 
-test('a person who signs in with Instagram becomes CMOkit\'s customer once the handle they proved on CMOkit\'s waitlist is activated', async () => {
+test('a person who signs in with Instagram becomes CMOKit\'s customer once the handle they proved on CMOKit\'s waitlist is activated', async () => {
   const instagram: Record<string, { id: string; handle: string }> = { cy: { id: 'ig-cy', handle: 'cy.makes' }, eve: { id: 'ig-eve', handle: 'cy.makes' } };
   const { worker, Customer } = createContentWorker({
     tokens: () => ({ check: async (token) => (token in instagram ? { person: token, audience: 'aud' } : undefined) }),

@@ -5,7 +5,7 @@ date: 2026-10-25
 decision-makers: [Geoff]
 ---
 
-# ADR-0014: A lead's messages are a sequence declared in CMOkit's configuration, kept in a Durable Object per lead
+# ADR-0014: A lead's messages are a sequence declared in CMOKit's configuration, kept in a Durable Object per lead
 
 **Requirements served:** `LEAD-01`, `LEAD-02`, `LEAD-03`, `LEAD-04`, `LOOP-01`, `LOOP-02`, `NFR-03`, `NFR-06`.
 
@@ -42,7 +42,7 @@ The candidates, as their own documentation stood on 2026-10-25:
 
 ## Considered Options
 
-* Sequences of CMOkit's own: declared in configuration, messages as files, each lead's place kept in
+* Sequences of CMOKit's own: declared in configuration, messages as files, each lead's place kept in
   a Durable Object, sent through a channel adapter
 * Customer.io
 * Loops
@@ -52,11 +52,11 @@ The candidates, as their own documentation stood on 2026-10-25:
 
 ## Decision Outcome
 
-Chosen option: "Sequences of CMOkit's own", because a linear sequence is a small thing to build on
-the store CMOkit already has (ADR-0006), and building it keeps every message in the repository, where
+Chosen option: "Sequences of CMOKit's own", because a linear sequence is a small thing to build on
+the store CMOKit already has (ADR-0006), and building it keeps every message in the repository, where
 the loop can propose a change to it like any other.
 
-> A sequence is CMOkit configuration: the event that starts it, the events that stop it, and its
+> A sequence is CMOKit configuration: the event that starts it, the events that stop it, and its
 > messages, each a template file in the site's repository with the delay after the one before. A
 > form that records a conversion and carries an email address makes a lead: the edge passes the lead,
 > with the visitor's id, channel and variant, to the lifecycle Worker, which keeps no key in the
@@ -101,10 +101,10 @@ handler names a messaging vendor is checked in review.
 
 ## Pros and Cons of the Options
 
-### Sequences of CMOkit's own
+### Sequences of CMOKit's own
 
 * Good, because it meets every driver.
-* Bad, because unsubscribing, suppression and the stopping events are CMOkit's to get right; the
+* Bad, because unsubscribing, suppression and the stopping events are CMOKit's to get right; the
   sending service takes some of this (ADR-0015).
 
 ### Customer.io

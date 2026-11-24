@@ -12,7 +12,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-A CMOkit site may be built with any static site generator or CMS and hosted anywhere (`SRV-01`). A
+A CMOKit site may be built with any static site generator or CMS and hosted anywhere (`SRV-01`). A
 page under experiment has several variants, and a visitor must see their own on first paint, with no
 flash of another (`SRV-03`), and keep it across visits (`EXP-01`). Adding or retiring a variant must
 be a content change (`SRV-02`, `EXP-03`), and the site must still work, showing its default, when the
@@ -20,14 +20,14 @@ experiments tool is unreachable (`SRV-04`). Something has to decide where a vari
 where a visitor's variant is decided, and how the edge, which keeps no state (ADR-0003), learns which
 pages are under experiment.
 
-Many sites have no build CMOkit can take part in: a page made in a CMS is published by the CMS. What
+Many sites have no build CMOKit can take part in: a page made in a CMS is published by the CMS. What
 every site has is pages at addresses.
 
 ## Decision Drivers
 
 * No flash of the default, and no client-side code deciding what the page says.
 * A variant is a page of the site, written and previewed like any other, on any platform.
-* The experiments tool assigns variants and judges them (`EXP-02`); CMOkit stores no assignment.
+* The experiments tool assigns variants and judges them (`EXP-02`); CMOKit stores no assignment.
 * A failure anywhere serves the default page.
 * One place configures an experiment, and it does not depend on how the site is built.
 
@@ -47,7 +47,7 @@ the page's own address, reading the experiments from the configuration deployed 
 is flash-free, a content change, and asks nothing of how the site is built.
 
 > An experiment names a flag, the page under experiment, and a page for each variant other than the
-> control, which is the page itself. The experiments are CMOkit configuration, deployed with the
+> control, which is the page itself. The experiments are CMOKit configuration, deployed with the
 > edge. The edge asks the experiments tool for a visitor's variant once, keeps the answer in a cookie,
 > fetches that variant's page from the site and serves it at the page's own address, uncached. It
 > records an exposure each time it serves an experiment's page. A variant's own address redirects to
@@ -62,7 +62,7 @@ is flash-free, a content change, and asks nothing of how the site is built.
 
 * Good, because a variant is an ordinary page of the site, which a person or an agent writes and
   previews like any other, in whatever the site is built with.
-* Good, because every failure degrades to the page the site would have served without CMOkit.
+* Good, because every failure degrades to the page the site would have served without CMOKit.
 * Bad, because starting or retiring an experiment deploys the edge, which is a second deploy when the
   site and its configuration live in different places. The deploy is the configuration
   repository's own workflow, and takes seconds.
@@ -89,7 +89,7 @@ and the site. The Astro integration's build fails when a configured variant page
 
 * Good, because a new or retired variant reaches visitors with the site's own deploy.
 * Good, because the build checks every variant page exists before the manifest names it.
-* Bad, because only a site whose build CMOkit takes part in can publish the manifest, which rules out
+* Bad, because only a site whose build CMOKit takes part in can publish the manifest, which rules out
   most CMSs (`SRV-01`).
 
 ### One page holding every variant, with a script showing one

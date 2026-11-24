@@ -1,4 +1,4 @@
-// The browser script on every page. It starts PostHog with the visitor's CMOkit identity and variants
+// The browser script on every page. It starts PostHog with the visitor's CMOKit identity and variants
 // from the edge's cookies, so the browser evaluates no flags and records no exposures of its own
 // (ADR-0010), and records a conversion when a form marked `data-cmokit-convert` is submitted. A form
 // with an email field also captures the visitor as a lead, server-side (ADR-0014); one that joins a

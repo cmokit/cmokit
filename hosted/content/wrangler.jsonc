@@ -3,7 +3,7 @@
   "name": "cmokit-content",
   "main": "worker.ts",
   "compatibility_date": "2026-10-01",
-  // The fonts of CMOkit's own look, bundled as bytes (ADR-0046).
+  // The fonts of CMOKit's own look, bundled as bytes (ADR-0046).
   // The cards Claude shows beside tools' results, each one built HTML page, bundled as text (ADR-0049).
   "rules": [{ "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }, { "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
   // A Worker custom domain: the deploy creates the DNS record and the certificate.
@@ -21,7 +21,7 @@
   },
   "durable_objects": { "bindings": [{ "name": "CUSTOMERS", "class_name": "Customer" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Customer"] }],
-  // The issuer, deployed first. The billing lifecycle is CMOkit's own site's lifecycle Worker, which
+  // The issuer, deployed first. The billing lifecycle is CMOKit's own site's lifecycle Worker, which
   // binds back to `Access`; until it exists, the workflow deploys without it.
   "services": [
     { "binding": "ISSUER", "service": "cmokit-issuer" },

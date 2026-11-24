@@ -11,13 +11,13 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-A hosted customer works with CMOkit in Claude. They also need a place outside Claude to see their
+A hosted customer works with CMOKit in Claude. They also need a place outside Claude to see their
 account: who they are signed in as, their access and beta terms, their connections, their brand
-context, and a way to download everything CMOkit holds for them (`HST-13`, `HST-17`). Activated
+context, and a way to download everything CMOKit holds for them (`HST-13`, `HST-17`). Activated
 people's accounts are at `app.cmokit.ai`, and its tenants are separate customers (`HST-10`).
 
 The people who use it are content creators, not developers (`HST-01`). They already sign in to
-CMOkit through the issuer, with Google, GitHub, Meta or an email code (ADR-0018), and their records
+CMOKit through the issuer, with Google, GitHub, Meta or an email code (ADR-0018), and their records
 are in the content server's customer objects. A page that held its own accounts, or its own copy of
 the records, would be a second sign-in and a second place for the records to disagree.
 
@@ -34,7 +34,7 @@ the records, would be a second sign-in and a second place for the records to dis
   OAuth client with PKCE, with the token in an HttpOnly cookie
 * A separate Worker or single-page app for the account, with its own sessions
 * No page: the account is seen and changed only in Claude
-* The account shown on CMOkit's marketing site
+* The account shown on CMOKit's marketing site
 
 ## Decision Outcome
 
@@ -85,10 +85,10 @@ callback is allowed only where `APP_URL` names it.
 * Good, because it needs nothing built.
 * Bad, because `HST-17` asks for a page, and the export is a file a person downloads.
 
-### The account shown on CMOkit's marketing site
+### The account shown on CMOKit's marketing site
 
 * Good, because people already visit it.
-* Bad, because the marketing site is engine work for CMOkit as one customer, and an account belongs to
+* Bad, because the marketing site is engine work for CMOKit as one customer, and an account belongs to
   every customer, so it would carry every tenant's accounts on one tenant's site.
 
 ## More Information
