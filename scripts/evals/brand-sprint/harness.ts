@@ -83,7 +83,7 @@ const events: Events = {
   verify: async () => undefined, list: async () => [], tally: async () => ({}) as never,
 };
 
-/** CMO Kit as a customer, as it stood before its sprint: version 1, with only its waitlist offer. */
+/** CMOKit as a customer, as it stood before its sprint: version 1, with only its waitlist offer. */
 export async function cmoKitBeforeSprint(): Promise<Customer> {
   const db = new DatabaseSync(':memory:');
   const sql: Sql = { all: (query, ...params) => db.prepare(query).all(...params) as ReturnType<Sql['all']> };
@@ -114,7 +114,7 @@ The person may dictate. Each part of their message is marked (spoken) or (typed)
 function founderSystem(scenario: Scenario): string {
   const lines = LINES.map((l) => `- ${l.id} [${l.kind}, ${l.mode}] answers ${l.answers}: ${l.text}`).join('\n');
   const replies = Object.entries(REPLIES).map(([k, v]) => `- ${k}: ${v}`).join('\n');
-  return `You play Geoff, the founder of CMO Kit, in a test of a brand-sprint facilitator. You never write your own words: each turn you choose either fixture lines, by id, or one fixed reply.
+  return `You play Geoff, the founder of CMOKit, in a test of a brand-sprint facilitator. You never write your own words: each turn you choose either fixture lines, by id, or one fixed reply.
 
 Lines:
 ${lines}

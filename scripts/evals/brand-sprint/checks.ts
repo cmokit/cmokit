@@ -2,7 +2,7 @@
 // calls alone, the check is plain code; where it needs judgment (was this pushback, was the
 // contradiction named), the helper model judges one reply against one question.
 
-import type { CheckName } from './scenarios.ts';
+import type { CheckName, Scenario } from './scenarios.ts';
 import { ask, render, type Client, type Models, type Run, type Turn, type Usage } from './harness.ts';
 
 export interface Result { check: CheckName; pass: boolean; why: string }
@@ -152,6 +152,14 @@ List each option-collecting exercise the conversation reached, in order, with cl
   const broke = exercises.filter((e) => !e.closed);
   if (broke.length === 0) return { check, pass: true, why: `All ${exercises.length} option-collecting exercises gathered the founder's own answers before narrowing.` };
   return { check, pass: false, why: broke.map((e) => `${e.exercise}: ${e.why}`).join('; ') };
+}
+
+/** Why a scenario that waits for a line stopped at its reply cap before Claude answered that line,
+ * or null if it did not. Such a run tests nothing, so it is reported as an error, not judged. */
+export function ranOutOfTurns(scenario: Scenario, run: Run): string | null {
+  if (!('line' in scenario.until) || run.ended !== 'max-turns' || after(run).length >= scenario.until.replies) return null;
+  const where = run.lineAt === null ? `before the founder said ${scenario.until.line}` : `before Claude answered ${scenario.until.line}`;
+  return `ran out of turns: the run stopped at its ${scenario.maxTurns}-reply cap ${where}.`;
 }
 
 /** Claude's replies after the line the scenario waits for. */

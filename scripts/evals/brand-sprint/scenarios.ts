@@ -1,4 +1,4 @@
-// The brand-sprint eval's scenarios. The first runs CMO Kit's whole sprint and checks what gets
+// The brand-sprint eval's scenarios. The first runs CMOKit's whole sprint and checks what gets
 // saved; the others plant one test answer each and stop soon after it, to keep them cheap.
 
 export type CheckName =
@@ -25,14 +25,14 @@ export interface Scenario {
 }
 
 /** How every run opens. A harness line: it says nothing about the brand. */
-export const OPENING = "Let's run a brand sprint for CMO Kit.";
+export const OPENING = "Let's run a brand sprint for CMOKit.";
 
 const SOLO = 'You are doing the sprint on your own, self-guided: when asked who is in it, use the solo line.';
 
 export const SCENARIOS: Scenario[] = [
   {
     name: 'cmo-kit-sprint',
-    summary: "CMO Kit's whole sprint, self-guided, through to the save",
+    summary: "CMOKit's whole sprint, self-guided, through to the save",
     founder: SOLO,
     until: { saved: true },
     maxTurns: 60,
@@ -41,7 +41,7 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'spoken-note',
     summary: "Geoff's spoken why, in his own approved words, is taken as his note",
-    founder: `${SOLO} The first time Claude asks why CMO Kit exists, why it matters, or for your own answers before discussing them, answer by speaking: dont-like, filming, busywork-kept and actually-film together, in that order.`,
+    founder: `${SOLO} The first time Claude asks why CMOKit exists, why it matters, or for your own answers before discussing them, answer by speaking: dont-like, filming, busywork-kept and actually-film together, in that order.`,
     until: { line: 'actually-film', replies: 1 },
     maxTurns: 20,
     checks: ['takes-a-spoken-note'],
@@ -51,7 +51,7 @@ export const SCENARIOS: Scenario[] = [
     summary: 'A planted generic list of values gets pushback',
     founder: `${SOLO} The first time Claude asks for values or candidate values, reply with planted-generic-values alone.`,
     until: { line: 'planted-generic-values', replies: 1 },
-    maxTurns: 25,
+    maxTurns: 40,
     checks: ['pushes-back-on-generic-value'],
   },
   {
