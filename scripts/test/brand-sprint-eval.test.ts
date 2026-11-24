@@ -4,9 +4,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type Anthropic from '@anthropic-ai/sdk';
-import { check, combine, leavesOtherSections, needsRerun, savesAfterWrittenYes, type Result } from '../evals/brand-sprint/checks.ts';
+import { check, combine, leavesOtherSections, needsRerun, ranOutOfTurns, savesAfterWrittenYes, type Result } from '../evals/brand-sprint/checks.ts';
 import { LINES, PENDING, SAVED } from '../evals/brand-sprint/fixtures.ts';
-import { Usage, founderText, run, type Client, type Run } from '../evals/brand-sprint/harness.ts';
+import { Usage, founderText, run, type Client, type Run, type Turn } from '../evals/brand-sprint/harness.ts';
 import { SCENARIOS, type Scenario } from '../evals/brand-sprint/scenarios.ts';
 
 const models = { skill: 'claude-opus-5-5', helper: 'claude-sonnet-5-5' };
@@ -42,7 +42,7 @@ function fake(skill: Anthropic.Message[], helper: (prompt: string) => unknown) {
 
 const scenario = (name: string): Scenario => SCENARIOS.find((s) => s.name === name)!;
 
-test("every real line is CMO Kit's saved words, verbatim", () => {
+test("every real line is CMOKit's saved words, verbatim", () => {
   for (const l of LINES.filter((l) => l.kind === 'real')) {
     assert.ok(l.from, `${l.id} names its section`);
     assert.ok(SAVED[l.from].replaceAll('**', '').includes(l.text), `${l.id} is not in ${l.from}`);
@@ -71,12 +71,12 @@ test('the team scenario: Claude reads the brand, the founder plants a team, the 
   assert.equal(done.lineAt, 2);
   const [, first, said, second] = done.turns;
   assert.equal(first!.who === 'claude' && first.calls.map((c) => c.name).join(), 'account_status,brand_read');
-  assert.match(said!.text, /^\(typed\) CMO Kit is a marketing loop/);
+  assert.match(said!.text, /^\(typed\) CMOKit is a marketing loop/);
   assert.match(said!.text, /three of us on the founding team/);
   assert.equal(second!.who, 'claude');
-  // The tool results went back to the skill, and its read showed CMO Kit before the sprint.
+  // The tool results went back to the skill, and its read showed CMOKit before the sprint.
   const toolTurn = sent.filter((p) => p.tools)[2]!.messages.at(-1)!;
-  assert.match(JSON.stringify(toolTurn.content), /CMO Kit private beta waitlist/);
+  assert.match(JSON.stringify(toolTurn.content), /CMOKit private beta waitlist/);
 
   const verdict = await check(client, models, usage, done, 'asks-the-team-for-its-decider');
   assert.deepEqual(verdict, { check: 'asks-the-team-for-its-decider', pass: true, why: 'It asked for the decider.' });
@@ -141,7 +141,7 @@ test('usage prices cache reads and writes', () => {
 test('an exercise left open fails the closing check', async () => {
   const done: Run = {
     scenario: 'cmo-kit-sprint', ended: 'done', lineAt: null, after: { version: 1, context: { sections: {}, offers: [] }, at: null },
-    turns: [{ who: 'claude', text: 'Where is CMO Kit in 5 years?', calls: [] }],
+    turns: [{ who: 'claude', text: 'Where is CMOKit in 5 years?', calls: [] }],
   };
   const judged = (exercises: unknown[]) => fake([], () => ({ exercises })).client;
   const open = await check(judged([{ exercise: 'roadmap', closed: false, why: 'No playback.' }]), models, new Usage(), done, 'closes-each-exercise');
@@ -171,4 +171,19 @@ test('a judged check fails on two of three runs; a code check on any one', () =>
   const twice = combine([[r(judged, false)], [r(judged, false)], [r(judged, true)]]);
   assert.equal(twice[0].pass, false);
   assert.match(twice[0].why, /passed 1 of 3 runs/);
+});
+
+test('a run cut off before Claude answers the planted line is reported as out of turns', () => {
+  const scenario = SCENARIOS.find((s) => s.name === 'generic-values')!;
+  const base = { scenario: scenario.name, after: {} } as unknown as Run;
+  const founder: Turn = { who: 'founder', reply: 'answer', ids: ['planted-generic-values'], text: 'quality' };
+  const claude: Turn = { who: 'claude', text: 'Would a competitor say that?', calls: [] };
+  const cut = { ...base, ended: 'max-turns', lineAt: 1, turns: [claude, founder] } as Run;
+  assert.match(ranOutOfTurns(scenario, cut)!, /^ran out of turns: .*40-reply cap before Claude answered planted-generic-values/);
+  const never = { ...base, ended: 'max-turns', lineAt: null, turns: [claude] } as Run;
+  assert.match(ranOutOfTurns(scenario, never)!, /before the founder said planted-generic-values/);
+  const answered = { ...base, ended: 'done', lineAt: 1, turns: [claude, founder, claude] } as Run;
+  assert.equal(ranOutOfTurns(scenario, answered), null);
+  const whole = SCENARIOS.find((s) => s.name === 'cmo-kit-sprint')!;
+  assert.equal(ranOutOfTurns(whole, { ...base, ended: 'max-turns', lineAt: null, turns: [] } as Run), null);
 });

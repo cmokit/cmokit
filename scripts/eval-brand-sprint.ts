@@ -15,7 +15,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
-import { TRIALS, check, combine, needsRerun, tallies, type Result } from './evals/brand-sprint/checks.ts';
+import { TRIALS, check, combine, needsRerun, ranOutOfTurns, tallies, type Result } from './evals/brand-sprint/checks.ts';
 import { PENDING } from './evals/brand-sprint/fixtures.ts';
 import { Usage, render, run, type Models } from './evals/brand-sprint/harness.ts';
 import { SCENARIOS } from './evals/brand-sprint/scenarios.ts';
@@ -43,11 +43,17 @@ console.log(`Exercises with no real CMOKit answer yet, which the founder skips:\
 // judged check fails only on two of three (ADR-0052); a code check fails on any one failure.
 async function once(scenario: (typeof chosen)[number], usage: Usage, trial: number) {
   const finished = await run(client, models, usage, scenario);
+  const tag = trial === 1 ? scenario.name : `${scenario.name}.run${trial}`;
+  writeFileSync(join(out, `${tag}.md`), `# ${scenario.summary} (run ${trial})\n\n${render(finished.turns)}\n`);
+  // A run cut off before Claude answered the planted line is an error, never judged or rerun.
+  const cutOff = ranOutOfTurns(scenario, finished);
+  if (cutOff) {
+    writeFileSync(join(out, `${tag}.json`), JSON.stringify({ ...finished, scenario, models, results: [] }, null, 2));
+    throw new Error(cutOff);
+  }
   const results: Result[] = [];
   for (const name of scenario.checks) results.push(await check(client, models, usage, finished, name));
-  const tag = trial === 1 ? scenario.name : `${scenario.name}.run${trial}`;
   writeFileSync(join(out, `${tag}.json`), JSON.stringify({ ...finished, scenario, models, results }, null, 2));
-  writeFileSync(join(out, `${tag}.md`), `# ${scenario.summary} (run ${trial})\n\n${render(finished.turns)}\n`);
   return { finished, results };
 }
 
