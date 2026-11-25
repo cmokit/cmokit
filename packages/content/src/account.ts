@@ -15,7 +15,7 @@
 import { Refusal, SECTIONS } from './customer.ts';
 import { InstagramError, type InstagramApp } from './instagram.ts';
 import { joinSnippet } from './join.ts';
-import { portalPage, portalScript, signedOutPage, type AccountTab, type AccountView, type Portal } from './pages.ts';
+import { deletedPage, portalPage, portalScript, signedOutPage, type AccountTab, type AccountView, type Portal } from './pages.ts';
 import { accepted, type Billing, type CustomerPages, type Terms, type Tokens } from './index.ts';
 import type { CustomerCalls } from './tools.ts';
 
@@ -39,6 +39,11 @@ export interface AccountOptions {
   renameBrand?(person: string, slug: string, name: string): Promise<void>;
   /** The slug of the brand whose waitlist lets people use CMOKit itself, as CMOKit's own (ADR-0043). */
   cmokitWaitlist?: string;
+  /**
+   * Deletes the person's CMOKit account and everything held for them (ADR-0053); a Refusal says why
+   * it cannot. Absent when accounts cannot be deleted here.
+   */
+  deleteAccount?(person: string): Promise<void>;
 }
 
 /** What the account page needs from the content server around it. */
@@ -60,7 +65,7 @@ export interface AccountContext {
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/portal.js', '/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect']);
+const PATHS = new Set(['/portal.js', '/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect', '/account/delete']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -124,7 +129,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return response;
   }
 
-  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count', 'POST /instagram/disconnect'].includes(route);
+  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count', 'POST /instagram/disconnect', 'POST /account/delete'].includes(route);
   const tab = ({ 'GET /': 'home', 'GET /waitlist': 'waitlist', 'GET /account': 'account' } as Record<string, AccountTab>)[route];
   if (!tab && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
@@ -139,6 +144,23 @@ export async function handleAccount(request: Request, url: URL, account: Account
   const session = readCookie(request, SESSION);
   const checked = session ? await context.tokens.check(session) : undefined;
   if (!checked || checked.audience !== context.audience) return redirect('/signin', cookie(SESSION, '', 0));
+
+  // Deleting the account comes before finding the brand to show, which could make one (ADR-0053).
+  if (route === 'POST /account/delete') {
+    if (!account.deleteAccount) return new Response('Not found', { status: 404 });
+    const form = await request.formData();
+    const back = form.get('from') === 'account' ? '/account' : '/';
+    if (String(form.get('confirm') ?? '').trim().toLowerCase() !== 'delete') return seeOther(`${back}?delete=unconfirmed`);
+    const refused = await account.deleteAccount(checked.person).then(() => false, (error) => {
+      if (error instanceof Refusal || (error as Error).name === 'Refusal') return true;
+      throw error;
+    });
+    if (refused) return seeOther(`${back}?delete=refused`);
+    const response = deletedPage();
+    response.headers.append('set-cookie', cookie(SESSION, '', 0));
+    return response;
+  }
+
   const slug = await context.served(checked);
   const customer = slug === undefined ? undefined : context.customer(slug);
   if (customer && !(await customer.isUser(checked.person))) return new Response('This account is not a user of this customer.', { status: 403 });
@@ -220,6 +242,8 @@ export async function handleAccount(request: Request, url: URL, account: Account
   const handle = email || !account.handle ? null : await account.handle(checked.person);
   const shown = notice(url);
   const view: AccountView = { email, ...(handle ? { handle } : {}), ...(shown ? { notice: shown } : {}) };
+  // A user of CMOKit's own brand cannot delete it from here, so the page offers them no delete.
+  if (account.deleteAccount && !(slug !== undefined && slug === account.cmokitWaitlist)) view.deletable = true;
   if (!customer && !context.billing) {
     // Nobody activated this person: CMOKit's own waitlist is where they can be (ADR-0043).
     const sites = account.cmokitWaitlist ? await context.customer(account.cmokitWaitlist).waitlistSites() : [];
@@ -290,6 +314,9 @@ function notice(url: URL): AccountView['notice'] {
   if (instagram === 'connected') return info('Instagram connected. Count comments on your Reels whenever you like.');
   if (instagram === 'counted') return info('Comments counted, and the waitlist is ranked again.');
   if (instagram === 'failed') return error('Instagram could not be read. Connect your Instagram account again, then count again.');
+  const deleted = url.searchParams.get('delete');
+  if (deleted === 'unconfirmed') return error('Nothing was deleted. Type delete in the box to confirm.');
+  if (deleted === 'refused') return error("This account runs CMOKit's own waitlist, so it cannot be deleted here.");
   const sites = url.searchParams.get('sites');
   if (sites === 'saved') return info('Site addresses saved.');
   if (sites === 'invalid') return error('Each site address must be an https address, such as https://example.com, and there can be at most 10.');

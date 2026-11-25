@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createContentServer, type Tokens } from '../src/index.ts';
+import { Refusal } from '../src/customer.ts';
 import { portalScript } from '../src/pages.ts';
 import { newCustomer, portal, readyCustomer } from './fixtures.ts';
 
@@ -17,11 +18,12 @@ const tokens: Tokens = {
   },
 };
 
-async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string; brandsOf?: Record<string, string[]> } = {}) {
+async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string; brandsOf?: Record<string, string[]>; deletable?: boolean } = {}) {
   const acme = await readyCustomer();
   const exchanged: URLSearchParams[] = [];
   const added: [string, string][] = [];
   const renamed: [string, string, string][] = [];
+  const deleted: string[] = [];
   const names: Record<string, string> = { 'cfo-kit-0a1b2c': 'CFO Kit' };
   const handle = createContentServer({
     issuer: ISSUER, audience: ORIGIN, tokens, portal,
@@ -41,13 +43,19 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
         renameBrand: async (person: string, slug: string, name: string) => { renamed.push([person, slug, name]); names[slug] = name; },
       } : {}),
       ...(options.cmokit ? { cmokitWaitlist: options.cmokit } : {}),
+      ...(options.deletable ? {
+        deleteAccount: async (person: string) => {
+          if (person === 'ada' && options.cmokit === 'acme') throw new Refusal('This account runs CMOKit\'s own waitlist, so it cannot be deleted here.');
+          deleted.push(person);
+        },
+      } : {}),
     },
   });
   const get = (path: string, cookie?: string) => handle(new Request(`${APP}${path}`, cookie ? { headers: { cookie } } : {}));
   const post = (path: string, form: Record<string, string>, cookie: string, origin = APP) => handle(new Request(`${APP}${path}`, {
     method: 'POST', body: new URLSearchParams(form), headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' },
   }));
-  return { handle, get, post, exchanged, added, renamed, acme: acme.customer };
+  return { handle, get, post, exchanged, added, renamed, deleted, acme: acme.customer };
 }
 
 const session = (token: string) => `__Host-cmokit-session=${token}`;
@@ -314,4 +322,37 @@ test('the account page\'s script is served from its own origin, cached for good 
   assert.equal(versioned.headers.get('cache-control'), 'public, max-age=31536000, immutable');
   assert.equal(await versioned.text(), portal.script);
   assert.equal((await get('/portal.js?v=old')).headers.get('cache-control'), 'no-cache', 'an older address is not cached for good');
+});
+
+test('a person deletes their account only with the word typed, from the account page, and is signed out', async () => {
+  const { get, post, deleted } = await server({ deletable: true });
+  assert.match(words(await (await get('/account', session('ada-token'))).text()), /Delete your account/);
+  assert.match(words(await (await get('/', session('new-token'))).text()), /Delete your account/, 'offered before there is a brand too');
+
+  const unconfirmed = await post('/account/delete', { confirm: 'yes', from: 'account' }, session('ada-token'));
+  assert.equal(unconfirmed.headers.get('location'), '/account?delete=unconfirmed');
+  assert.match(words(await (await get('/account?delete=unconfirmed', session('ada-token'))).text()), /Nothing was deleted\. Type delete in the box to confirm\./);
+  assert.equal((await post('/account/delete', { confirm: 'delete' }, session('ada-token'), 'https://evil.example')).status, 403);
+  assert.equal((await post('/account/delete', { confirm: 'delete' }, session('forged'))).headers.get('location'), '/signin', 'no session, no delete');
+  assert.deepEqual(deleted, []);
+
+  const done = await post('/account/delete', { confirm: ' Delete ', from: 'account' }, session('ada-token'));
+  assert.equal(done.status, 200);
+  assert.match(words(await done.text()), /Your account is deleted/);
+  assert.match(done.headers.getSetCookie().join('\n'), /__Host-cmokit-session=;.*Max-Age=0/);
+  assert.deepEqual(deleted, ['ada']);
+});
+
+test('the account that runs CMOKit\'s own waitlist is offered no delete, and is refused one', async () => {
+  const { get, post, deleted } = await server({ deletable: true, cmokit: 'acme' });
+  assert.doesNotMatch(words(await (await get('/account', session('ada-token'))).text()), /Delete your account/);
+  const refused = await post('/account/delete', { confirm: 'delete', from: 'account' }, session('ada-token'));
+  assert.equal(refused.headers.get('location'), '/account?delete=refused');
+  assert.deepEqual(deleted, []);
+});
+
+test('there is no delete where the account page is not given one', async () => {
+  const { get, post } = await server();
+  assert.doesNotMatch(words(await (await get('/account', session('ada-token'))).text()), /Delete your account/);
+  assert.equal((await post('/account/delete', { confirm: 'delete' }, session('ada-token'))).status, 404);
 });

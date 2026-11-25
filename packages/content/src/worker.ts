@@ -84,6 +84,8 @@ export interface IssuerBinding {
   email(person: string): Promise<string | null>;
   /** The Instagram account a person last signed in with, if any (ADR-0048). */
   instagram?(person: string): Promise<{ id: string; handle: string } | null>;
+  /** Deletes a person's sign-in records and revokes every token issued to them (ADR-0053). */
+  deletePerson?(person: string): Promise<void>;
 }
 
 // The lifecycle's own routes, as @cmokit/cli names them; the content server does not depend on it.
@@ -173,7 +175,8 @@ const CALLS = ['status', 'brandRead', 'brandHistory', 'brandChange', 'offersList
   'claudeSeen', 'claudeConnected',
   'waitlistSites', 'waitlistSetSites', 'waitlistJoin', 'waitlistList', 'waitlistActivate', 'waitlistDecline', 'waitlistActivated', 'waitlistActivatedInstagram',
   'funnelVisit', 'funnelRead',
-  'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount', 'instagramDisconnect'] as const;
+  'instagramStart', 'instagramTake', 'instagramSave', 'instagramAccount', 'instagramCount', 'instagramDisconnect',
+  'leave', 'waitlistForget'] as const;
 type Call = (typeof CALLS)[number];
 
 /** The account page, at APP_URL, signing in through the issuer over its service binding (ADR-0041). */
@@ -228,7 +231,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
     }
   }
 
-  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser' | 'waitlistActivated' | 'waitlistActivatedInstagram'>;
+  type CustomerAdmin = Pick<CustomerLogic, 'provision' | 'setAccess' | 'addUser' | 'waitlistActivated' | 'waitlistActivatedInstagram' | 'leave' | 'waitlistForget'>;
   const customerFor = (env: ContentEnv, slug: string): CustomerCalls & CustomerPages & CustomerAdmin => {
     const stub = env.CUSTOMERS.get(env.CUSTOMERS.idFromName(slug));
     const call = async (name: Call, ...args: unknown[]) => {
@@ -299,7 +302,30 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
         await issuer.nameCustomer(person, slug, name);
       },
       ...(env.WAITLIST_CUSTOMER?.trim() ? { cmokitWaitlist: env.WAITLIST_CUSTOMER.trim() } : {}),
+      ...(issuer.deletePerson ? { deleteAccount: (person: string) => deleteAccount(env, issuer, person) } : {}),
     };
+  };
+
+  /**
+   * Deletes a person's CMOKit account (ADR-0053): each brand whose only user they are, with
+   * everything it holds; their entry on CMOKit's own waitlist, so they are not let in again by it;
+   * then their sign-in records and every token issued to them. Each step is safe to repeat, so a
+   * delete cut short is finished by deleting again. A user of CMOKit's own brand is refused, since
+   * deleting it would delete CMOKit's waitlist.
+   */
+  const deleteAccount = async (env: ContentEnv, issuer: IssuerBinding, person: string): Promise<void> => {
+    const owner = env.WAITLIST_CUSTOMER?.trim();
+    const brands = await issuer.customers(person);
+    if (owner && brands.includes(owner) && await customerFor(env, owner).isUser(person)) {
+      throw new Refusal("This account runs CMOKit's own waitlist, so it cannot be deleted here.");
+    }
+    for (const slug of brands) await customerFor(env, slug).leave(person);
+    if (owner) {
+      const email = await issuer.email(person);
+      const instagram = issuer.instagram ? await issuer.instagram(person) : null;
+      await customerFor(env, owner).waitlistForget(email, instagram?.id ?? null);
+    }
+    await issuer.deletePerson!(person);
   };
 
   const worker = {

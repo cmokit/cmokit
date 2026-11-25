@@ -737,6 +737,15 @@ export class Customer {
     return this.#sql.all('SELECT 1 FROM waitlist WHERE email = ? AND activated_at IS NOT NULL', email.trim().toLowerCase()).length > 0;
   }
 
+  /**
+   * Takes a person who deleted their CMOKit account off the waitlist: the entry for their address and
+   * any entry whose Instagram handle they proved and signed in with (ADR-0053). Safe to repeat.
+   */
+  async waitlistForget(email: string | null, instagramUser: string | null): Promise<void> {
+    if (email) this.#sql.all('DELETE FROM waitlist WHERE email = ?', email.trim().toLowerCase());
+    if (instagramUser) this.#sql.all('DELETE FROM waitlist WHERE instagram_user = ?', instagramUser);
+  }
+
   // Instagram (ADR-0045). Only the brand connects its account. A person on the waitlist proves their
   // handle by commenting their code on one of the brand's Reels, and the comments on its recent Reels
   // then move them up.
@@ -891,6 +900,22 @@ export class Customer {
   /** Deletes everything the customer's object holds. */
   async erase(): Promise<void> {
     for (const table of TABLES) this.#sql.all(`DELETE FROM ${table}`);
+  }
+
+  /**
+   * What deleting a person's account does to one of their brands (ADR-0053): a brand whose only user
+   * they are is erased whole; from a brand that has other users, only what is theirs alone goes.
+   * erased says which. Safe to repeat.
+   */
+  async leave(person: string): Promise<{ erased: boolean }> {
+    const others = this.#sql.all('SELECT 1 FROM users WHERE person <> ?', person).length > 0;
+    if (!others) {
+      await this.erase();
+      return { erased: true };
+    }
+    for (const table of ['users', 'terms', 'claude', 'links']) this.#sql.all(`DELETE FROM ${table} WHERE person = ?`, person);
+    this.#sql.all('DELETE FROM instagram_starts WHERE subject = ?', person);
+    return { erased: false };
   }
 }
 

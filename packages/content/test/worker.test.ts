@@ -6,7 +6,7 @@ import { registerHooks } from 'node:module';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
 import type { ContentEnv, DurableObjectState } from '../src/worker.ts';
-import { KEY } from './fixtures.ts';
+import { KEY, portal } from './fixtures.ts';
 
 // The Worker imports the Workers runtime's entrypoint class; on Node it is a stand-in.
 registerHooks({
@@ -303,4 +303,70 @@ test('the Worker serves the look\'s fonts from its own origin, ahead of every ot
   assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [2]);
   const bare = createContentWorker({ tokens: () => ({ check: async () => undefined }) });
   assert.equal((await bare.worker.fetch(new Request('https://app.example/fonts/body.woff2'), {} as ContentEnv)).status, 404);
+});
+
+test('deleting an account on the account page erases the brands only its person uses, forgets them on CMOKit\'s waitlist, and deletes their sign-in', async () => {
+
+  const { worker, Customer } = createContentWorker({
+    tokens: () => ({
+      check: async (token) => (token === 'ta' ? { person: 'ada', audience: 'aud' } : token === 'to' ? { person: 'owner', audience: 'aud' } : undefined),
+    }),
+    portal,
+  });
+  const objects = new Map<string, { object: InstanceType<typeof Customer>; db: DatabaseSync }>();
+  const theirs: Record<string, string[]> = { ada: ['solo', 'shared'], owner: ['cmokit-own'] };
+  const deleted: string[] = [];
+  const env = {
+    ISSUER_URL: 'https://auth.example', AUDIENCE: 'aud', CREDENTIAL_KEY: KEY, APP_URL: 'https://app.example',
+    WAITLIST_CUSTOMER: 'cmokit-own',
+    ISSUER: {
+      fetch: async () => new Response(null, { status: 404 }),
+      validateToken: async () => null,
+      customers: async (person: string) => theirs[person] ?? [],
+      brands: async (person: string) => (theirs[person] ?? []).map((slug) => ({ slug, name: null })),
+      addCustomer: async () => {},
+      nameCustomer: async () => true,
+      email: async (person: string) => (person === 'ada' ? 'ada@example.com' : null),
+      instagram: async (person: string) => (person === 'ada' ? { id: 'ig-ada', handle: 'ada' } : null),
+      deletePerson: async (person: string) => { deleted.push(person); delete theirs[person]; },
+    },
+    CUSTOMERS: {
+      idFromName: (name: string) => name,
+      get: (id: unknown) => ({
+        fetch: (input: string, init?: RequestInit): Promise<Response> => {
+          let entry = objects.get(id as string);
+          if (!entry) {
+            const db = new DatabaseSync(':memory:');
+            const ctx: DurableObjectState = { storage: { sql: { exec: (q, ...p) => ({ toArray: () => db.prepare(q).all(...(p as never[])) as never }) } } };
+            entry = { object: new Customer(ctx, env), db };
+            objects.set(id as string, entry);
+          }
+          return entry.object.fetch(new Request(input, init));
+        },
+      }),
+    },
+  } satisfies ContentEnv;
+  const call = (slug: string, method: string, ...args: unknown[]) => env.CUSTOMERS.get(slug).fetch(`https://customer/${method}`, { method: 'POST', body: JSON.stringify(args) });
+  await call('cmokit-own', 'addUser', 'owner');
+  await call('cmokit-own', 'waitlistJoin', 'ada@example.com');
+  await call('cmokit-own', 'waitlistJoin', 'bob@example.com');
+  await call('solo', 'addUser', 'ada');
+  await call('shared', 'addUser', 'ada');
+  await call('shared', 'addUser', 'bob');
+  const remove = (token: string) => worker.fetch(new Request('https://app.example/account/delete', {
+    method: 'POST', body: new URLSearchParams({ confirm: 'delete', from: 'account' }),
+    headers: { cookie: `__Host-cmokit-session=${token}`, origin: 'https://app.example', 'content-type': 'application/x-www-form-urlencoded' },
+  }), env);
+
+  const done = await remove('ta');
+  assert.equal(done.status, 200);
+  assert.deepEqual(deleted, ['ada']);
+  assert.deepEqual(objects.get('solo')!.db.prepare('SELECT * FROM users').all(), [], 'her own brand is erased');
+  assert.deepEqual(objects.get('shared')!.db.prepare('SELECT person FROM users').all().map((row) => row.person), ['bob'], 'a shared brand keeps its other user');
+  assert.deepEqual(objects.get('cmokit-own')!.db.prepare('SELECT email FROM waitlist').all().map((row) => row.email), ['bob@example.com']);
+
+  const refused = await remove('to');
+  assert.equal(refused.headers.get('location'), '/account?delete=refused');
+  assert.deepEqual(deleted, ['ada'], 'the account that runs CMOKit\'s waitlist is not deleted');
+  assert.equal(objects.get('cmokit-own')!.db.prepare('SELECT * FROM users').all().length, 1);
 });

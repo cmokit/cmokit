@@ -72,6 +72,8 @@ export interface AccountView {
    * is known; absent where a person subscribes instead.
    */
   join?: string | null;
+  /** Whether the person can delete their account here (ADR-0053). */
+  deletable?: boolean;
   customer?: {
     /** The brand's slug, the name it goes by when signing in and in settings. */
     slug: string;
@@ -160,6 +162,12 @@ export function portalPage(portal: Portal, view: AccountView, tab: AccountTab): 
 
 export function signedOutPage(): Response {
   return html('<h1>You are signed out</h1><p><a href="/">Sign in again</a></p>', 200);
+}
+
+/** What a person sees once their account is deleted (ADR-0053). */
+export function deletedPage(): Response {
+  return html('<h1>Your account is deleted</h1><p>CMOKit no longer holds your brands, their content or your sign-in. '
+    + 'If you used Instagram with CMOKit, you can also remove CMOKit in Instagram, under Settings &gt; Website permissions &gt; Apps and websites.</p>', 200);
 }
 
 function html(body: string, status: number): Response {

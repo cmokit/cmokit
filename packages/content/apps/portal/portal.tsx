@@ -154,6 +154,25 @@ function SignOut() {
   return <Post action="/signout"><Wide>Sign out</Wide></Post>;
 }
 
+/**
+ * Deleting the account (ADR-0053): it names what goes and that it cannot be undone, and asks for the
+ * word delete typed, so no tap alone deletes anything.
+ */
+function DeleteAccount({ from }: { from: 'home' | 'account' }) {
+  return (
+    <Section title="Delete your account">
+      <p>This deletes every brand you run in CMOKit, with its brand context, content, results, waitlist and connections, and your sign-in. It cannot be undone.</p>
+      {from === 'account' && <Note>Download your data above first if you want to keep it.</Note>}
+      <Post action="/account/delete">
+        <input type="hidden" name="from" value={from} />
+        <Label htmlFor="delete-confirm">Type delete to confirm</Label>
+        <Input id="delete-confirm" name="confirm" required autoComplete="off" autoCapitalize="none" spellCheck={false} />
+        <Button type="submit" variant="danger" size="md" className="w-full">Delete my account</Button>
+      </Post>
+    </Section>
+  );
+}
+
 function NotActivated({ view }: { view: AccountView }) {
   return (
     <div className="space-y-4">
@@ -164,6 +183,7 @@ function NotActivated({ view }: { view: AccountView }) {
       {view.handle && <p>To use CMOKit with Instagram, comment your waitlist code on one of CMOKit's Reels from @{view.handle}. Once you're activated, signing in with Instagram lets you in.</p>}
       <p>If you joined with another account, sign out and sign in with that one.</p>
       <SignOut />
+      {view.deletable && <DeleteAccount from="home" />}
     </div>
   );
 }
@@ -175,6 +195,7 @@ function NoCustomer({ view }: { view: AccountView }) {
       <SignedIn view={view} />
       <p>This account has no CMOKit subscription yet. Ask Claude to set CMOKit up, and come back here afterwards.</p>
       <SignOut />
+      {view.deletable && <DeleteAccount from="home" />}
     </div>
   );
 }
@@ -441,6 +462,7 @@ function AccountTabView({ c, name, view }: { c: Customer; name: string; view: Ac
         <p><Link href="/export">Download everything CMOKit holds for this brand</Link></p>
         <SignOut />
       </Section>
+      {view.deletable && <DeleteAccount from="account" />}
     </div>
   );
 }

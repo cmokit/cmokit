@@ -56,6 +56,11 @@ export class Identity {
     return (await this.person())!;
   }
 
+  /** Forgets whose this identity is, with any pending code and its sends, when its person's account is deleted (ADR-0053). */
+  async erase(): Promise<void> {
+    for (const table of ['identity', 'code', 'sends']) this.#sql.all(`DELETE FROM ${table}`);
+  }
+
   /** Counts a send against a limit per hour. False, and nothing counted, when the limit is reached. */
   async allow(limit: number, now: number): Promise<boolean> {
     this.#sql.all('DELETE FROM sends WHERE at <= ?', now - HOUR);
@@ -167,6 +172,16 @@ export class Person {
    */
   async addCustomer(slug: string, now: number, name?: string): Promise<void> {
     this.#sql.all('INSERT OR IGNORE INTO customers (slug, added_at, name) VALUES (?, ?, ?)', slug, now, name ?? null);
+  }
+
+  /**
+   * Deletes everything this person's object holds, when they delete their account (ADR-0053), and
+   * returns the sign-in identities it named, so that they can be forgotten too.
+   */
+  async erase(): Promise<string[]> {
+    const identities = await this.identities();
+    for (const table of ['identities', 'email', 'customers', 'instagram']) this.#sql.all(`DELETE FROM ${table}`);
+    return identities;
   }
 
   /** Names, or renames, one of this person's customers; false when it is not one of theirs. */
