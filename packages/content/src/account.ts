@@ -1,4 +1,4 @@
-// The account page (HST-17, ADR-0041): where a person who signed in sees their CMOkit account in a
+// The account page (HST-17, ADR-0041): where a person who signed in sees their CMOKit account in a
 // browser, at an origin of its own such as https://app.cmokit.ai. It signs the person in through the
 // same issuer as Claude does, as an OAuth client that registers by its Client ID Metadata Document,
 // with PKCE and no secret, and keeps the token it gets in a cookie the page's scripts cannot read. It
@@ -10,7 +10,7 @@
 // Waitlist and Account, each at a path of its own, and a change returns to the tab it was made on.
 // Until a new creator's setup is done, Home leads them through it: naming the brand here, then the
 // steps in Claude Desktop, each marked done from what the server holds. A person nobody activated is
-// told so, with the way to CMO Kit's waitlist.
+// told so, with the way to CMOKit's waitlist.
 
 import { Refusal, SECTIONS } from './customer.ts';
 import { InstagramError, type InstagramApp } from './instagram.ts';
@@ -37,7 +37,7 @@ export interface AccountOptions {
   brands?(person: string): Promise<{ slug: string; name: string | null }[]>;
   /** Names, or renames, one of the person's brands, as they see it. Absent when brands cannot be named here. */
   renameBrand?(person: string, slug: string, name: string): Promise<void>;
-  /** The slug of the brand whose waitlist lets people use CMOkit itself, as CMOkit's own (ADR-0043). */
+  /** The slug of the brand whose waitlist lets people use CMOKit itself, as CMOKit's own (ADR-0043). */
   cmokitWaitlist?: string;
 }
 
@@ -76,7 +76,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
   if (route === 'GET /client.json') {
     return Response.json({
       client_id: clientId,
-      client_name: 'CMOkit account',
+      client_name: 'CMOKit account',
       client_uri: account.origin,
       redirect_uris: [redirectUri],
       grant_types: ['authorization_code'],
@@ -221,7 +221,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
   const shown = notice(url);
   const view: AccountView = { email, ...(handle ? { handle } : {}), ...(shown ? { notice: shown } : {}) };
   if (!customer && !context.billing) {
-    // Nobody activated this person: CMO Kit's own waitlist is where they can be (ADR-0043).
+    // Nobody activated this person: CMOKit's own waitlist is where they can be (ADR-0043).
     const sites = account.cmokitWaitlist ? await context.customer(account.cmokitWaitlist).waitlistSites() : [];
     view.join = sites[0] ?? null;
   }
@@ -280,10 +280,10 @@ function notice(url: URL): AccountView['notice'] {
   const brand = url.searchParams.get('brand');
   if (brand === 'renamed') return info('Brand renamed.');
   if (brand === 'named') return info('Brand named.');
-  if (brand === 'added') return info('Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOkit in Claude and choose it.');
+  if (brand === 'added') return info('Your new brand is ready, and it is listed under Brands. To use it, switch to it here, or reconnect CMOKit in Claude and choose it.');
   if (brand === 'invalid') return error('A brand name is 1 to 60 letters, numbers, spaces and . & \' -.');
   const activated = url.searchParams.get('activated');
-  if (activated === 'done') return info('Activated. CMOkit sends no email yet, so tell them yourself.');
+  if (activated === 'done') return info('Activated. CMOKit sends no email yet, so tell them yourself.');
   if (activated === 'missing') return error('That address is not on the waitlist.');
   if (activated === 'declined') return error('That person was declined. Restore them in Claude before activating them.');
   const instagram = url.searchParams.get('instagram');

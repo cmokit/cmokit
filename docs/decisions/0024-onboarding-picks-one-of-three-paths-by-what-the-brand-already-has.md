@@ -47,13 +47,13 @@ The candidate influences, each written for a different setting:
 * Every answer is drafted from the person's own material and confirmed, never invented (`CNT-05`).
 * Every section of `CNT-01` is filled, or left empty and asked about.
 * Each output is something the skill can write against and check a draft against.
-* A proven process, run well, is worth more than a new one CMOkit would have to prove.
-* Onboarding is a reason to choose CMOkit, so it should be opinionated about how a brand is found.
+* A proven process, run well, is worth more than a new one CMOKit would have to prove.
+* Onboarding is a reason to choose CMOKit, so it should be opinionated about how a brand is found.
 
 ## Considered Options
 
 * Three paths, picked by what the brand already has, each ending in the same closing steps
-* CMOkit's own exercise in seven short steps, drawing on the influences above
+* CMOKit's own exercise in seven short steps, drawing on the influences above
 * The Brand Sprint as published, run by one person, for everyone
 * A long questionnaire the person fills in
 * Inferring the whole context from the site and past posts, and asking only for confirmation
@@ -114,7 +114,7 @@ published processes where they fit instead of inventing one.
 * Good, because a person with a brand book is not asked to restate it, and a person in a hurry can
   post in the first week.
 * Good, because the sprint and the release are known processes, cited and run as their authors wrote
-  them, so CMOkit's contribution is running them well and checking one against the other.
+  them, so CMOKit's contribution is running them well and checking one against the other.
 * Good, because audiences come from buyers' own words on every path, which also feeds the hooks.
 * Bad, because three paths are three sets of prompts to write and evaluate.
 * Bad, because a light start gives a thin first context, which fills in only with use (ADR-0025).
@@ -134,7 +134,7 @@ path the skill picks fits the material it was given.
 * Bad, because the choice of path is one more thing the skill can get wrong; the person can always
   pick another.
 
-### CMOkit's own exercise in seven short steps, drawing on the influences above
+### CMOKit's own exercise in seven short steps, drawing on the influences above
 
 * Good, because it is one exercise to write and to evaluate.
 * Bad, because it asks a person with a brand book to repeat it, and asks a person in a hurry for

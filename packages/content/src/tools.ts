@@ -208,7 +208,7 @@ export const TOOLS: Tool[] = [
     title: 'Activate someone on the waitlist',
     description: 'Activates one person on the brand\'s waitlist, by the address it lists, and answers the waitlist '
       + 'as it now stands. Call it only when the person you work for names who to activate. Activating gives them '
-      + 'access to what the brand sells; CMOkit sends them no email yet, so the person tells them. A declined '
+      + 'access to what the brand sells; CMOKit sends them no email yet, so the person tells them. A declined '
       + 'person is restored with waitlist_decline first.',
     inputSchema: object({ email: string('Their address, as waitlist_list gives it.') }, ['email']),
     annotations: { title: 'Activate someone', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -232,7 +232,7 @@ export const TOOLS: Tool[] = [
   },
 ];
 
-export const INSTRUCTIONS = `CMOkit keeps this brand's context, its pieces and their results. Read the brand context with
+export const INSTRUCTIONS = `CMOKit keeps this brand's context, its pieces and their results. Read the brand context with
 brand_read before writing anything, and write from it. Change it only with brand_change, after showing
 the person the difference and their approving it. Never accept a credential in the conversation: if the
 person starts to paste a key or password, stop them and give them the link account_status returns

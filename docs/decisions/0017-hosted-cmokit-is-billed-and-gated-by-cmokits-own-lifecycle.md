@@ -5,30 +5,30 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0017: Hosted CMOkit is billed and gated by CMOkit's own lifecycle, and meters nothing yet
+# ADR-0017: Hosted CMOKit is billed and gated by CMOKit's own lifecycle, and meters nothing yet
 
 **Requirements served:** `HST-12`, `HST-13`, `HST-14`, `SUB-01`, `SUB-03`, `SUB-04`, `SUB-05`, `CUS-01`, `CUS-03`, `CRD-02`.
 
 ## Context and Problem Statement
 
-Hosted CMOkit is a subscription product: a customer subscribes, and manages and cancels its
-subscription without contacting anyone (`HST-12`). CMOkit already describes the machine every
+Hosted CMOKit is a subscription product: a customer subscribes, and manages and cancels its
+subscription without contacting anyone (`HST-12`). CMOKit already describes the machine every
 subscription product needs: a free trial started in the payment processor's hosted checkout
 (`SUB-01`), a customer portal (`SUB-03`), access revoked when a subscription becomes unpaid or ends
 and restored when it is reactivated (`SUB-04`), plans and trial length as configuration (`SUB-05`),
 a customer created at its first checkout (`CUS-01`, `CUS-03`), and credits for metered usage
 (`CRD-02`). Money runs on Stripe (ADR-0012), access is changed by configured calls to the product's
-API (ADR-0004), and credits are CMOkit's own ledger (ADR-0005, ADR-0006). CMOkit is its own first
+API (ADR-0004), and credits are CMOKit's own ledger (ADR-0005, ADR-0006). CMOKit is its own first
 customer (`HST-14`).
 
-The hosted services run no inference, so what one customer costs CMOkit is storage, requests and
+The hosted services run no inference, so what one customer costs CMOKit is storage, requests and
 bought tools: small, and close to the same for every customer of one size. What is gated is only
-what CMOkit hosts. The content skill is open source and runs in the customer's own Claude, so it
+what CMOKit hosts. The content skill is open source and runs in the customer's own Claude, so it
 cannot be gated, which the out-of-scope row on software with no hosted part already says.
 
 ## Decision Drivers
 
-* CMOkit sells itself with the machine it sells, so its own billing finds its own bugs first
+* CMOKit sells itself with the machine it sells, so its own billing finds its own bugs first
   (`HST-14`).
 * No billing code of the hosted offering's own beside the lifecycle.
 * A customer whose access ends can still sign in, pay and take its data with it (`HST-13`).
@@ -36,7 +36,7 @@ cannot be gated, which the out-of-scope row on software with no hosted part alre
 
 ## Considered Options
 
-* CMOkit's own lifecycle, with hosted CMOkit as a product in its configuration, and no credits until
+* CMOKit's own lifecycle, with hosted CMOKit as a product in its configuration, and no credits until
   a cost calls for them
 * The same, with usage credits from the start
 * Stripe Checkout and Billing wired into the hosted services directly, beside the lifecycle
@@ -44,11 +44,11 @@ cannot be gated, which the out-of-scope row on software with no hosted part alre
 
 ## Decision Outcome
 
-Chosen option: "CMOkit's own lifecycle, with hosted CMOkit as a product in its configuration, and no
+Chosen option: "CMOKit's own lifecycle, with hosted CMOKit as a product in its configuration, and no
 credits until a cost calls for them", because the lifecycle already does every step, and running
-CMOkit's own billing through it is the most direct test of it there is.
+CMOKit's own billing through it is the most direct test of it there is.
 
-> Hosted CMOkit is a product in a CMOkit lifecycle configuration of CMOkit's own. Its plans and
+> Hosted CMOKit is a product in a CMOKit lifecycle configuration of CMOKit's own. Its plans and
 > trial are configuration (`SUB-05`). The signed-in person starts a trial in Stripe's hosted
 > checkout, through a link the lifecycle makes from its configured plans when the content server
 > asks for one for that person (ADR-0019), which creates the customer with that person as its first
@@ -58,11 +58,11 @@ CMOkit's own billing through it is the most direct test of it there is.
 > customer's records; the person can still sign in, pay and export (`HST-13`). Plans grant no
 > credits, and nothing is metered.
 >
-> A person can also be activated without a checkout, as in a closed beta. Hosted CMOkit's operator
-> lists the email addresses activated, or activates people on the waitlist of CMOkit's own site
+> A person can also be activated without a checkout, as in a closed beta. Hosted CMOKit's operator
+> lists the email addresses activated, or activates people on the waitlist of CMOKit's own site
 > (ADR-0014), which the content server asks the lifecycle about over its service binding. A
-> signed-in person whose proven address is listed or activated becomes CMOkit's customer at their
-> first call: CMOkit makes their first brand, a customer with them as its first user and no billing
+> signed-in person whose proven address is listed or activated becomes CMOKit's customer at their
+> first call: CMOKit makes their first brand, a customer with them as its first user and no billing
 > (`CUS-03`, ADR-0042).
 > Its access is active, and the lifecycle never changes it, since no subscription names it.
 
@@ -86,7 +86,7 @@ customer at its first call, and that any other address is offered only the subsc
 
 ## Pros and Cons of the Options
 
-### CMOkit's own lifecycle, with hosted CMOkit as a product in its configuration, and no credits until a cost calls for them
+### CMOKit's own lifecycle, with hosted CMOKit as a product in its configuration, and no credits until a cost calls for them
 
 * Good, because it meets every driver.
 * Bad, because it ties the hosted offering's launch to the lifecycle's subscription work.
@@ -101,12 +101,12 @@ customer at its first call, and that any other address is offered only the subsc
 ### Stripe Checkout and Billing wired into the hosted services directly, beside the lifecycle
 
 * Good, because it could ship before the lifecycle's subscription handling exists.
-* Bad, because it is a second implementation of the lifecycle, inside CMOkit, kept in step by hand.
+* Bad, because it is a second implementation of the lifecycle, inside CMOKit, kept in step by hand.
 
 ### A merchant of record that sells the subscription and handles sales tax
 
 * Good, because it takes on sales tax and VAT across countries.
-* Bad, because CMOkit would bill itself on a different processor from the one it supports
+* Bad, because CMOKit would bill itself on a different processor from the one it supports
   (ADR-0012), and would learn nothing about its own lifecycle by doing so.
 
 ## More Information

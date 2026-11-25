@@ -5,7 +5,7 @@
 //   export default Issuer;
 //
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
-// the OAuth library's namespace as OAUTH_KV, which no code of CMOkit's reads or writes (ADR-0035).
+// the OAuth library's namespace as OAUTH_KV, which no code of CMOKit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
 // Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), and `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.

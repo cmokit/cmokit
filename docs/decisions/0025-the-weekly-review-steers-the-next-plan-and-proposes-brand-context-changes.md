@@ -21,7 +21,7 @@ a difference only when enough pieces stand behind it (`CNT-28`). An eval shows t
 after a series of edits (`CNT-25`).
 
 A signal is only useful if it is kept beside the draft it is about and the brand context version it
-was written from, across conversations, on any surface. CMOkit's hosted services run no model, so
+was written from, across conversations, on any surface. CMOKit's hosted services run no model, so
 anything that reads signals and proposes a change in words runs in the person's own Claude.
 
 A piece's result has two parts (ADR-0031). Its conversions are recorded by its destination and read
@@ -39,11 +39,11 @@ piece that spreads widely can outweigh the rest.
 * A difference is acted on only when enough pieces stand behind it, so one piece cannot steer.
 * The plan keeps trying new things, so the loop does not narrow too early.
 * The person is asked for judgment once a week, not after every edit.
-* No model runs in CMOkit's services.
+* No model runs in CMOKit's services.
 
 ## Considered Options
 
-* Signals and results recorded with each piece on CMOkit's server; a weekly review in the person's
+* Signals and results recorded with each piece on CMOKit's server; a weekly review in the person's
   Claude that steers the next plan and proposes brand context changes, both under one rule of evidence
 * The same, steering on every result, with no minimum and no share kept for trying new things
 * The same, with a statistical test for each comparison
@@ -53,7 +53,7 @@ piece that spreads widely can outweigh the rest.
 
 ## Decision Outcome
 
-Chosen option: "Signals and results recorded with each piece on CMOkit's server; a weekly review in
+Chosen option: "Signals and results recorded with each piece on CMOKit's server; a weekly review in
 the person's Claude that steers the next plan and proposes brand context changes, both under one rule
 of evidence", because results then change both what is made and how it is written, and the same small
 rule keeps either from chasing one piece.
@@ -126,7 +126,7 @@ tests assert that no tool changes the brand context without an approval.
 
 ## Pros and Cons of the Options
 
-### Signals and results recorded with each piece on CMOkit's server; a weekly review in the person's Claude that steers the next plan and proposes brand context changes, both under one rule of evidence
+### Signals and results recorded with each piece on CMOKit's server; a weekly review in the person's Claude that steers the next plan and proposes brand context changes, both under one rule of evidence
 
 * Good, because it meets every driver.
 * Bad, because the thresholds are judgment, not statistics, and are tuned by use.

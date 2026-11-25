@@ -16,8 +16,8 @@ what Claude's own features hold reliably: a brand context read in every conversa
 (ADR-0023); signals kept with each piece across conversations (`CNT-07`, ADR-0025); a record of what
 was posted (`CNT-17`); events and registrations read from an event platform with a key that must not
 pass through the conversation (`CNT-11`, `HST-04`); and results read weekly per piece (`CNT-19`). The
-person's Claude reaches CMOkit through an authorization the person grants by signing in (`HST-05`),
-issued by CMOkit's own issuer (ADR-0018), on the web and on a phone (`CNT-22`). Nothing done for one
+person's Claude reaches CMOKit through an authorization the person grants by signing in (`HST-05`),
+issued by CMOKit's own issuer (ADR-0018), on the web and on a phone (`CNT-22`). Nothing done for one
 customer reaches another's records (`HST-10`), and self-hosters run the same server (`HST-11`).
 
 What Claude and the MCP specification offer, from their documentation: claude.ai connects to remote
@@ -58,7 +58,7 @@ features cannot, knows which customer it serves from its address, and leaves sig
 
 > The content server is a Worker serving MCP over Streamable HTTP, through Cloudflare's stateless
 > handler, with no session. Each customer has its own path, `/customers/<slug>/mcp`, and a
-> connection serves one customer alone. Hosted, it runs on CMOkit's account; self-hosted, on the
+> connection serves one customer alone. Hosted, it runs on CMOKit's account; self-hosted, on the
 > deployer's, from the same package. The content plugin declares the hosted address,
 > `https://mcp.cmokit.ai/mcp`, and signing in routes the person to their customer: the sign-in picks
 > the customer and the token names it, and a person with several customers chooses one at sign-in.
@@ -70,7 +70,7 @@ features cannot, knows which customer it serves from its address, and leaves sig
 > The content server issues no token. It publishes Protected Resource Metadata naming the issuer,
 > answers a call without a token by pointing at it, and accepts only tokens the issuer issued for
 > the server's own audience. It reads two settings, the issuer's address and that audience, and
-> checks tokens through one interface, whose adapter for CMOkit's own issuer (ADR-0018) is the
+> checks tokens through one interface, whose adapter for CMOKit's own issuer (ADR-0018) is the
 > library's resource server, run in the content server's own Worker and checking each token with the
 > issuer over a service binding; no third Worker is involved. A token names a person and a customer; every call
 > checks that the person is a user of the customer the path names, or, at `/mcp`, the token names.
@@ -95,12 +95,12 @@ features cannot, knows which customer it serves from its address, and leaves sig
 
 * Good, because the server holds only state and keys, so it runs no model and costs storage and
   requests.
-* Good, because guests' names and emails stay between the event platform and CMOkit; the model sees
+* Good, because guests' names and emails stay between the event platform and CMOKit; the model sees
   counts.
 * Good, because a call can never act on a customer other than the one its path or token names,
   whatever the model says.
 * Bad, because a person who works for two customers signs in again to switch between them.
-* Bad, because a person on the Free plan who already has a custom connector cannot add CMOkit's.
+* Bad, because a person on the Free plan who already has a custom connector cannot add CMOKit's.
 * Neutral, because tools are named for the job, so another chat client that speaks MCP can use them.
 
 ### Confirmation
@@ -122,7 +122,7 @@ in the tests too.
 
 * Good, because there is one Worker instead of two.
 * Bad, because sign-in and content become one deployment, so changing the issuer changes the content
-  server, and any later server of CMOkit's would need a sign-in of its own.
+  server, and any later server of CMOKit's would need a sign-in of its own.
 
 ### The same, on one address, with every tool taking the customer as an argument
 
@@ -168,7 +168,7 @@ The MCP authorization page, the Cloudflare pages and the library's README and st
 read directly on 2026-11-06; the MCP changelog was not read again, and stands as read through a
 search extract on 2026-10-30. The library's access tokens are not JWTs: each is
 `{userId}:{grantId}:{random-secret}`, kept only as a hash in the issuer's store, so another resource
-server checks one only by asking the issuer, and the adapter for an issuer other than CMOkit's own is
+server checks one only by asking the issuer, and the adapter for an issuer other than CMOKit's own is
 written when one is wanted. Which MCP protocol
 versions claude.ai sends was not found. A connection per customer, named in its address, follows
 CFOKit's [record on agent connections](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0067-an-agent-connection-serves-one-company.md).

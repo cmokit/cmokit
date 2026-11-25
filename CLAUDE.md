@@ -1,4 +1,4 @@
-# CMOkit — Working Agreement
+# CMOKit — Working Agreement
 
 Rules are binding. Each cites the decision record holding its reasoning; read it before proposing a
 change. Index: `docs/decisions/README.md`. If a task appears to require breaking a rule, stop and ask.
@@ -39,25 +39,25 @@ a package exists. (ADR-0002)
 
 ## Boundaries
 
-- **CMOkit is a dependency, never a site.** No adopter's content, copy or design lives here; the
+- **CMOKit is a dependency, never a site.** No adopter's content, copy or design lives here; the
   starter is the one example site, and it holds only placeholder content. (ADR-0002)
 - **Handlers use the web-standard `Request` and `Response` only.** No Cloudflare- or host-specific API
   inside a handler; those belong in the adapters. Handlers are tested with Node's test runner, adapters
   under Wrangler. An edge handler never imports lifecycle code. (ADR-0003)
 - **Everything runs on Cloudflare.** Edge and lifecycle work are Workers, and their only store is
-  Durable Objects. CMOkit runs nowhere else. Edge work keeps no state. (ADR-0003, ADR-0006)
-- **Everything scales to zero.** No part of CMOkit is an always-on server or database. (ADR-0003)
-- **Credits are CMOkit's ledger; money is the payment processor's.** Each customer's credit grants,
+  Durable Objects. CMOKit runs nowhere else. Edge work keeps no state. (ADR-0003, ADR-0006)
+- **Everything scales to zero.** No part of CMOKit is an always-on server or database. (ADR-0003)
+- **Credits are CMOKit's ledger; money is the payment processor's.** Each customer's credit grants,
   usage and balance, in the product's units, are kept in a Durable Object of its own, written against
-  a SQL interface and tested on Node's SQLite. None of CMOkit's storage is about money. Every action
-  CMOkit takes on an event sets a state, so acting twice is acting once. No package depends on a
+  a SQL interface and tested on Node's SQLite. None of CMOKit's storage is about money. Every action
+  CMOKit takes on an event sets a state, so acting twice is acting once. No package depends on a
   database client. (ADR-0006, ADR-0012)
 - **A variant is a page; the edge only chooses.** An experiment's variants are pages of the site, on
   whatever host or CMS it uses, and the experiments are configuration deployed with the edge. The
   edge stores no assignment: the experiments tool decides, the visitor's cookie remembers, and any
   failure serves the control unassigned. Agents always get the control and are never exposed.
   (ADR-0009)
-- **The configuration runs experiments.** An experiment's plan and status live in CMOkit's
+- **The configuration runs experiments.** An experiment's plan and status live in CMOKit's
   configuration, and the deploy makes the experiments tool match; nothing is started or ended in the
   tool by hand. The tool's administrative key is read by the command line alone, never the edge.
   (ADR-0013)
@@ -71,7 +71,7 @@ a package exists. (ADR-0002)
   API, as an OAuth client, and through its identity provider by OpenID Connect or OAuth. Every call
   names the customer it acts on. (ADR-0004)
 - **A product sends only usage.** Signed, aggregated usage events, naming user, customer and an
-  idempotency key, are the only thing CMOkit accepts from a product. CMOkit debits them from the
+  idempotency key, are the only thing CMOKit accepts from a product. CMOKit debits them from the
   customer's ledger under their key and records them in analytics, and makes the configured calls
   when the balance falls low, is exhausted or is restored. (ADR-0005)
 - **The content server serves one customer per address and runs no model.** A call at
@@ -86,7 +86,7 @@ a package exists. (ADR-0002)
 
 ## Deployment
 
-- **The environment reaches the Workers through variables and secrets alone.** CMOkit's reviewed
+- **The environment reaches the Workers through variables and secrets alone.** CMOKit's reviewed
   configuration is bundled at deploy and holds no secret; everything else is a Worker variable or
   secret the deploy sets, read only by the adapters. Every one is listed in the deployment reference;
   changing the shape of that list needs a record. (ADR-0008)

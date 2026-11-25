@@ -52,7 +52,7 @@ export function sendgrid(options: SendGridOptions): Messaging {
         subject: m.subject,
         content: [{ type: 'text/plain', value: m.text }, { type: 'text/html', value: m.html }],
         asm: { group_id: m.group, groups_to_display: [m.group] },
-        // The unsubscribe link CMOkit serves, which a mail client may follow in one click (RFC 8058).
+        // The unsubscribe link CMOKit serves, which a mail client may follow in one click (RFC 8058).
         headers: { 'List-Unsubscribe': `<${m.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
         custom_args: m.tags,
         categories: [m.tags.cmokit_sequence].filter(Boolean),

@@ -11,11 +11,11 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-While hosted CMOkit is in a closed beta, every user accepts its beta terms before using it, and
+While hosted CMOKit is in a closed beta, every user accepts its beta terms before using it, and
 accepts each new version again (`HST-15`). Setup is a conversation in the person's own Claude
 (`HST-03`), so the person has to be shown the terms and accept them from there. Something has to say
 where acceptance happens, where it is kept and what a user who has not accepted can still do. The
-terms themselves are written and published by CMOkit's operator; this record is about recording
+terms themselves are written and published by CMOKit's operator; this record is about recording
 their acceptance, not their text.
 
 ## Decision Drivers
@@ -52,7 +52,7 @@ already gives for a vendor's key, and the person clicks Accept themselves.
 
 ### Consequences
 
-* Good, because acceptance is a click by the person, on CMOkit's own page, with the terms linked.
+* Good, because acceptance is a click by the person, on CMOKit's own page, with the terms linked.
 * Good, because it needs no change to the issuer, the waitlist or the skill.
 * Bad, because a person who is a user of two customers accepts once for each.
 * Neutral, because the terms are published elsewhere, at the address the variable names, and the

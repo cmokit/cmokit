@@ -1,5 +1,5 @@
 // The issuer's pages. Everything shown that came from a client, a provider or a form is escaped, and
-// no page may be framed or cached. Every page wears CMOkit's own look (ADR-0046).
+// no page may be framed or cached. Every page wears CMOKit's own look (ADR-0046).
 
 import { HEADER, LOOK } from './look.ts';
 
@@ -49,16 +49,16 @@ export function signInPage(options: {
     ? `<strong>${escape(client.clientName)}</strong>, from ${escape(client.clientDomain)},`
     : `<strong>${escape(client.clientName)}</strong> (this app named itself, so its name isn't verified)`;
   const intro = options.own
-    ? '<p>Sign in to see your CMO Kit account.</p>'
-    : `<p>Sign in to connect ${who} to your CMO Kit account. Access goes to <strong>${escape(client.redirectHost)}</strong>.</p>`;
+    ? '<p>Sign in to see your CMOKit account.</p>'
+    : `<p>Sign in to connect ${who} to your CMOKit account. Access goes to <strong>${escape(client.redirectHost)}</strong>.</p>`;
   // A required box: no way in goes on without it, though Cancel still does.
-  const terms = options.terms ? `<label><input type="checkbox" name="terms" value="yes" required> I accept the <a href="${escape(options.terms.url)}" target="_blank" rel="noopener noreferrer">CMO Kit beta terms</a> (version ${escape(options.terms.version)}).</label>\n` : '';
+  const terms = options.terms ? `<label><input type="checkbox" name="terms" value="yes" required> I accept the <a href="${escape(options.terms.url)}" target="_blank" rel="noopener noreferrer">CMOKit beta terms</a> (version ${escape(options.terms.version)}).</label>\n` : '';
   // Instagram, creators' own way in, is the one primary button (ADR-0048).
   const ways = options.ways.map((w) => `<button name="way" value="${escape(w.name)}"${w.name === 'instagram' ? ' class="primary"' : ''}>Continue with ${escape(w.label)}</button>`).join('\n');
   const email = options.email ? `<label for="address">Or get a code by email</label>
 <input id="address" name="address" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
 <button name="way" value="email"${options.ways.some((w) => w.name === 'instagram') ? '' : ' class="primary"'}>Email me a code</button>` : '';
-  return page('Sign in to CMO Kit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
+  return page('Sign in to CMOKit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
 ${intro}
 ${client.redirectIsLoopback ? '<p><strong>This sends access to an app on your computer.</strong> Continue only if you just started connecting from it.</p>' : ''}
 <form method="post" action="/authorize">
@@ -67,7 +67,7 @@ ${terms}${ways}
 ${email}
 <button name="way" value="cancel" formnovalidate>Cancel</button>
 </form>
-<p class="note">CMO Kit keeps only who you are${options.terms ? ' and that you accepted the beta terms' : ''}. It keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
+<p class="note">CMOKit keeps only who you are${options.terms ? ' and that you accepted the beta terms' : ''}. It keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
 }
 
 export function codePage(options: { address: string; state: string; problem?: string; headers: Headers }): Response {
@@ -84,7 +84,7 @@ export const UNNAMED_BRAND = 'Unnamed brand';
 
 export function choosePage(options: { brands: { slug: string; name: string | null }[]; state: string; headers: Headers }): Response {
   const choices = options.brands.map((b, i) => `<label><input type="radio" name="customer" value="${escape(b.slug)}"${i === 0 ? ' checked' : ''}> ${escape(b.name ?? UNNAMED_BRAND)}</label>`).join('\n');
-  return page('Which brand?', `<p>Your account has more than one CMOkit brand. This connection will serve the one you choose.</p>
+  return page('Which brand?', `<p>Your account has more than one CMOKit brand. This connection will serve the one you choose.</p>
 <form method="post" action="/choose?state=${encodeURIComponent(options.state)}">
 ${choices}
 <button class="primary">Continue</button>

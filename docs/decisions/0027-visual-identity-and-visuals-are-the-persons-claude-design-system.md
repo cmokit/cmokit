@@ -13,7 +13,7 @@ decision-makers: [Geoff]
 
 Each piece comes with the visuals it needs, such as a cover frame or a text card, made in the brand's
 own visual identity (`CNT-14`). Real footage is the default, so visuals frame footage rather than
-replace it (`CNT-15`). The person works on the web and on a phone (`CNT-22`), and CMOkit runs no model
+replace it (`CNT-15`). The person works on the web and on a phone (`CNT-22`), and CMOKit runs no model
 (`HST-09`). Something has to hold the brand's colours, type and components, and something has to make
 visuals from them.
 
@@ -30,14 +30,14 @@ were not found in its documentation.
 
 * Visual identity is kept in one place the person already owns and edits.
 * Visuals are made where the person already works, on the web and on a phone (`CNT-22`).
-* CMOkit stores no visual identity and renders nothing.
+* CMOKit stores no visual identity and renders nothing.
 * Visuals frame real footage, and no person or scene is generated (`CNT-15`).
 
 ## Considered Options
 
 * The design system in the person's Claude Design holds the identity; the skill asks Claude Design for
   each visual
-* CMOkit stores the brand's colours and fonts and renders templated visuals on its server
+* CMOKit stores the brand's colours and fonts and renders templated visuals on its server
 * A design tool the person already uses outside Claude, such as Canva, with a brand kit there
 * Generated images and video for every piece
 
@@ -45,10 +45,10 @@ were not found in its documentation.
 
 Chosen option: "The design system in the person's Claude Design holds the identity; the skill asks
 Claude Design for each visual", because it keeps identity and visuals in the person's own Claude,
-where they already work, with nothing for CMOkit to store or render.
+where they already work, with nothing for CMOKit to store or render.
 
 > The brand's visual identity is the person's own Claude Design design system, published as their
-> default. CMOkit stores none of it. For each piece, the skill describes the visuals it needs (size,
+> default. CMOKit stores none of it. For each piece, the skill describes the visuals it needs (size,
 > text, which footage it frames) and asks Claude Design for them in the conversation, using that
 > design system. The person exports them for their editing app, or sends them to Canva or another tool
 > Claude Design supports. If the person has no design system, setup offers to make one from their
@@ -57,7 +57,7 @@ where they already work, with nothing for CMOkit to store or render.
 ### Consequences
 
 * Good, because the person edits their identity in one place, and every visual follows it.
-* Good, because CMOkit has nothing visual to store, render or keep in step.
+* Good, because CMOKit has nothing visual to store, render or keep in step.
 * Bad, because visuals need a plan with design systems, in beta, and not on Free.
 * Bad, because whether Claude Design produces 9:16 frames and image files an editing app accepts is
   not documented, and has to be tried.
@@ -74,10 +74,10 @@ Enforced by review: the server's storage holds no colour, font or image of a bra
 * Good, because it meets every driver.
 * Bad, because it depends on a feature in beta, on plans the person may not have.
 
-### CMOkit stores the brand's colours and fonts and renders templated visuals on its server
+### CMOKit stores the brand's colours and fonts and renders templated visuals on its server
 
 * Good, because exact sizes and PNG files would be guaranteed, on any Claude plan.
-* Bad, because CMOkit would store visual identity and build a renderer and templates, which is a
+* Bad, because CMOKit would store visual identity and build a renderer and templates, which is a
   design tool of its own.
 
 ### A design tool the person already uses outside Claude, such as Canva, with a brand kit there
@@ -103,7 +103,7 @@ Sources: Anthropic's [Claude Design](https://support.claude.com/en/articles/1460
 and [connector review criteria](https://claude.com/docs/connectors/building/review-criteria), read on
 2026-10-30.
 
-**Reversal cost.** Low: CMOkit holds nothing visual, so a different tool changes the skill's text.
+**Reversal cost.** Low: CMOKit holds nothing visual, so a different tool changes the skill's text.
 
 ## Revisit when
 

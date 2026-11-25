@@ -1,12 +1,12 @@
 // Instagram, through the Instagram API with Unified Login (ADR-0045), which is built on Facebook Login
 // for Business. Only a brand connects: its user logs in, picks the business portfolio that owns the
-// brand's Instagram account, and CMOkit gets a token for that portfolio that does not expire. A person
+// brand's Instagram account, and CMOKit gets a token for that portfolio that does not expire. A person
 // on the brand's waitlist never logs in: they comment their referral code on one of the brand's Reels,
 // which proves the handle is theirs. It uses fetch alone.
 
 /** The most recent Reels whose comments are read, which keeps a count within a Worker's subrequests. */
 export const REELS_COUNTED = 25;
-/** The Graph API version CMOkit calls, as in Meta's Unified Login guide. */
+/** The Graph API version CMOKit calls, as in Meta's Unified Login guide. */
 export const GRAPH_VERSION = 'v27.0';
 
 const LOGIN = 'https://www.facebook.com/dialog/oauth';

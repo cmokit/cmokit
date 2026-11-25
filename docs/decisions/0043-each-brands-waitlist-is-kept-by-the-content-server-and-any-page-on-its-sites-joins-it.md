@@ -13,14 +13,14 @@ decision-makers: [Geoff]
 
 A waitlist was engine work: a site's own edge Worker took a join and its own lifecycle Worker kept
 the list (ADR-0014), so a site with a waitlist ran Workers on a Cloudflare account. ADR-0042 then had
-the hosted content server read one such list, CMOkit's own site's, over a service binding named for
+the hosted content server read one such list, CMOKit's own site's, over a service binding named for
 that one site. That gave the whole hosted service a single waitlist.
 
-Hosted CMOkit's customer is a content creator who is not a developer (`HST-01`), whose page is often
-a static site, as CMOkit's own is on GitHub Pages (`HST-14`). Every brand needs a waitlist of its
+Hosted CMOKit's customer is a content creator who is not a developer (`HST-01`), whose page is often
+a static site, as CMOKit's own is on GitHub Pages (`HST-14`). Every brand needs a waitlist of its
 own, with referral links (`LEAD-04`), and none can run a Worker or move a domain to get one
-(`HST-16`). CMOkit's own brand's waitlist is also how a person gets into CMOkit during the closed
-beta (`CUS-03`), and CMOkit's operator never activates people on another brand's list.
+(`HST-16`). CMOKit's own brand's waitlist is also how a person gets into CMOKit during the closed
+beta (`CUS-03`), and CMOKit's operator never activates people on another brand's list.
 
 ## Decision Drivers
 
@@ -28,7 +28,7 @@ beta (`CUS-03`), and CMOkit's operator never activates people on another brand's
   the brand's own (`HST-01`, `HST-16`).
 * One brand's list is never seen or changed by another brand's users (`HST-10`).
 * A referral link keeps every query parameter of the page the person joined on (`LEAD-04`).
-* CMOkit's operator activates people into CMOkit from CMOkit's own brand's list alone (`CUS-03`).
+* CMOKit's operator activates people into CMOKit from CMOKit's own brand's list alone (`CUS-03`).
 
 ## Considered Options
 
@@ -54,7 +54,7 @@ to it", because it is the only option that gives every brand its own list with n
 > parameters, ADR-0031) are kept as where the person came from, so a brand sees which piece brought
 > each person. A brand's users see its list on the
 > account page and activate people one by one. A person activated on the list of the brand the
-> content server's `WAITLIST_CUSTOMER` names, CMOkit's own, becomes CMOkit's customer at their first
+> content server's `WAITLIST_CUSTOMER` names, CMOKit's own, becomes CMOKit's customer at their first
 > call. Joins are slowed by a rate limit per address and by a field only bots fill in. A
 > self-hosted site's edge and lifecycle keep their own waitlist (ADR-0014).
 
@@ -62,10 +62,10 @@ to it", because it is the only option that gives every brand its own list with n
 
 * Good, because every brand has a waitlist on the day it is made, from a page on any host.
 * Good, because the content server no longer needs a service binding to one site for its waitlist.
-* Bad, because CMOkit sends no activation email from this list yet, so a brand's users tell each
+* Bad, because CMOKit sends no activation email from this list yet, so a brand's users tell each
   person themselves until hosted email is built.
 * Bad, because a brand's own product cannot yet ask whether an address is activated on its list; a
-  brand other than CMOkit's own uses the list to rank and track people, and lets them in itself.
+  brand other than CMOKit's own uses the list to rank and track people, and lets them in itself.
 
 ### Confirmation
 
@@ -83,9 +83,9 @@ and shown, and only a brand's users see and activate its list.
 
 ### One site's lifecycle Worker, read by the content server over a service binding, as ADR-0042 had it
 
-* Good, because it is built, and CMOkit's own site already has the Workers.
+* Good, because it is built, and CMOKit's own site already has the Workers.
 * Bad, because the service binding names one site, so the whole service has one waitlist, which
-  fails `HST-10` for every brand after CMOkit's own.
+  fails `HST-10` for every brand after CMOKit's own.
 
 ### A lifecycle Worker of each brand's own
 
@@ -96,7 +96,7 @@ and shown, and only a brand's users see and activate its list.
 ## More Information
 
 **Follow-on obligations.** An activation email from the list, once hosted email is built. A way for
-a brand's own product to ask whether an address is activated, when a brand other than CMOkit's own
+a brand's own product to ask whether an address is activated, when a brand other than CMOKit's own
 needs it. This record replaces the waitlist clause of ADR-0042.
 
 **Reversal cost.** Low: the list is one table in each brand's records and is in its export.

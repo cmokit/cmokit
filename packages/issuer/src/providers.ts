@@ -62,7 +62,7 @@ export function google(client: ProviderClient, send: Fetch = fetch): Provider {
 
 export function github(client: ProviderClient, send: Fetch = fetch): Provider {
   const scopes = ['read:user', 'user:email'];
-  const headers = (token: string) => ({ authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'CMOkit' });
+  const headers = (token: string) => ({ authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'CMOKit' });
   return {
     name: 'github', label: 'GitHub', scopes,
     authorizeUrl: ({ state, challenge, redirectUri }) => `https://github.com/login/oauth/authorize?${new URLSearchParams({
@@ -107,7 +107,7 @@ export function meta(client: ProviderClient, send: Fetch = fetch): Provider {
   };
 }
 
-/** The Graph API version CMOkit calls, as the content server's Instagram connection does (ADR-0045). */
+/** The Graph API version CMOKit calls, as the content server's Instagram connection does (ADR-0045). */
 const GRAPH = 'https://graph.facebook.com/v27.0';
 
 /**

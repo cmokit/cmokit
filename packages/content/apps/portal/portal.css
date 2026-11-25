@@ -1,4 +1,4 @@
-/* The account page's stylesheet (ADR-0051): the cards' theme, which falls back to CMOkit's look
+/* The account page's stylesheet (ADR-0051): the cards' theme, which falls back to CMOKit's look
    (ADR-0046) where no host sends style variables, as on a page of its own; the look's two fonts,
    served from the page's own origin; and the page's own background. */
 @import "../theme.css";

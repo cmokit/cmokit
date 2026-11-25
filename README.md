@@ -1,4 +1,4 @@
-# CMOkit
+# CMOKit
 
 An opinionated, open-source growth engine for subscription businesses. The site you already have, on
 any host or CMS, one small server part that scales to zero, and bought tools for experiments,

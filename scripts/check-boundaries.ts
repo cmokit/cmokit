@@ -2,7 +2,7 @@
 // depends, directly or through another package, on neither the lifecycle nor a database client; no
 // package depends on a database client; the edge's, the lifecycle's and the content server's handlers
 // name no bought tool, only their adapters and the Workers that wire them do, and the issuer's likewise; only the
-// issuer names a KV namespace, and no code of CMOkit's reads or writes the OAuth library's (ADR-0035); and the edge
+// issuer names a KV namespace, and no code of CMOKit's reads or writes the OAuth library's (ADR-0035); and the edge
 // reaches nothing of
 // the command line's but its configuration, so it never holds the experiments tool's administrative
 // key. Also ADR-0022's: the content plugin declares no local MCP server, so everything in it works in

@@ -11,13 +11,13 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit's issuer is built on Cloudflare's OAuth library (ADR-0018), which issues the tokens a person's
-Claude uses to reach CMOkit (`HST-05`). The library keeps its grants, authorization codes and tokens
+CMOKit's issuer is built on Cloudflare's OAuth library (ADR-0018), which issues the tokens a person's
+Claude uses to reach CMOKit (`HST-05`). The library keeps its grants, authorization codes and tokens
 in a Workers KV namespace bound as `OAUTH_KV`: tokens, codes and client secrets only as SHA-256
 hashes, and each grant's properties encrypted with AES-GCM.
 
 CLAUDE.md says the edge's and the lifecycle's only store is Durable Objects, and ADR-0006 keeps all of
-CMOkit's storage on Cloudflare. Workers KV is Cloudflare's own and is billed for reads, writes and
+CMOKit's storage on Cloudflare. Workers KV is Cloudflare's own and is billed for reads, writes and
 storage, not while idle: the free plan allows 100,000 reads and 1,000 writes a day and 1 GB stored,
 and the paid plan includes 10 million reads and 1 million writes a month. A change can take 60
 seconds or more to be visible in other locations.
@@ -25,14 +25,14 @@ seconds or more to be visible in other locations.
 ## Decision Drivers
 
 * Scales to zero, on Cloudflare (`NFR-06`).
-* No OAuth storage of CMOkit's own to write and secure.
-* Everything CMOkit's own code keeps stays in Durable Objects.
+* No OAuth storage of CMOKit's own to write and secure.
+* Everything CMOKit's own code keeps stays in Durable Objects.
 
 ## Considered Options
 
 * Workers KV for the library's tokens alone, through the library; Durable Objects for everything else
 * A Durable Object store for the library, replacing its KV storage
-* An authorization server of CMOkit's own, written on Durable Objects
+* An authorization server of CMOKit's own, written on Durable Objects
 
 ## Decision Outcome
 
@@ -41,8 +41,8 @@ everything else", because it keeps the store the library was built and tested on
 Cloudflare's own and scales to zero.
 
 > The issuer's OAuth grants, authorization codes and tokens are kept by Cloudflare's OAuth library,
-> in Workers KV. Nothing else of CMOkit's is kept in KV: accounts, sign-in identities, email codes
-> and every customer's records are in Durable Objects (ADR-0030). No code of CMOkit's reads or writes
+> in Workers KV. Nothing else of CMOKit's is kept in KV: accounts, sign-in identities, email codes
+> and every customer's records are in Durable Objects (ADR-0030). No code of CMOKit's reads or writes
 > the library's namespace.
 
 ### Consequences
@@ -52,7 +52,7 @@ Cloudflare's own and scales to zero.
 * Bad, because a token revoked in one location can still be accepted briefly in another until the
   change reaches it, so tokens are kept short-lived.
 * Neutral, because the rule that Durable Objects are the only store becomes "Durable Objects for
-  everything CMOkit's own code keeps".
+  everything CMOKit's own code keeps".
 
 ### Confirmation
 
@@ -73,9 +73,9 @@ review checks that the issuer's own code never touches `OAUTH_KV`.
 * Bad, because the library documents no way to replace its storage, so this is a fork of
   security-critical code to keep in step with every release.
 
-### An authorization server of CMOkit's own, written on Durable Objects
+### An authorization server of CMOKit's own, written on Durable Objects
 
-* Good, because CMOkit would control every byte.
+* Good, because CMOKit would control every byte.
 * Bad, because it is the most security-critical code there is, and a maintained library already does
   it.
 

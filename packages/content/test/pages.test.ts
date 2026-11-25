@@ -1,4 +1,4 @@
-// The content server's pages wear CMOkit's own look, shared with the sign-in pages (ADR-0046), and
+// The content server's pages wear CMOKit's own look, shared with the sign-in pages (ADR-0046), and
 // the account page is React, rendered on the server and made interactive by its own script (ADR-0051).
 
 import assert from 'node:assert/strict';
@@ -58,6 +58,6 @@ test('a person signed in with Instagram who is not activated is shown their hand
   const page = renderPortal({ email: null, handle: 'cy.makes', join: 'https://cmokit.example/' }, 'home');
   assert.match(page, /<h1[^>]*>You&#x27;re not activated yet<\/h1>/);
   assert.match(page, /Signed in<!-- --> as <strong[^>]*>@cy\.makes<\/strong>/);
-  assert.match(page, /comment your waitlist code on one of CMO Kit&#x27;s Reels from @<!-- -->cy\.makes/);
+  assert.match(page, /comment your waitlist code on one of CMOKit&#x27;s Reels from @<!-- -->cy\.makes/);
   assert.doesNotMatch(renderPortal({ email: 'ada@example.com', join: null }, 'home'), /Reels/);
 });

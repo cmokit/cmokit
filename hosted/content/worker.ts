@@ -1,6 +1,6 @@
-// Hosted CMOkit's content server (ADR-0016, ADR-0029): the open-source content server, deployed to
-// CMOkit's own Cloudflare account by the deploy-hosted workflow. `Access` is what the billing
-// lifecycle's PRODUCT binding names (ADR-0004, ADR-0017). Its pages wear CMOkit's own look (ADR-0046),
+// Hosted CMOKit's content server (ADR-0016, ADR-0029): the open-source content server, deployed to
+// CMOKit's own Cloudflare account by the deploy-hosted workflow. `Access` is what the billing
+// lifecycle's PRODUCT binding names (ADR-0004, ADR-0017). Its pages wear CMOKit's own look (ADR-0046),
 // its waitlist tools show the waitlist card the package's build makes (ADR-0049), bundled as text by
 // the `Text` rule in wrangler.jsonc, and its account page is the React one the build makes (ADR-0051).
 /// <reference path="./html.d.ts" />

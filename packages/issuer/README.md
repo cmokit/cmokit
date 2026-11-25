@@ -1,6 +1,6 @@
 # @cmokit/issuer
 
-CMOkit's issuer, as a Cloudflare Worker: the sign-in a person's Claude sends them to when it
+CMOKit's issuer, as a Cloudflare Worker: the sign-in a person's Claude sends them to when it
 connects to the content server (ADR-0018). It keeps no password.
 
 - **Ways in:** a six-digit code by email, Google, GitHub or Meta. A code works for ten minutes and

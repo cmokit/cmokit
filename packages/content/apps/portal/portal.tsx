@@ -29,13 +29,13 @@ const TABS: { tab: AccountTab; path: string; label: string }[] = [
 ];
 
 /** A new creator's setup: two steps here, the rest in Claude Desktop (ADR-0024, ADR-0029), and the page their Reels send people to (ADR-0050). */
-export const SETUP = ['Sign in', 'Name your brand', 'Add CMO Kit to Claude Desktop', 'Sign in from Claude', 'Set up your brand', 'Measure your page', 'Plan your first Reel'];
+export const SETUP = ['Sign in', 'Name your brand', 'Add CMOKit to Claude Desktop', 'Sign in from Claude', 'Set up your brand', 'Measure your page', 'Plan your first Reel'];
 
 export const CLAUDE_STEPS = [
   'Open Claude Desktop and go to Customize, then Plugins. It needs Claude Pro or higher.',
-  'Add CMO Kit\'s marketplace, cmokit/cmokit on GitHub, then add the cmokit-content plugin.',
+  'Add CMOKit\'s marketplace, cmokit/cmokit on GitHub, then add the cmokit-content plugin.',
   'Turn on "Code execution and file creation" in Claude\'s settings.',
-  'Ask Claude to set up your brand with CMO Kit. Sign in when it asks, the same way you signed in here.',
+  'Ask Claude to set up your brand with CMOKit. Sign in when it asks, the same way you signed in here.',
 ];
 
 const brandName = (name: string | null): string => name ?? UNNAMED_BRAND;
@@ -74,7 +74,7 @@ function Shell({ children, tabs }: { children: ReactNode; tabs?: ReactNode }) {
           <svg className="h-[1.375rem] w-[1.375rem] text-accent" viewBox="0 0 32 32" aria-hidden="true">
             <circle cx="16" cy="16" r="10.5" fill="none" stroke="currentColor" strokeWidth="5" strokeDasharray="52 14" strokeLinecap="round" transform="rotate(-50 16 16)" />
           </svg>
-          CMO Kit
+          CMOKit
         </span>
       </header>
       <main className="mx-auto max-w-lg px-4 pt-6 pb-12">{children}</main>
@@ -158,10 +158,10 @@ function NotActivated({ view }: { view: AccountView }) {
   return (
     <div className="space-y-4">
       <H1>You're not activated yet</H1>
-      <p>CMO Kit is in a closed beta, and you can use it once you're activated from its waitlist.</p>
+      <p>CMOKit is in a closed beta, and you can use it once you're activated from its waitlist.</p>
       {view.join && <p><Link href={view.join}>Join the waitlist</Link></p>}
       <SignedIn view={view} />
-      {view.handle && <p>To use CMO Kit with Instagram, comment your waitlist code on one of CMO Kit's Reels from @{view.handle}. Once you're activated, signing in with Instagram lets you in.</p>}
+      {view.handle && <p>To use CMOKit with Instagram, comment your waitlist code on one of CMOKit's Reels from @{view.handle}. Once you're activated, signing in with Instagram lets you in.</p>}
       <p>If you joined with another account, sign out and sign in with that one.</p>
       <SignOut />
     </div>
@@ -171,9 +171,9 @@ function NotActivated({ view }: { view: AccountView }) {
 function NoCustomer({ view }: { view: AccountView }) {
   return (
     <div className="space-y-4">
-      <H1>Your CMOkit account</H1>
+      <H1>Your CMOKit account</H1>
       <SignedIn view={view} />
-      <p>This account has no CMOkit subscription yet. Ask Claude to set CMOkit up, and come back here afterwards.</p>
+      <p>This account has no CMOKit subscription yet. Ask Claude to set CMOKit up, and come back here afterwards.</p>
       <SignOut />
     </div>
   );
@@ -220,8 +220,8 @@ function NextStep({ next, home, connector, email }: { next: number; home: string
     );
   }
   if (next <= 3) {
-    const body = `${CLAUDE_STEPS.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nCMO Kit's address in Claude: ${connector}\nYour CMO Kit account: ${home}`;
-    const mail = `mailto:${email ? encodeURIComponent(email) : ''}?subject=${encodeURIComponent('Set up CMO Kit in Claude Desktop')}&body=${encodeURIComponent(body)}`;
+    const body = `${CLAUDE_STEPS.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nCMOKit's address in Claude: ${connector}\nYour CMOKit account: ${home}`;
+    const mail = `mailto:${email ? encodeURIComponent(email) : ''}?subject=${encodeURIComponent('Set up CMOKit in Claude Desktop')}&body=${encodeURIComponent(body)}`;
     return (
       <>
         <StepTitle>Finish setup on a computer</StepTitle>
@@ -236,7 +236,7 @@ function NextStep({ next, home, connector, email }: { next: number; home: string
     return (
       <>
         <StepTitle>Set up your brand in Claude</StepTitle>
-        <p>In Claude Desktop, ask Claude to set up your brand with CMO Kit. It asks about your brand, and saves its context here once you approve it.</p>
+        <p>In Claude Desktop, ask Claude to set up your brand with CMOKit. It asks about your brand, and saves its context here once you approve it.</p>
       </>
     );
   }
@@ -244,7 +244,7 @@ function NextStep({ next, home, connector, email }: { next: number; home: string
     return (
       <>
         <StepTitle>Measure your page</StepTitle>
-        <p>Put your waitlist form on the page your Reels send people to. CMO Kit then counts that page's visits beside its joins, and each week Claude tells you how it converts and the one change to try next.</p>
+        <p>Put your waitlist form on the page your Reels send people to. CMOKit then counts that page's visits beside its joins, and each week Claude tells you how it converts and the one change to try next.</p>
         <ol className="list-decimal space-y-2 pl-5">
           <li>On the Waitlist tab, add your site's address.</li>
           <li>Copy the form shown there, and paste it into that page.</li>
@@ -258,7 +258,7 @@ function NextStep({ next, home, connector, email }: { next: number; home: string
   return (
     <>
       <StepTitle>Plan your first Reel</StepTitle>
-      <p>In Claude Desktop, ask Claude to plan this week's content with CMO Kit. It writes your first Reel's brief.</p>
+      <p>In Claude Desktop, ask Claude to plan this week's content with CMOKit. It writes your first Reel's brief.</p>
     </>
   );
 }
@@ -267,7 +267,7 @@ function NextStep({ next, home, connector, email }: { next: number; home: string
 function ClaudeAddress({ connector, name }: { connector: string; name: string }) {
   return (
     <>
-      <p>If Claude asks for CMO Kit's address, or the plugin can't connect, add a custom connector in Claude's settings with this address. When you sign in, pick {name} at "Which brand?".</p>
+      <p>If Claude asks for CMOKit's address, or the plugin can't connect, add a custom connector in Claude's settings with this address. When you sign in, pick {name} at "Which brand?".</p>
       <CopyBlock text={connector} label="Copy the address" />
     </>
   );
@@ -358,7 +358,7 @@ function WaitlistTab({ w }: { w: Waitlist }) {
   return (
     <div className="space-y-4">
       <H1>Waitlist</H1>
-      <p>People join from a form on your site. Joining gives no access until you activate them.{w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOkit.' : ''} CMOkit sends no email yet, so tell them yourself.</p>
+      <p>People join from a form on your site. Joining gives no access until you activate them.{w.grantsCmokit ? ' Activating someone here lets them sign in and use CMOKit.' : ''} CMOKit sends no email yet, so tell them yourself.</p>
       {w.people.length ? (
         <>
           <p>{w.people.length} on the waitlist, ranked by referrals plus Reels commented on, then who joined first.</p>
@@ -438,7 +438,7 @@ function AccountTabView({ c, name, view }: { c: Customer; name: string; view: Ac
         </Section>
       )}
       <Section title="Your data">
-        <p><Link href="/export">Download everything CMOkit holds for this brand</Link></p>
+        <p><Link href="/export">Download everything CMOKit holds for this brand</Link></p>
         <SignOut />
       </Section>
     </div>

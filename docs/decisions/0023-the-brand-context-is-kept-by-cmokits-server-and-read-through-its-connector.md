@@ -5,7 +5,7 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0023: The brand context is kept by CMOkit's server, versioned, and read through its connector before every draft
+# ADR-0023: The brand context is kept by CMOKit's server, versioned, and read through its connector before every draft
 
 **Requirements served:** `CNT-01`, `CNT-05`, `CNT-06`, `CNT-08`, `CNT-09`, `CNT-22`, `CNT-27`, `HST-13`.
 
@@ -43,7 +43,7 @@ What Claude offers, from Anthropic's documentation:
 
 ## Considered Options
 
-* CMOkit's server keeps the brand context as versions, read and changed through its connector
+* CMOKit's server keeps the brand context as versions, read and changed through its connector
 * A Claude Doc the skill reads and edits
 * The README of the brand's Claude Design design system
 * A Claude Project's instructions and knowledge
@@ -52,11 +52,11 @@ What Claude offers, from Anthropic's documentation:
 
 ## Decision Outcome
 
-Chosen option: "CMOkit's server keeps the brand context as versions, read and changed through its
+Chosen option: "CMOKit's server keeps the brand context as versions, read and changed through its
 connector", because it is the only option a skill can read in every conversation on every surface,
 whose every change is a version with its reason.
 
-> The brand context is a structured document of the sections `CNT-01` lists, kept by CMOkit's server
+> The brand context is a structured document of the sections `CNT-01` lists, kept by CMOKit's server
 > in the customer's object (ADR-0030) as a series of versions. The skill reads the current version
 > through the connector at the start of every task. The brand context is the customer's, not the
 > content skill's: the coding-agent skill reads the same version for the variant pages it writes
@@ -93,8 +93,8 @@ sequenceDiagram
   is visible and any bad change is one step to undo.
 * Bad, because the person cannot edit the brand context directly in a document; a Doc they edit by
   hand changes nothing until they ask Claude to make the change.
-* Bad, because without CMOkit's connector, the skill has no brand context to read (ADR-0034).
-* Neutral, because the brand context is the customer's data on CMOkit's server, exported on request
+* Bad, because without CMOKit's connector, the skill has no brand context to read (ADR-0034).
+* Neutral, because the brand context is the customer's data on CMOKit's server, exported on request
   and deleted with the account.
 
 ### Confirmation
@@ -105,10 +105,10 @@ Evals assert the skill reads the brand context before its first draft in a conve
 
 ## Pros and Cons of the Options
 
-### CMOkit's server keeps the brand context as versions, read and changed through its connector
+### CMOKit's server keeps the brand context as versions, read and changed through its connector
 
 * Good, because it meets every driver.
-* Bad, because the brand context lives with CMOkit, not in a document the person opens directly.
+* Bad, because the brand context lives with CMOKit, not in a document the person opens directly.
 
 ### A Claude Doc the skill reads and edits
 

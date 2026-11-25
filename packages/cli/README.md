@@ -1,6 +1,6 @@
 # @cmokit/cli
 
-A CMOkit site's configuration: `defineConfig` for its `cmokit.config.ts`, which is bundled into the
+A CMOKit site's configuration: `defineConfig` for its `cmokit.config.ts`, which is bundled into the
 edge and the lifecycle when they are deployed. Each experiment declares its goal and its status:
 `draft`, `running` or `ended`. Only a running experiment assigns visitors. Each sequence declares
 the event that captures a lead into it, the events that end it, and its messages, each a template
@@ -92,5 +92,5 @@ Every command but `waitlist` needs `analytics.posthog.project` in the configurat
 scoped to that project with `experiment:write`, `feature_flag:write`, `query:read` and `experiment_saved_metric:read`, in
 `POSTHOG_PERSONAL_API_KEY`. The deploy supplies it to `sync` as a secret.
 
-Part of [CMOkit](https://github.com/cmokit/cmokit), an opinionated, open-source growth engine for
+Part of [CMOKit](https://github.com/cmokit/cmokit), an opinionated, open-source growth engine for
 subscription businesses.

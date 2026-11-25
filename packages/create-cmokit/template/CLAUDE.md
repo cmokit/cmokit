@@ -1,6 +1,6 @@
 # This site
 
-An Astro site on GitHub Pages, with a CMOkit edge (a Cloudflare Worker) in front of it that runs
+An Astro site on GitHub Pages, with a CMOKit edge (a Cloudflare Worker) in front of it that runs
 landing-page experiments on PostHog.
 
 ## Experiments
@@ -42,7 +42,7 @@ landing-page experiments on PostHog.
 - Each message is `messages/<template>.md`: a `subject` in its front matter, then markdown
   (paragraphs, links, bold and italic). A new template is also added to `messages/index.ts`.
   `npm run build` fails if a sequence names a template that is missing or has no subject.
-- Changing a message is a pull request, like changing a page. CMOkit adds why it was sent, the
+- Changing a message is a pull request, like changing a page. CMOKit adds why it was sent, the
   unsubscribe link and the postal address to every message, so a template needs none of them.
 - Sends, opens, clicks and unsubscribes are PostHog events (`message_sent`, `message_opened`,
   `message_clicked`, `message_unsubscribed`, `sequence_ended`) under the visitor's id, with the

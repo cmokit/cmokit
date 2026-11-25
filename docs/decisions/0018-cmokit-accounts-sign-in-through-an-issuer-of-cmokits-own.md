@@ -5,20 +5,20 @@ date: 2026-10-30
 decision-makers: [Geoff]
 ---
 
-# ADR-0018: CMOkit accounts sign in through an issuer of CMOkit's own, with an email code, Google, GitHub or Meta, and no password
+# ADR-0018: CMOKit accounts sign in through an issuer of CMOKit's own, with an email code, Google, GitHub or Meta, and no password
 
 **Requirements served:** `HST-02`, `HST-05`, `HST-10`, `HST-11`, `NFR-06`, `CUS-01`, `PRD-01`, `CNT-27`.
 
 ## Context and Problem Statement
 
-The hosted offering needs accounts of CMOkit's own, signed in with an email address, Google, GitHub
+The hosted offering needs accounts of CMOKit's own, signed in with an email address, Google, GitHub
 or Meta, where signing in grants nothing beyond identity (`HST-02`). The `PRD-` and `CUS-`
-requirements describe a product's identity, and in the hosted offering CMOkit is that product: a
+requirements describe a product's identity, and in the hosted offering CMOKit is that product: a
 person signs in by a standard protocol and an MCP client acting for them is authorized by OAuth
 (`PRD-01`), a customer is who pays and has one or more users, and a person may be a user of several
-customers (`CUS-01`). So nothing there conflicts; CMOkit's accounts take the role `PRD-01` gives a
-product's identity provider. The person's Claude reaches CMOkit through an authorization the person
-grants by signing in (`HST-05`). Something has to issue that authorization, and every part of CMOkit
+customers (`CUS-01`). So nothing there conflicts; CMOKit's accounts take the role `PRD-01` gives a
+product's identity provider. The person's Claude reaches CMOKit through an authorization the person
+grants by signing in (`HST-05`). Something has to issue that authorization, and every part of CMOKit
 runs on Cloudflare and scales to zero (`NFR-06`, ADR-0003).
 
 What each provider offers, from its own documentation:
@@ -43,7 +43,7 @@ server; from its 1.0 release it runs the authorization server and the resource s
 Workers, and supports Client ID Metadata Documents.
 
 CFOKit, a separate product, chose Keycloak behind a written contract: a complete identity provider,
-with passwords, second factors and passkeys, which CMOkit would not have to write. CFOKit runs it as
+with passwords, second factors and passkeys, which CMOKit would not have to write. CFOKit runs it as
 one instance that is always on, with a database of its own, because "a sign-in that waits for a JVM
 to start is a sign-in that times out".
 
@@ -51,14 +51,14 @@ to start is a sign-in that times out".
 
 * Sign-in identifies the person and grants nothing else (`HST-02`).
 * Scales to zero, on Cloudflare alone (`NFR-06`).
-* CMOkit keeps no password.
+* CMOKit keeps no password.
 * No dependency on another product's identity provider.
 * Claude registers by its published identity, and a coding agent that cannot still registers (`CNT-27`).
 * A self-hoster runs the same issuer with OAuth clients of their own (`HST-11`).
 
 ## Considered Options
 
-* An issuer Worker of CMOkit's own, on Cloudflare's OAuth library, offering an email code, Google,
+* An issuer Worker of CMOKit's own, on Cloudflare's OAuth library, offering an email code, Google,
   GitHub and Facebook Login
 * Keycloak, run as CFOKit runs it
 * Sharing CFOKit's issuer
@@ -70,12 +70,12 @@ to start is a sign-in that times out".
 
 ## Decision Outcome
 
-Chosen option: "An issuer Worker of CMOkit's own, on Cloudflare's OAuth library, offering an email
+Chosen option: "An issuer Worker of CMOKit's own, on Cloudflare's OAuth library, offering an email
 code, Google, GitHub and Facebook Login", because it is the only option that scales to zero on
 Cloudflare, stores no password, and leaves the protocol's hard parts to a maintained library.
 
-> CMOkit's issuer is a Worker of its own, built on Cloudflare's OAuth library, and the only part of
-> CMOkit that issues tokens; every other part only checks them (ADR-0029). Its sign-in page offers
+> CMOKit's issuer is a Worker of its own, built on Cloudflare's OAuth library, and the only part of
+> CMOKit that issues tokens; every other part only checks them (ADR-0029). Its sign-in page offers
 > four ways in, asking for nothing beyond identity:
 >
 > * **Google**, by OpenID Connect, asking for `openid`, `email` and `profile`.
@@ -88,7 +88,7 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 >   attempts, and sending is limited per address and per network. The page says the same whether or
 >   not the address has an account.
 >
-> CMOkit keeps no password. An account is a person, found by the sign-in identity they used: a
+> CMOKit keeps no password. An account is a person, found by the sign-in identity they used: a
 > provider and its stable subject id, or an email address proven by code. Accounts are never merged
 > by matching email; a signed-in person adds another way in themselves, and a proven email address
 > lets them back in when a provider fails them. The first sign-in creates the account, which becomes
@@ -104,7 +104,7 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > authorization response. A token names the person and the customer the connection serves, which
 > the sign-in picks: a person with one customer is signed in to it, a person with several chooses
 > one, and a person with none is signed in to no customer and offered only the subscription that
-> makes one (ADR-0017, ADR-0029, `HST-10`). Passkeys and second factors of CMOkit's own are not built.
+> makes one (ADR-0017, ADR-0029, `HST-10`). Passkeys and second factors of CMOKit's own are not built.
 
 A person signing in and connecting their Claude to the content server:
 
@@ -141,11 +141,11 @@ sequenceDiagram
 * Good, because no password is stored, reset or open to credential stuffing.
 * Good, because Claude registers by its published identity, and dynamic registration remains only
   for the clients that need it, behind the same limit on redirects.
-* Bad, because CMOkit owns security-critical code: the sign-in page, the provider callbacks, the email
+* Bad, because CMOKit owns security-critical code: the sign-in page, the provider callbacks, the email
   codes and account linking. It is tested against a written list of attacks: guessing codes, flooding
   an inbox, finding out who has an account, forging a sign-in, redirecting it elsewhere, and taking
   over an account by linking.
-* Bad, because an email code is as safe as the person's mailbox, and CMOkit offers no second factor
+* Bad, because an email code is as safe as the person's mailbox, and CMOKit offers no second factor
   of its own; Google, GitHub and Meta offer theirs.
 * Bad, because the library keeps its tokens in Workers KV, not a Durable Object (ADR-0035).
 * Neutral, because a self-hoster registers OAuth clients at each provider they want, and needs a
@@ -162,23 +162,23 @@ refused.
 
 ## Pros and Cons of the Options
 
-### An issuer Worker of CMOkit's own, on Cloudflare's OAuth library, offering an email code, Google, GitHub and Facebook Login
+### An issuer Worker of CMOKit's own, on Cloudflare's OAuth library, offering an email code, Google, GitHub and Facebook Login
 
 * Good, because it meets every driver.
-* Bad, because the sign-in page and its four flows are CMOkit's to keep secure.
+* Bad, because the sign-in page and its four flows are CMOKit's to keep secure.
 
 ### Keycloak, run as CFOKit runs it
 
 * Good, because it is a complete identity provider: passwords, resets, second factors, passkeys,
-  social sign-in and an admin console, none of them written by CMOkit.
+  social sign-in and an admin console, none of them written by CMOKit.
 * Bad, because it is a Java server needing a relational database, and Workers run neither, so it
-  breaks the rules that CMOkit runs on Cloudflare alone and scales to zero (`NFR-06`).
+  breaks the rules that CMOKit runs on Cloudflare alone and scales to zero (`NFR-06`).
 * Bad, because CFOKit's own record finds it supports dynamic registration but not Client ID
   Metadata Documents.
 
 ### Sharing CFOKit's issuer
 
-* Good, because a person would have one account across both products, and CMOkit would build nothing.
+* Good, because a person would have one account across both products, and CMOKit would build nothing.
 * Bad, because the two products become one system: an outage, a release or a configuration change
   in one reaches the other's customers.
 * Bad, because it brings every drawback of Keycloak above with it.
@@ -186,7 +186,7 @@ refused.
 ### A bought identity service, such as Clerk, Auth0, WorkOS or Stytch
 
 * Good, because providers, codes, sessions, linking and recovery are built.
-* Bad, because a vendor sits between CMOkit and every customer's sign-in, and every self-hoster needs
+* Bad, because a vendor sits between CMOKit and every customer's sign-in, and every self-hoster needs
   an account there too (`HST-11`).
 
 ### Passwords, as well as or instead of email codes
@@ -250,10 +250,10 @@ one without changing it (ADR-0029); accounts and their sign-in identities would 
 
 ## Revisit when
 
-* People ask for passkeys or a second factor on CMOkit's own sign-in.
+* People ask for passkeys or a second factor on CMOKit's own sign-in.
 * Email codes are abused, by flooding inboxes or guessing, beyond what the limits stop.
 * Meta requires Business Verification or review for Facebook Login with identity scopes alone.
 * Anthropic offers a sign-in a third party can use, so a person's Claude account could be their
-  CMOkit account.
-* Every client CMOkit serves registers by a Client ID Metadata Document, so dynamic registration can
+  CMOKit account.
+* Every client CMOKit serves registers by a Client ID Metadata Document, so dynamic registration can
   go.

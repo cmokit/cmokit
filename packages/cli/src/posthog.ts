@@ -16,8 +16,8 @@ export interface PostHogAdminOptions {
   fetch?: typeof fetch;
 }
 
-/** Marks the experiments CMOkit's sync created, and tells anyone in PostHog where to change them. */
-export const MANAGED = 'Managed by CMOkit: change it in cmokit.config.ts, not here.';
+/** Marks the experiments CMOKit's sync created, and tells anyone in PostHog where to change them. */
+export const MANAGED = 'Managed by CMOKit: change it in cmokit.config.ts, not here.';
 
 interface Variant {
   key: string;
@@ -101,7 +101,7 @@ export function posthogAdmin(options: PostHogAdminOptions): ExperimentsAdmin {
         for (const listed of page.results) {
           if (listed.archived || listed.deleted) continue;
           const managed = (listed.description ?? '').startsWith(MANAGED);
-          // The list leaves out the flag and metrics, which only matter for experiments CMOkit manages.
+          // The list leaves out the flag and metrics, which only matter for experiments CMOKit manages.
           const full = managed ? await call<PostHogExperiment>('GET', experiment(String(listed.id))) : listed;
           found.push(toTool(full, managed));
         }

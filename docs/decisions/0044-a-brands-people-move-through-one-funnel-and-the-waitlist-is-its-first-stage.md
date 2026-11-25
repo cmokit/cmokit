@@ -11,7 +11,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit lets people in through a closed beta: they join a brand's waitlist, move up it, and a user of
+CMOKit lets people in through a closed beta: they join a brand's waitlist, move up it, and a user of
 the brand activates them (`LEAD-04`, ADR-0043). A public beta will let people sign up without being
 activated, and a paid launch will add subscribing (`SUB-01`, `HST-12`). Each brand runs the same
 steps for its own audience (`CUS-03`).

@@ -1,5 +1,5 @@
 /* The cards' theme. Backgrounds, text, borders and the body font are the host's own style variables, as
-   Claude's design guidelines ask, so a card reads as part of the conversation; CMOkit's look (ADR-0046),
+   Claude's design guidelines ask, so a card reads as part of the conversation; CMOKit's look (ADR-0046),
    the tokens of LOOK in @cmokit/issuer's look.ts, gives the accent, the heading font, and every fallback
    where a host sends no variables. Light and dark follow the host's theme, which the card sets as
    data-theme, and otherwise the person's setting. The page itself stays transparent. */

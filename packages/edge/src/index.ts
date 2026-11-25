@@ -321,7 +321,7 @@ export function parseCookies(header: string | null): Record<string, string> {
     try {
       cookies[pair.slice(0, at)] = decodeURIComponent(pair.slice(at + 1));
     } catch {
-      // A value that is not valid percent-encoding was not set by CMOkit.
+      // A value that is not valid percent-encoding was not set by CMOKit.
     }
   }
   return cookies;

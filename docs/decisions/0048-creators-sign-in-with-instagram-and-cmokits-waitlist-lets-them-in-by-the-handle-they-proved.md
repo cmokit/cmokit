@@ -5,22 +5,22 @@ date: 2026-11-12
 decision-makers: [Geoff]
 ---
 
-# ADR-0048: Creators sign in with Instagram, and CMOkit's waitlist lets them in by the handle they proved
+# ADR-0048: Creators sign in with Instagram, and CMOKit's waitlist lets them in by the handle they proved
 
 **Requirements served:** `HST-02`, `HST-01`, `HST-03`, `HST-10`, `CUS-03`, `LEAD-04`.
 
 ## Context and Problem Statement
 
-Hosted CMOkit's users are professional creators, who arrive from the Instagram app with a business or
+Hosted CMOKit's users are professional creators, who arrive from the Instagram app with a business or
 creator account. ADR-0018 offers them an email code, Google, GitHub or Facebook, and turned down
 Instagram because its login grants business permissions beyond identity. In production only GitHub is
 on, which creators mostly do not have, and email codes wait for SendGrid. Activation is decided by
-the email address a person proved (ADR-0018), while CMOkit's waitlist already proves each person's
-Instagram handle by the referral code they comment on one of CMOkit's Reels (ADR-0045). Something
+the email address a person proved (ADR-0018), while CMOKit's waitlist already proves each person's
+Instagram handle by the referral code they comment on one of CMOKit's Reels (ADR-0045). Something
 has to say how a creator signs in with the account they use every day, and how a sign-in that
 proves no email address is matched to a person activated on the waitlist.
 
-Meta does not offer Instagram Login to new apps; CMOkit's app has API setup with Unified login, built
+Meta does not offer Instagram Login to new apps; CMOKit's app has API setup with Unified login, built
 on Facebook Login for Business (ADR-0045). Its login is shaped by a configuration made in the app,
 not by a list of scopes, and comes back to a redirect address the app allows, which Meta sets for
 the whole app rather than for each configuration.
@@ -28,10 +28,10 @@ the whole app rather than for each configuration.
 ## Decision Drivers
 
 * A creator signs in with their Instagram account, on a phone, with nothing else to set up.
-* A person is let in only for a handle proven to be theirs, and only once a user of CMOkit's own
+* A person is let in only for a handle proven to be theirs, and only once a user of CMOKit's own
   brand has activated them (`CUS-03`, ADR-0043).
 * Handles change; the account a person signs in with does not.
-* CMOkit keeps no token it does not need, and no record about a person outside their customer's
+* CMOKit keeps no token it does not need, and no record about a person outside their customer's
   export beyond what sign-in already keeps (`HST-10`).
 * GitHub, and a connection already made with it, keep working.
 
@@ -64,7 +64,7 @@ that signs a creator in with the account the waitlist already proved.
 > can sign in with Instagram, so each beta creator is added as a tester.
 
 This replaces ADR-0018's rule that every sign-in grants nothing beyond identity, for Instagram alone:
-what Meta grants is the configuration's to say, and CMOkit uses it for that one read.
+what Meta grants is the configuration's to say, and CMOKit uses it for that one read.
 
 ### Consequences
 
@@ -73,7 +73,7 @@ what Meta grants is the configuration's to say, and CMOkit uses it for that one 
 * Good, because a handle given up and taken by someone else lets nobody new in.
 * Bad, because Unified Login asks for a Facebook login and a business portfolio holding the creator's
   account, which a creator who never set one up has to make first.
-* Bad, because the token Meta issues can do more than identify the person, though CMOkit discards it.
+* Bad, because the token Meta issues can do more than identify the person, though CMOKit discards it.
 * Bad, because creators sign in only as testers until Meta's App Review and Business Verification
   pass.
 * Neutral, because a person who signs in with Instagram and with GitHub has two accounts, as ADR-0018

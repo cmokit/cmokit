@@ -11,7 +11,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-Credits are counted by CMOkit's own ledger (ADR-0006). Everything else in the subscription lifecycle
+Credits are counted by CMOKit's own ledger (ADR-0006). Everything else in the subscription lifecycle
 is money: a free trial started in a hosted checkout (`SUB-01`) that converts to a subscription
 (`SUB-02`), invoices, charges, dunning after a failed payment, a customer portal (`SUB-03`), top-ups
 bought from a link (`CRD-07`), and overage billed when usage passes the balance (`CRD-04`). Card risk
@@ -39,7 +39,7 @@ on top of it. The candidates, as their own documentation stood on 2026-10-24:
 
 ## Considered Options
 
-* Stripe alone, with credits in CMOkit's ledger
+* Stripe alone, with credits in CMOKit's ledger
 * Autumn, over Stripe Billing
 * OpenMeter, as Kong Konnect Metering & Billing
 * Flexprice
@@ -47,13 +47,13 @@ on top of it. The candidates, as their own documentation stood on 2026-10-24:
 
 ## Decision Outcome
 
-Chosen option: "Stripe alone, with credits in CMOkit's ledger", because it is the only option that adds
+Chosen option: "Stripe alone, with credits in CMOKit's ledger", because it is the only option that adds
 neither a vendor nor an always-on server, and the one thing the billing tools add, a running credit
-balance, is CMOkit's own (ADR-0006).
+balance, is CMOKit's own (ADR-0006).
 
 > The payments interface is implemented by one adapter, for Stripe. Plans, prices, trial length and
-> the grace period are configured in Stripe from CMOkit's configuration (`SUB-05`). A customer in
-> CMOkit is one Stripe customer (`CUS-01`), created at its first checkout (`CUS-03`). The lifecycle
+> the grace period are configured in Stripe from CMOKit's configuration (`SUB-05`). A customer in
+> CMOKit is one Stripe customer (`CUS-01`), created at its first checkout (`CUS-03`). The lifecycle
 > verifies each Stripe webhook event before acting on it, and acts by setting a state, so an event
 > delivered twice acts once (`SUB-06`). A paid renewal or top-up becomes a credit grant in the ledger;
 > usage past the balance, within the configured overage, is reported to a Stripe meter and billed on
@@ -76,10 +76,10 @@ against recorded Stripe responses and events, with no account (`NFR-04`).
 
 ## Pros and Cons of the Options
 
-### Stripe alone, with credits in CMOkit's ledger
+### Stripe alone, with credits in CMOKit's ledger
 
 * Good, because it meets every driver.
-* Bad, because the running balance is CMOkit's to build (ADR-0006).
+* Bad, because the running balance is CMOKit's to build (ADR-0006).
 
 ### Autumn, over Stripe Billing
 

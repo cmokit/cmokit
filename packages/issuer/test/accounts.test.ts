@@ -87,8 +87,8 @@ test('a person names their brands, and a record made before names keeps its bran
   const person = new Person(db);
   await person.addCustomer('cfo-kit-0a1b2c', T0 + 1, 'CFO Kit');
   assert.deepEqual(await person.brands(), [{ slug: 'c0ffee', name: null }, { slug: 'cfo-kit-0a1b2c', name: 'CFO Kit' }]);
-  assert.equal(await person.nameCustomer('c0ffee', 'CMO Kit'), true);
+  assert.equal(await person.nameCustomer('c0ffee', 'CMOKit'), true);
   assert.equal(await person.nameCustomer('initech', 'Initech'), false, 'only a brand of theirs');
-  assert.deepEqual(await person.brands(), [{ slug: 'c0ffee', name: 'CMO Kit' }, { slug: 'cfo-kit-0a1b2c', name: 'CFO Kit' }]);
+  assert.deepEqual(await person.brands(), [{ slug: 'c0ffee', name: 'CMOKit' }, { slug: 'cfo-kit-0a1b2c', name: 'CFO Kit' }]);
   assert.deepEqual(await new Person(db).customers(), ['c0ffee', 'cfo-kit-0a1b2c'], 'opening the record again changes nothing');
 });

@@ -1,4 +1,4 @@
-// The Astro integration. It checks the site's CMOkit configuration and adds the analytics script to
+// The Astro integration. It checks the site's CMOKit configuration and adds the analytics script to
 // every page. Fails the build if a draft or running experiment's page was not built (ADR-0009), or if
 // a sequence's message has no template with a subject (ADR-0014).
 
@@ -47,7 +47,7 @@ export default function cmokit(config: Config): AstroIntegration {
             }
           }
         }
-        if (missing.length > 0) throw new Error(`CMOkit:\n  ${missing.join('\n  ')}`);
+        if (missing.length > 0) throw new Error(`CMOKit:\n  ${missing.join('\n  ')}`);
       },
     },
   };

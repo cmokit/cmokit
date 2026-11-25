@@ -11,7 +11,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit assigns no variant and judges no experiment itself: an experiments tool does both, with its
+CMOKit assigns no variant and judges no experiment itself: an experiments tool does both, with its
 own statistics (`EXP-02`). Visits, exposures and conversions have to land in an analytics tool that
 reads conversion and revenue by channel and variant without a warehouse (`MSR-05`), following one
 identity from first visit to payment (`MSR-04`), with the conversion recorded server-side too
@@ -31,7 +31,7 @@ choose the first tool to put behind those interfaces.
 * PostHog, for experiments and analytics both
 * GrowthBook for experiments, with a separate analytics tool
 * Statsig
-* An experiments engine of CMOkit's own
+* An experiments engine of CMOKit's own
 
 ## Decision Outcome
 
@@ -40,7 +40,7 @@ judges them and holds the funnel they are judged by, over an API the edge calls 
 
 > The edge and the integration speak to two interfaces, experiments (a visitor's variant of a flag)
 > and analytics (capturing an event for a visitor, and relaying the browser's events), and PostHog
-> implements both in one adapter per package. The visitor's identity is CMOkit's own cookie, used as
+> implements both in one adapter per package. The visitor's identity is CMOKit's own cookie, used as
 > PostHog's distinct id by the edge and bootstrapped into the browser's PostHog client, which
 > evaluates no flags itself and records no exposures. The browser's events reach PostHog through the
 > edge, under the site's own address. Tests run against stand-ins for the interfaces, with no PostHog
@@ -89,10 +89,10 @@ that wires them do. Tests of the edge and the integration use stand-ins for the 
 * Bad, because it is weaker as the analytics tool for revenue by channel, which would mean a second
   tool again.
 
-### An experiments engine of CMOkit's own
+### An experiments engine of CMOKit's own
 
 * Good, because it would need no vendor.
-* Bad, because `EXP-02` leaves the statistics to a tool, and CMOkit would then store assignments,
+* Bad, because `EXP-02` leaves the statistics to a tool, and CMOKit would then store assignments,
   which the edge cannot.
 
 ## More Information

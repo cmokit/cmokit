@@ -11,7 +11,7 @@ decision-makers: [Geoff]
 
 ## Context and Problem Statement
 
-CMOkit's sequences (ADR-0014) need a service that sends their email and keeps the sending reputation:
+CMOKit's sequences (ADR-0014) need a service that sends their email and keeps the sending reputation:
 authenticated domains, bounce and complaint handling, and the unsubscribe that mail providers require
 of bulk senders, including one-click unsubscribe (RFC 8058). A nurture email is marketing email, not
 transactional.
@@ -47,11 +47,11 @@ and suppressions itself, and signs its events.
 
 > The messaging interface's email adapter sends through SendGrid's Mail Send API, from the lifecycle
 > Worker, with an API key restricted to sending and suppressions, a Worker secret. Each message
-> carries CMOkit's own unsubscribe link and one-click headers (RFC 8058), which the edge serves, and
+> carries CMOKit's own unsubscribe link and one-click headers (RFC 8058), which the edge serves, and
 > belongs to the site's unsubscribe group, so SendGrid drops later sends to anyone who unsubscribed,
-> bounced or complained, and an unsubscribe through CMOkit's link is added to the group's
+> bounced or complained, and an unsubscribe through CMOKit's link is added to the group's
 > suppressions. SendGrid's event webhook is verified by its ECDSA signature
-> before CMOkit acts on it, and an unsubscribe, bounce or spam report ends the lead's sequence. No
+> before CMOKit acts on it, and an unsubscribe, bounce or spam report ends the lead's sequence. No
 > handler names SendGrid; only the adapter does.
 
 ### Consequences
@@ -65,7 +65,7 @@ and suppressions itself, and signs its events.
 
 The adapter's tests run against recorded SendGrid requests and events, with no account (`NFR-04`),
 and refuse an event whose signature does not verify. That SendGrid delivers the unsubscribe headers
-CMOkit sets is checked against a real send.
+CMOKit sets is checked against a real send.
 
 ## Pros and Cons of the Options
 
@@ -87,7 +87,7 @@ CMOkit sets is checked against a real send.
 
 ### Cloudflare Email Service
 
-* Good, because it keeps every part of CMOkit with one vendor, and a Worker sends through a binding
+* Good, because it keeps every part of CMOKit with one vendor, and a Worker sends through a binding
   with no key.
 * Bad, because it allows transactional email only, and a nurture email is marketing.
 

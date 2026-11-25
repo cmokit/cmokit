@@ -28,8 +28,8 @@ server.
 
 * A card works in every host that implements MCP Apps, from one page the server serves.
 * The cards and the account page can share one way of building interfaces as both grow.
-* The protocol's own helpers, accessible components and a theme from CMOkit's own look (ADR-0046).
-* Claude, which writes nearly all of CMOkit's code, writes the framework reliably.
+* The protocol's own helpers, accessible components and a theme from CMOKit's own look (ADR-0046).
+* Claude, which writes nearly all of CMOKit's code, writes the framework reliably.
 * The content server's handlers stay web-standard and tested on Node (ADR-0003, ADR-0007).
 
 ## Considered Options
@@ -48,12 +48,12 @@ reliably. Svelte and Solid are smaller and faster, but in a card the SDK itself 
 difference, and the host can load a card before the tool is called.
 
 > Each card's source is `packages/content/apps/<card>/`, in React and TSX, styled with Tailwind
-> from CMOkit's own look in `apps/theme.css`, with shadcn's components in `apps/ui/`. It talks to the
+> from CMOKit's own look in `apps/theme.css`, with shadcn's components in `apps/ui/`. It talks to the
 > host through `@modelcontextprotocol/ext-apps`. The content package's build runs Vite after `tsc`
 > and writes each card to `dist/apps/<card>.html`, one page with its script and styles inlined. The
 > card's TSX is the one place in the repository that Node does not run by stripping types; logic a
 > test needs lives beside it in plain `.ts`. The content server takes the built pages as `apps`, as
-> it takes the fonts; hosted CMOkit's adapter bundles them as text. With a page, a tool that has a
+> it takes the fonts; hosted CMOKit's adapter bundles them as text. With a page, a tool that has a
 > card names it in `_meta.ui.resourceUri`, the server lists it under `resources/list` and serves it
 > at `resources/read` as `text/html;profile=mcp-app`, with the look's two fonts loaded from the
 > server's own origin, the only source its policy names. Without one, the tools answer in text alone.
@@ -62,7 +62,7 @@ difference, and the host can load a card before the tool is called.
 > of its own, at most a handful of items, at most two buttons and visible controls in place of menus,
 > and a list longer than that opens full screen from the card's own button, by `requestDisplayMode`.
 > A host that offers no full screen, or refuses it, shows the full view in place. Backgrounds, text,
-> borders and the body font are the host's style variables, with CMOkit's look as the accent, the
+> borders and the body font are the host's style variables, with CMOKit's look as the accent, the
 > heading font and the fallback where a host sends none.
 
 ### Consequences

@@ -1,4 +1,4 @@
-// shadcn's input, textarea and label, in CMOkit's look: a pill for one line, a rounded box for more.
+// shadcn's input, textarea and label, in CMOKit's look: a pill for one line, a rounded box for more.
 import type { ComponentProps } from 'react';
 import { cn } from './cn.ts';
 

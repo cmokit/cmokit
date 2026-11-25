@@ -1,4 +1,4 @@
-# CMOkit — Requirements
+# CMOKit — Requirements
 
 Each requirement carries a stable id. Ids are never reused. Decision records cite these ids; these
 requirements cite no decision record.
@@ -7,36 +7,36 @@ requirements cite no decision record.
 
 | Topic | Boundary |
 |---|---|
-| Hosting a site | CMOkit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. Hosted CMOkit serves a customer's landing page, waitlist, referral links and messages, and builds or hosts nothing else of the customer's site. |
+| Hosting a site | CMOKit sits in front of a site its owner builds and hosts. The self-hosted engine runs no service for anyone. Hosted CMOKit serves a customer's landing page, waitlist, referral links and messages, and builds or hosts nothing else of the customer's site. |
 | A page builder or CMS | Pages are made with whatever builds the site: a static site generator, a CMS or anything else. |
 | A warehouse or BI layer | Conversion and revenue are read in the analytics tool they already land in. |
-| Ad budgets and ad accounts | Paid acquisition is part of the loop: CMOkit traffics ads in the person's own ad account, after their approval and within the budget they set, analyzes how they perform and plans the next round, and automates more of that as the person allows. The ad account, the budget and the money stay the person's; CMOkit holds no ad account of its own and never sets or raises a budget. |
-| Editing and posting video | Footage is edited, and posts are published and scheduled, in the person's own tools. CMOkit posts nothing for anyone and automates no direct messages. |
+| Ad budgets and ad accounts | Paid acquisition is part of the loop: CMOKit traffics ads in the person's own ad account, after their approval and within the budget they set, analyzes how they perform and plans the next round, and automates more of that as the person allows. The ad account, the budget and the money stay the person's; CMOKit holds no ad account of its own and never sets or raises a budget. |
+| Editing and posting video | Footage is edited, and posts are published and scheduled, in the person's own tools. CMOKit posts nothing for anyone and automates no direct messages. |
 | Compliance review | The content check flags claims a person may want to look at twice. It blocks nothing, gives no legal advice and is not a compliance engine. |
-| Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOkit counts credits, in the product's units, and keeps nothing about money. |
-| The product itself | CMOkit reaches a product through its published API and its identity provider, and receives from it only usage. |
-| Running in an adopter's own cloud | CMOkit runs on Cloudflare. An audited adopter relies on Cloudflare's own audit reports for it, and one that cannot use Cloudflare cannot use CMOkit's lifecycle. |
-| Software with no hosted part | A skill or tool that runs entirely on a user's machine cannot have its access revoked. CMOkit gates only what a product hosts. |
+| Payment records | The payment processor is the system of record for subscriptions, invoices and charges. CMOKit counts credits, in the product's units, and keeps nothing about money. |
+| The product itself | CMOKit reaches a product through its published API and its identity provider, and receives from it only usage. |
+| Running in an adopter's own cloud | CMOKit runs on Cloudflare. An audited adopter relies on Cloudflare's own audit reports for it, and one that cannot use Cloudflare cannot use CMOKit's lifecycle. |
+| Software with no hosted part | A skill or tool that runs entirely on a user's machine cannot have its access revoked. CMOKit gates only what a product hosts. |
 
 ## Serving — `SRV-`
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
-| **SRV-01** | CMOkit works in front of a site on any host, built with any static site generator or CMS, with no change to how the site is built or hosted. | Must | Proposed |
-| **SRV-02** | A variant is a page of the site, so a new variant is a content change rather than a change to CMOkit. | Must | Proposed |
+| **SRV-01** | CMOKit works in front of a site on any host, built with any static site generator or CMS, with no change to how the site is built or hosted. | Must | Proposed |
+| **SRV-02** | A variant is a page of the site, so a new variant is a content change rather than a change to CMOKit. | Must | Proposed |
 | **SRV-03** | A visitor sees their assigned variant on first paint, with no flash of another. | Must | Proposed |
 | **SRV-04** | A site works, showing its default variant, when every bought tool is unreachable. | Must | Proposed |
-| **SRV-05** | Every query parameter a page is requested with reaches the page unchanged, through every variant and redirect; CMOkit removes only its own preview parameter. | Must | Proposed |
+| **SRV-05** | Every query parameter a page is requested with reaches the page unchanged, through every variant and redirect; CMOKit removes only its own preview parameter. | Must | Proposed |
 
 ## Experiments — `EXP-`
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
 | **EXP-01** | A visitor is assigned a variant once and keeps it across visits. | Must | Proposed |
-| **EXP-02** | Whether a variant wins is decided by the experimentation tool's statistics, not by CMOkit. | Must | Proposed |
+| **EXP-02** | Whether a variant wins is decided by the experimentation tool's statistics, not by CMOKit. | Must | Proposed |
 | **EXP-03** | A variant can be retired by a content change alone. | Should | Proposed |
 | **EXP-04** | Visits by agents are labeled as such and kept out of experiment results. | Must | Proposed |
-| **EXP-05** | A person or an agent plans, starts, reads and ends an experiment from CMOkit — its configuration, its command line and its MCP server — without opening the experimentation tool. | Must | Proposed |
+| **EXP-05** | A person or an agent plans, starts, reads and ends an experiment from CMOKit — its configuration, its command line and its MCP server — without opening the experimentation tool. | Must | Proposed |
 | **EXP-06** | Starting or ending an experiment is a reviewed change to the configuration, which a person approves like any other. | Must | Proposed |
 
 ## Measurement — `MSR-`
@@ -48,7 +48,7 @@ requirements cite no decision record.
 | **MSR-03** | The conversion event is also recorded server-side, so a blocked script does not lose it. | Must | Proposed |
 | **MSR-04** | One identity follows a person from the first visit through conversion, free trial, payment and cancellation, so revenue is attributed to the channel and variant that produced it. | Must | Proposed |
 | **MSR-05** | Cost of acquisition and lifetime value by channel and variant are readable in one place without a warehouse. | Must | Proposed |
-| **MSR-06** | A person whose first contact is outside the site — a registry or marketplace listing, an install inside an agent — is attributed to that channel at their first step through a page CMOkit serves, such as authorization consent or checkout. | Must | Proposed |
+| **MSR-06** | A person whose first contact is outside the site — a registry or marketplace listing, an install inside an agent — is attributed to that channel at their first step through a page CMOKit serves, such as authorization consent or checkout. | Must | Proposed |
 | **MSR-07** | Margin by channel and variant — revenue less usage at a configured cost per unit — is readable in one place without a warehouse. | Must | Proposed |
 | **MSR-08** | A visit records its campaign parameters and the functional parameters the site names in configuration, such as a referral code, and a conversion carries those of the visitor's first arrival, wherever on the site it happens. No URL sent to analytics carries a query string or fragment; the parameters a visit records travel as properties of their own. | Must | Proposed |
 
@@ -79,7 +79,7 @@ requirements cite no decision record.
 |---|---|---|---|
 | **CUS-01** | A customer is who pays: one customer at the payment processor, with one or more users. A person may be a user of several customers. A product without organizations has customers of one user. | Must | Proposed |
 | **CUS-02** | Every subscription, credit grant, credit balance and change of access belongs to a customer. | Must | Proposed |
-| **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. A person activated without paying, as in a closed beta, becomes CMOkit's customer with no checkout: CMOkit makes their first brand, a customer with them as its first user, and they create their own content and landing page experiments and run their own activation funnel. Each brand is a customer, and any of its users may add another. | Must | Proposed |
+| **CUS-03** | A customer is created at its first checkout, with the person who paid as its first user. A person activated without paying, as in a closed beta, becomes CMOKit's customer with no checkout: CMOKit makes their first brand, a customer with them as its first user, and they create their own content and landing page experiments and run their own activation funnel. Each brand is a customer, and any of its users may add another. | Must | Proposed |
 | **CUS-04** | Revenue from a customer is attributed to the channel and variant of the person who converted it. A user who joins later is attributed to the invitation that brought them. | Must | Proposed |
 | **CUS-05** | Billing and credit balance messages go to a customer's billing contacts. Product messages go to its users. | Must | Proposed |
 
@@ -101,8 +101,8 @@ requirements cite no decision record.
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
 | **PRD-01** | A new user is given access through the product's own identity provider by a standard protocol: OpenID Connect for a person signing in, OAuth for an agent or MCP client acting for them. | Must | Proposed |
-| **PRD-02** | What CMOkit asks of the product at each lifecycle event is configuration: which call, to which address. No code specific to one product lives in CMOkit. | Must | Proposed |
-| **PRD-03** | CMOkit authenticates to the product as a client, holding only the privileges its calls need. | Must | Proposed |
+| **PRD-02** | What CMOKit asks of the product at each lifecycle event is configuration: which call, to which address. No code specific to one product lives in CMOKit. | Must | Proposed |
+| **PRD-03** | CMOKit authenticates to the product as a client, holding only the privileges its calls need. | Must | Proposed |
 | **PRD-04** | A product that is unreachable delays a change of access; it does not lose it. | Must | Proposed |
 | **PRD-05** | Revoking a customer's access, or blocking its metered features, takes effect within a configured time for agent clients holding access tokens as well as for people signed in. Users of such a customer can still sign in to pay or buy a top-up. | Must | Proposed |
 
@@ -110,12 +110,12 @@ requirements cite no decision record.
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
-| **AGT-01** | Every page of a CMOkit site, and every page of CMOkit's own documentation, is also served as markdown, indexed by an `llms.txt`, with pricing as structured data. | Must | Proposed |
-| **AGT-02** | CMOkit ships a skill that teaches a coding agent to use it correctly, and an MCP server, packaged together as one plugin. | Must | Proposed |
+| **AGT-01** | Every page of a CMOKit site, and every page of CMOKit's own documentation, is also served as markdown, indexed by an `llms.txt`, with pricing as structured data. | Must | Proposed |
+| **AGT-02** | CMOKit ships a skill that teaches a coding agent to use it correctly, and an MCP server, packaged together as one plugin. | Must | Proposed |
 | **AGT-03** | The starter gives a product the means to ship its own skill, MCP server and plugin. | Must | Proposed |
 | **AGT-04** | How correctly coding agents use a skill is measured by evals in CI, against more than one agent, and a release whose pass rate falls does not ship. | Must | Proposed |
 | **AGT-05** | Installs by agents and first successful authenticated calls are funnel events, attributed to the agent client and registry where these can be told. | Must | Proposed |
-| **AGT-06** | An agent can create, configure and run a CMOkit site locally with no prompts and no account at any bought tool. | Must | Proposed |
+| **AGT-06** | An agent can create, configure and run a CMOKit site locally with no prompts and no account at any bought tool. | Must | Proposed |
 
 ## The loop — `LOOP-`
 
@@ -127,31 +127,31 @@ requirements cite no decision record.
 
 ## Hosted offering (`HST-`)
 
-What hosted CMOkit must do, and how a customer is set up for it. A self-hosted adopter runs the engine on an account of its own; a hosted customer sets up none and moves no domain to CMOkit.
+What hosted CMOKit must do, and how a customer is set up for it. A self-hosted adopter runs the engine on an account of its own; a hosted customer sets up none and moves no domain to CMOKit.
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
-| **HST-01** | CMOkit's content service is offered hosted. A customer sets it up with a CMOkit account, a subscription and, where it has them, its event platform and its site's analytics, and nothing more: no terminal, no repository work and no Cloudflare account of the customer's own. | Must | Proposed |
-| **HST-02** | A person creates a CMOkit account and signs in to it with an email address, or with Google, GitHub or Meta. Signing in identifies the person and grants CMOkit nothing else at that provider. | Must | Proposed |
+| **HST-01** | CMOKit's content service is offered hosted. A customer sets it up with a CMOKit account, a subscription and, where it has them, its event platform and its site's analytics, and nothing more: no terminal, no repository work and no Cloudflare account of the customer's own. | Must | Proposed |
+| **HST-02** | A person creates a CMOKit account and signs in to it with an email address, or with Google, GitHub or Meta. Signing in identifies the person and grants CMOKit nothing else at that provider. | Must | Proposed |
 | **HST-03** | Setup is a conversation in the person's own Claude, including subscribing and connecting the event platform and the site's analytics. | Must | Proposed |
-| **HST-04** | A credential a customer gives CMOkit never passes through a conversation with a model. It is granted through the vendor's own authorization, or entered on a page of CMOkit's that the conversation links to, and it is held for that customer alone, encrypted, never logged and never shown again. | Must | Proposed |
-| **HST-05** | A person's Claude reaches CMOkit on their behalf through an authorization the person grants by signing in and can revoke, never through a key the person copies. | Must | Proposed |
-| **HST-08** | A solo creator runs CMOkit from the Claude account they already have, through its plugins and connectors, alongside any other plugins they use. | Must | Proposed |
-| **HST-09** | CMOkit's hosted services run no model inference. Model work happens in the customer's own Claude account, so what the hosted services cost is storage, compute and bought tools. | Must | Proposed |
+| **HST-04** | A credential a customer gives CMOKit never passes through a conversation with a model. It is granted through the vendor's own authorization, or entered on a page of CMOKit's that the conversation links to, and it is held for that customer alone, encrypted, never logged and never shown again. | Must | Proposed |
+| **HST-05** | A person's Claude reaches CMOKit on their behalf through an authorization the person grants by signing in and can revoke, never through a key the person copies. | Must | Proposed |
+| **HST-08** | A solo creator runs CMOKit from the Claude account they already have, through its plugins and connectors, alongside any other plugins they use. | Must | Proposed |
+| **HST-09** | CMOKit's hosted services run no model inference. Model work happens in the customer's own Claude account, so what the hosted services cost is storage, compute and bought tools. | Must | Proposed |
 | **HST-10** | Each customer's data, credentials and connections are kept apart from every other customer's: nothing done for one customer reads or changes another's. A person who is a user of several customers acts for one at a time, and chooses which. | Must | Proposed |
 | **HST-11** | Everything the hosted offering does, anyone can do by deploying the same open-source packages to a Cloudflare account of their own. No feature is hosted only. | Must | Proposed |
-| **HST-12** | A customer subscribes to hosted CMOkit, and manages and cancels its subscription, without contacting anyone. | Must | Proposed |
-| **HST-13** | A customer can export everything CMOkit holds for it, in a readable form, and close its account, which deletes what CMOkit holds. | Must | Proposed |
-| **HST-14** | CMOkit is its own first customer: its own site, on GitHub Pages, is built with CMOkit, and the short-form content that markets CMOkit to creators is made with the content plugin. | Must | Proposed |
-| **HST-15** | While hosted CMOkit is in a closed beta, a user accepts its beta terms, on a page of CMOkit's that the conversation links to, before using anything but their account's status, and accepts each new version of them again. | Must | Proposed |
-| **HST-16** | A hosted customer's landing page, waitlist, referral links and messages are run for it by CMOkit, with no Cloudflare account, repository or deploy of the customer's own, and no domain or DNS moved to CMOkit. | Must | Proposed |
-| **HST-17** | A customer views and manages its profile, its brand context and the settings its CMOkit skills use, on CMOkit's account page at `app.cmokit.ai`, where an activated person's account is. | Must | Proposed |
-| **HST-18** | A hosted customer gives its CMOkit-hosted landing page a custom domain of its own by adding a record at its own DNS provider, as landing page platforms such as Unbounce allow. cmokit.ai, CMOkit's own, is the first; every customer after it needs this. | Must | Proposed |
+| **HST-12** | A customer subscribes to hosted CMOKit, and manages and cancels its subscription, without contacting anyone. | Must | Proposed |
+| **HST-13** | A customer can export everything CMOKit holds for it, in a readable form, and close its account, which deletes what CMOKit holds. | Must | Proposed |
+| **HST-14** | CMOKit is its own first customer: its own site, on GitHub Pages, is built with CMOKit, and the short-form content that markets CMOKit to creators is made with the content plugin. | Must | Proposed |
+| **HST-15** | While hosted CMOKit is in a closed beta, a user accepts its beta terms, on a page of CMOKit's that the conversation links to, before using anything but their account's status, and accepts each new version of them again. | Must | Proposed |
+| **HST-16** | A hosted customer's landing page, waitlist, referral links and messages are run for it by CMOKit, with no Cloudflare account, repository or deploy of the customer's own, and no domain or DNS moved to CMOKit. | Must | Proposed |
+| **HST-17** | A customer views and manages its profile, its brand context and the settings its CMOKit skills use, on CMOKit's account page at `app.cmokit.ai`, where an activated person's account is. | Must | Proposed |
+| **HST-18** | A hosted customer gives its CMOKit-hosted landing page a custom domain of its own by adding a record at its own DNS provider, as landing page platforms such as Unbounce allow. cmokit.ai, CMOKit's own, is the first; every customer after it needs this. | Must | Proposed |
 
 ## Content (`CNT-`)
 
 A creator or small business grows a paying audience through short-form video, Instagram Reels and
-TikTok first. Two early users anchor these requirements: CMOkit marketing itself to creators, and a
+TikTok first. Two early users anchor these requirements: CMOKit marketing itself to creators, and a
 small business selling paid in-person events. The person using the content plugin is not a developer,
 and works in claude.ai, the Claude desktop app and the Claude mobile app.
 
@@ -177,13 +177,13 @@ and works in claude.ai, the Claude desktop app and the Claude mobile app.
 | **CNT-18** | A light check flags health or cure claims, before-and-after claims and testimonials with no consent noted, and reminds the person about music rights. It never blocks, and it is not a compliance review. A platform's own rules on content made with AI are checked separately. | Must | Proposed |
 | **CNT-19** | Results are read weekly, per piece, per format and per audience, so that the audiences learn from use as the voice does. | Must | Proposed |
 | **CNT-20** | An event's real capacity and remaining places can make its copy urgent, and nothing invents scarcity; its check-ins can feed its recap. | Should | Proposed |
-| **CNT-21** | Content works with none of CMOkit's experiment features configured. Where CMOkit's measurement is present, a piece's tracked link joins it, so its visits and conversions are attributed like any other channel's. | Must | Proposed |
+| **CNT-21** | Content works with none of CMOKit's experiment features configured. Where CMOKit's measurement is present, a piece's tracked link joins it, so its visits and conversions are attributed like any other channel's. | Must | Proposed |
 | **CNT-22** | A person plans, reviews, approves and records content, and reads its results, in claude.ai, the Claude desktop app and the Claude mobile app, with no terminal and no local files. | Must | Proposed |
 | **CNT-23** | The Claude settings the content plugin depends on are listed. When one is missing, the person is told in plain words what is missing and how to turn it on, and the plugin does what it can without it. | Must | Proposed |
 | **CNT-24** | How well the content skill writes in a brand's voice is measured by evals in CI, on invented brands: how closely its drafts match the brand's approved examples, and how many of the brand's AI tells they carry. A release whose scores fall does not ship. | Must | Proposed |
 | **CNT-25** | An eval plays a series of a person's edits through learning from use, and shows the brand context improving: the changes proposed match the pattern of the edits, and drafts written after they are approved need fewer edits. | Must | Proposed |
 | **CNT-26** | Evals also check the content opinions: one call to action per piece, no invented person, testimonial or result, and the light check flagging what it is meant to flag. | Should | Proposed |
-| **CNT-27** | CMOkit's coding-agent skill can read a customer's brand context, so the variant pages it writes speak in the same voice, to the same audiences, as the brand's content. Experiments work without it. | Should | Proposed |
+| **CNT-27** | CMOKit's coding-agent skill can read a customer's brand context, so the variant pages it writes speak in the same voice, to the same audiences, as the brand's content. Experiments work without it. | Should | Proposed |
 | **CNT-28** | Each week's plan is shaped by the results so far: it leans towards the formats, audiences and hooks whose pieces converted, keeps a share of pieces for trying something new, and acts on a difference only when enough pieces stand behind it. | Must | Proposed |
 | **CNT-29** | Before a piece is drafted or handed off for posting, how its images, video and voice were made is known, and checked against each target platform's current rules on content made with AI, kept in one shared file that gives each rule's source, quoted evidence and the date it was last verified. A use a platform prohibits stops the piece from being handed off for posting until it is revised, and a rule not recently verified is never presented as settled. | Must | Proposed |
 | **CNT-30** | The shared rules on content made with AI are checked against their sources every month by an automated process, which proposes any change for a person to review before it takes effect. | Must | Proposed |
@@ -192,8 +192,8 @@ and works in claude.ai, the Claude desktop app and the Claude mobile app.
 
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
-| **NFR-01** | A site adopts CMOkit by adding a dependency and configuration, and upgrades by changing a version. | Must | Proposed |
+| **NFR-01** | A site adopts CMOKit by adding a dependency and configuration, and upgrades by changing a version. | Must | Proposed |
 | **NFR-03** | Every bought tool sits behind an interface, so a business can use another vendor for the same job. | Should | Proposed |
-| **NFR-04** | A business can run CMOkit's whole test suite with no account at any bought tool. | Must | Proposed |
-| **NFR-05** | Every secret CMOkit's own deployment runs with is supplied by the deploying environment, never committed and never logged. A credential a customer gives CMOkit, such as an event platform's key, is not one of these: it is held as `HST-04` requires. | Must | Proposed |
-| **NFR-06** | Every part of CMOkit scales to zero: with no traffic and no events it runs nothing and costs nothing beyond its bought tools' own charges. | Must | Proposed |
+| **NFR-04** | A business can run CMOKit's whole test suite with no account at any bought tool. | Must | Proposed |
+| **NFR-05** | Every secret CMOKit's own deployment runs with is supplied by the deploying environment, never committed and never logged. A credential a customer gives CMOKit, such as an event platform's key, is not one of these: it is held as `HST-04` requires. | Must | Proposed |
+| **NFR-06** | Every part of CMOKit scales to zero: with no traffic and no events it runs nothing and costs nothing beyond its bought tools' own charges. | Must | Proposed |

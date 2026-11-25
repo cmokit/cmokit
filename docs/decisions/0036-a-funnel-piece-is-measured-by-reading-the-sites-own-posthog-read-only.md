@@ -12,7 +12,7 @@ decision-makers: [Geoff]
 ## Context and Problem Statement
 
 A destination is always another system, and records a piece's conversions itself (ADR-0031). One of
-the first two destinations is a landing page experiment's funnel page, on a site running CMOkit's
+the first two destinations is a landing page experiment's funnel page, on a site running CMOKit's
 engine. The engine records the visitor's UTM parameters, including the piece's `utm_content`, and the
 site's one conversion event in that site's PostHog, under the visitor's one identity (ADR-0010).
 Results are read weekly per piece, format and audience (`CNT-19`), and a piece's link joins the
@@ -21,13 +21,13 @@ reach the content service only if the person copies them across.
 
 PostHog's personal API keys can be scoped to one project and to `query:read`, which reads but
 changes nothing (ADR-0013). The engine's own tools read PostHog from a coding agent's shell, for
-experiments by variant, not per piece. A credential the customer gives CMOkit never passes through the
+experiments by variant, not per piece. A credential the customer gives CMOKit never passes through the
 conversation (`HST-04`), and the reader sits behind an interface named for its job (`NFR-03`).
 
 ## Decision Drivers
 
 * Funnel pieces are measured without the person copying numbers.
-* CMOkit can change nothing in the customer's PostHog.
+* CMOKit can change nothing in the customer's PostHog.
 * The engine's packages are unchanged.
 * Only counts per piece are kept, never a visitor's data.
 
@@ -44,9 +44,9 @@ Chosen option: "A read-only analytics adapter for the site's own PostHog, with a
 `query:read`", because it reads what the engine already records, with a key that can change nothing,
 and touches no package of the engine.
 
-> For a piece whose destination is a page of a site running CMOkit's engine, the content server reads
+> For a piece whose destination is a page of a site running CMOKit's engine, the content server reads
 > that site's analytics through an analytics-reading interface. Its first adapter is PostHog's. The
-> customer gives, on CMOkit's page (ADR-0019), the project's id, a personal API key scoped to that
+> customer gives, on CMOKit's page (ADR-0019), the project's id, a personal API key scoped to that
 > project with `query:read` alone, and the name of the site's conversion event; the key is kept
 > encrypted in the customer's object (ADR-0030). `results_read` counts, per piece, the visitors who
 > first arrived with its `utm_content` and how many of them went on to send the conversion event, and
@@ -55,10 +55,10 @@ and touches no package of the engine.
 
 ### Consequences
 
-* Good, because CMOkit's own pieces, sent to its own funnel, are measured with no copying.
+* Good, because CMOKit's own pieces, sent to its own funnel, are measured with no copying.
 * Good, because the key can read the project and nothing else, so a leaked key changes no experiment.
 * Good, because the engine is unchanged: the content service reads what it already records.
-* Bad, because CMOkit holds a second vendor's key for the customer.
+* Bad, because CMOKit holds a second vendor's key for the customer.
 * Bad, because a visitor is credited to the first piece that brought them, so a later piece that
   brought them back gets no credit.
 
@@ -83,7 +83,7 @@ fails the build if a handler names PostHog; only the adapter does.
 
 ### The engine sends each piece's conversions to the content server
 
-* Good, because conversions would arrive as they happen, with no key held by CMOkit.
+* Good, because conversions would arrive as they happen, with no key held by CMOKit.
 * Bad, because it changes the engine's packages and makes the engine depend on the content service.
 
 ### The coding-agent plugin's local MCP server reads them

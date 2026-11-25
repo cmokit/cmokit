@@ -56,11 +56,11 @@ function Root() {
       if (result.isError) return { tone: 'error', text: textOf(result) };
       const listed = peopleOf(result);
       if (listed) setPeople(listed);
-      if (name === 'activated') return { tone: 'info', text: `Activated ${c.email}. CMO Kit sends no email yet, so tell them yourself.` };
+      if (name === 'activated') return { tone: 'info', text: `Activated ${c.email}. CMOKit sends no email yet, so tell them yourself.` };
       if (name === 'declined') return { tone: 'warning', text: `Declined ${c.email}. Nothing was sent. Find them under Declined to restore them.` };
       return { tone: 'info', text: `Restored ${c.email} to the waiting list.` };
     } catch (failed) {
-      return { tone: 'error', text: `Could not reach CMO Kit: ${(failed as Error).message}` };
+      return { tone: 'error', text: `Could not reach CMOKit: ${(failed as Error).message}` };
     }
   };
 

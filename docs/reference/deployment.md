@@ -1,6 +1,6 @@
 # Deployment reference
 
-Everything a deployment supplies to CMOkit, beyond the reviewed configuration in `cmokit.config.ts`.
+Everything a deployment supplies to CMOKit, beyond the reviewed configuration in `cmokit.config.ts`.
 Secrets are set in the deploying environment's own secret store, such as a GitHub repository's
 secrets, and are never committed.
 
@@ -21,7 +21,7 @@ secrets, and are never committed.
 | `SENDGRID_WEBHOOK_KEY` | Worker variable | To read SendGrid's events | The verification key of SendGrid's signed event webhook, which is public. Until it is set, the events are refused. |
 | `STRIPE_SECRET_KEY` | Worker secret | To sell a subscription | A Stripe restricted key that can write Checkout Sessions and customer portal sessions and read subscriptions. Until it and `PRODUCT` are set, there is no checkout. |
 | `STRIPE_WEBHOOK_SECRET` | Worker secret | To sell a subscription | The signing secret of the Stripe webhook endpoint. Until it is set, Stripe's events are refused. |
-| `PRODUCT` | Service binding | To sell a subscription | The product's Worker, at its `Access` entrypoint, which gives and revokes a customer's access. For hosted CMOkit, the content server's Worker. |
+| `PRODUCT` | Service binding | To sell a subscription | The product's Worker, at its `Access` entrypoint, which gives and revokes a customer's access. For hosted CMOKit, the content server's Worker. |
 
 SendGrid's event webhook posts to `https://<the site's domain>/_cmokit/leads/events`, with signing
 turned on and the delivered, open, click, bounce, dropped, spam report, unsubscribe and group
@@ -42,7 +42,7 @@ over its service binding, whether an address is activated.
 
 ## The content server Worker
 
-The hosted content service runs it on CMOkit's own account; a self-hoster deploys the same Worker
+The hosted content service runs it on CMOKit's own account; a self-hoster deploys the same Worker
 from `@cmokit/content`.
 
 | Name | Kind | Required | What it is |
@@ -53,9 +53,9 @@ from `@cmokit/content`.
 | `ISSUER` | Service binding | Yes | The issuer's Worker, which checks each token and knows each person's customers. |
 | `LIFECYCLE` | Service binding | To sell a subscription | The lifecycle Worker that makes checkout and portal links. Without it, a person with no customer is told to ask whoever runs it to add them. |
 | `CREDENTIAL_KEY` | Worker secret | Yes | 32 random bytes, as base64, that seal every customer's credentials, such as an event calendar's key. Rotating it means re-sealing each stored credential, which nothing does yet, so until then a new key means asking each customer to connect again. |
-| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or who was activated on the waitlist of the brand `WAITLIST_CUSTOMER` names, becomes CMOkit's customer at their first call, with a first brand made for them. |
+| `ACTIVATED_EMAILS` | Worker variable | No | Email addresses activated without a checkout, as in a closed beta, separated by commas or spaces. A signed-in person whose proven address is one of them, or who was activated on the waitlist of the brand `WAITLIST_CUSTOMER` names, becomes CMOKit's customer at their first call, with a first brand made for them. |
 | `TERMS_URL`, `TERMS_VERSION` | Worker variables | For a closed beta | Where the beta terms are published, and their current version, the same as the issuer's. When both are set, a person who ticked the box for that version at sign-in is recorded as accepting it at their first call (ADR-0047). A user who has not accepted it, such as one whose connection is older than the box, is offered only `account_status`, whose link opens the page to accept them. A new version is accepted again. |
-| `WAITLIST_CUSTOMER` | Worker variable | No | The slug of CMOkit's own brand, shown on its account page as "Brand". A person a user of that brand activates on its waitlist becomes CMOkit's customer at their first call (ADR-0043). Every brand has a waitlist of its own; only this one's lets people use CMOkit. |
+| `WAITLIST_CUSTOMER` | Worker variable | No | The slug of CMOKit's own brand, shown on its account page as "Brand". A person a user of that brand activates on its waitlist becomes CMOKit's customer at their first call (ADR-0043). Every brand has a waitlist of its own; only this one's lets people use CMOKit. |
 | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Connect Instagram | The app ID and app secret, from App settings > Basic, of a Meta app with the Instagram product's API setup with Unified login (ADR-0045). |
 | `INSTAGRAM_CONFIG_ID` | Variable | For Connect Instagram | The ID of that app's Facebook Login for Business configuration. The app's Valid OAuth Redirect URIs must include `<APP_URL>/instagram/callback`. Without it and the two above, no brand is offered Connect Instagram and the waitlist form has no Instagram step. |
 | `JOINS` | Rate limit binding | No | A Workers rate limit, keyed by the visitor's address, that slows joins to every brand's waitlist at `/join/<brand>`. Without it, joins are not slowed. |
@@ -73,7 +73,7 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 
 | Name | Kind | Required | What it is |
 |---|---|---|---|
-| `OAUTH_KV` | KV namespace | Yes | The OAuth library's grants, codes and hashed tokens. No code of CMOkit's reads or writes it. |
+| `OAUTH_KV` | KV namespace | Yes | The OAuth library's grants, codes and hashed tokens. No code of CMOKit's reads or writes it. |
 | `IDENTITIES` | Durable Object binding | Yes | Each way in (an email address or a provider's account) and the person it belongs to, its pending code and its send limit, in an object of its own. |
 | `PEOPLE` | Durable Object binding | Yes | Each person's ways in and customers, in an object of its own. |
 | `ISSUER_URL` | Worker variable | Yes | The issuer's own address. |
@@ -105,16 +105,16 @@ id, which is not a secret. The `cmokit waitlist` command reads the lifecycle's `
 
 ## The hosted deploy
 
-The `deploy-hosted` workflow in this repository deploys hosted CMOkit's issuer and content server
+The `deploy-hosted` workflow in this repository deploys hosted CMOKit's issuer and content server
 from `hosted/` on every push to `main`, or when a maintainer runs it. Each Worker has a custom
 domain, `auth.cmokit.ai` and `mcp.cmokit.ai`, and the content server also serves the account page at
 `app.cmokit.ai`, so the first deploy creates their DNS records. It
 reads these from the repository's `production` environment, which only `main` can deploy from; [Set
-up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
+up hosted CMOKit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 
 | Name | Kind | Required | What it is |
 |---|---|---|---|
-| `CLOUDFLARE_ACCOUNT_ID` | Variable | Yes | CMOkit's own Cloudflare account. |
+| `CLOUDFLARE_ACCOUNT_ID` | Variable | Yes | CMOKit's own Cloudflare account. |
 | `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone. |
 | `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
@@ -129,7 +129,7 @@ up hosted CMOkit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 
 The issuer's `ISSUER_URL`, `AUDIENCE`, `MAIL_FROM` and `APP_URL`, and the content server's
 `ISSUER_URL`, `AUDIENCE` and `APP_URL`, are in their `wrangler.jsonc`. The content server's `LIFECYCLE` binding names
-`cmokit-site-lifecycle`, the lifecycle Worker of CMOkit's own site, which binds back to its `Access`
+`cmokit-site-lifecycle`, the lifecycle Worker of CMOKit's own site, which binds back to its `Access`
 entrypoint as `PRODUCT`. Neither can be deployed first with the other's binding, so until that Worker
 exists, the workflow deploys the content server without `LIFECYCLE`, and running it again once the
 site is deployed adds it.

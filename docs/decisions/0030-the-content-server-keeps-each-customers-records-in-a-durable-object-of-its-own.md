@@ -18,7 +18,7 @@ identities, pending email codes and the customers the person belongs to (ADR-001
 (`HST-10`); a customer exports everything and closes its account, which deletes it (`HST-13`); and
 nothing runs or is billed while a customer is idle (`NFR-06`).
 
-CMOkit already keeps per-customer and per-lead state in a Durable Object each (ADR-0006, ADR-0014): a
+CMOKit already keeps per-customer and per-lead state in a Durable Object each (ADR-0006, ADR-0014): a
 single instance, addressed by name, handling one request at a time over a SQLite database of its own,
 billed for requests, rows and storage, and on Workers' free plan with daily limits of 100,000
 requests, 100,000 rows written and 5 GB stored. A customer's content is small: a brand context of a
@@ -30,18 +30,18 @@ few thousand words, a few versions a month, and a handful of pieces a week.
 * One customer's records cannot be addressed from another's request (`HST-10`).
 * A credential is encrypted where it is kept, and never leaves except to its vendor (`HST-04`).
 * Export and deletion are whole and simple (`HST-13`).
-* Scales to zero, on the store CMOkit already uses (`NFR-06`).
+* Scales to zero, on the store CMOKit already uses (`NFR-06`).
 
 ## Considered Options
 
-* A Durable Object per customer and one per person, holding only CMOkit's own records
+* A Durable Object per customer and one per person, holding only CMOKit's own records
 * One Cloudflare D1 database for every customer, each row keyed by customer
 * A copy of each customer's events and guests, kept in step with the event platform
 
 ## Decision Outcome
 
-Chosen option: "A Durable Object per customer and one per person, holding only CMOkit's own records",
-because it gives each customer storage no other customer's request can address, on the store CMOkit
+Chosen option: "A Durable Object per customer and one per person, holding only CMOKit's own records",
+because it gives each customer storage no other customer's request can address, on the store CMOKit
 already relies on, and keeps the least.
 
 > **A customer's object**, named by the customer's id, holds: the brand context's versions, each
@@ -90,7 +90,7 @@ on a database client.
 
 ## Pros and Cons of the Options
 
-### A Durable Object per customer and one per person, holding only CMOkit's own records
+### A Durable Object per customer and one per person, holding only CMOKit's own records
 
 * Good, because it meets every driver.
 * Bad, because a question across customers means reading every customer's object.
@@ -103,8 +103,8 @@ on a database client.
 
 ### A copy of each customer's events and guests, kept in step with the event platform
 
-* Good, because results would read from CMOkit with no call to the platform.
-* Bad, because CMOkit would hold attendees' personal data it does not need, and a copy goes stale the
+* Good, because results would read from CMOKit with no call to the platform.
+* Bad, because CMOKit would hold attendees' personal data it does not need, and a copy goes stale the
   moment someone registers.
 
 ## More Information

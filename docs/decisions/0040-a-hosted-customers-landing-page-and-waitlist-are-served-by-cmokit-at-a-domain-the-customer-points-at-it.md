@@ -5,7 +5,7 @@ date: 2026-11-10
 decision-makers: [Geoff]
 ---
 
-# ADR-0040: A hosted customer's landing page and waitlist are served by CMOkit, at a custom domain the customer points at it
+# ADR-0040: A hosted customer's landing page and waitlist are served by CMOKit, at a custom domain the customer points at it
 
 **Requirements served:** `HST-01`, `HST-10`, `HST-11`, `HST-16`, `HST-18`.
 
@@ -15,15 +15,15 @@ A self-hosted adopter deploys the engine per site, to its own Cloudflare account
 that depends on the published packages (ADR-0002, ADR-0003). ADR-0016 kept the engine out of the
 hosted service.
 
-Hosted CMOkit's customer is a content creator who is not a developer, with no Cloudflare account,
+Hosted CMOKit's customer is a content creator who is not a developer, with no Cloudflare account,
 repository or terminal of their own (`HST-01`). Their landing page, waitlist, referral links and
-messages are engine work. A hosted customer who had to run that work, or move a domain to CMOkit,
+messages are engine work. A hosted customer who had to run that work, or move a domain to CMOKit,
 would face the setup the hosted offering exists to remove, and would have no reason to pay for it. So
-hosted CMOkit runs that work for them (`HST-16`).
+hosted CMOKit runs that work for them (`HST-16`).
 
-A customer's landing page still needs the customer's own domain. cmokit.ai, CMOkit's own, is the
-first, and its zone is already on CMOkit's Cloudflare account. Every customer after it brings a
-domain CMOkit does not hold (`HST-18`).
+A customer's landing page still needs the customer's own domain. cmokit.ai, CMOKit's own, is the
+first, and its zone is already on CMOKit's Cloudflare account. Every customer after it brings a
+domain CMOKit does not hold (`HST-18`).
 
 ## Decision Drivers
 
@@ -35,21 +35,21 @@ domain CMOkit does not hold (`HST-18`).
 
 ## Considered Options
 
-* Served by CMOkit's own deployment, at a custom domain the customer points at it with a record at
+* Served by CMOKit's own deployment, at a custom domain the customer points at it with a record at
   their own DNS provider
-* Served by CMOkit at an address on CMOkit's own domain only
-* The customer's domain moved to CMOkit's Cloudflare account, with an edge in front of it
+* Served by CMOKit at an address on CMOKit's own domain only
+* The customer's domain moved to CMOKit's Cloudflare account, with an edge in front of it
 * The customer's own Cloudflare account, as for a self-hosted adopter
 
 ## Decision Outcome
 
-Chosen option: "Served by CMOkit's own deployment, at a custom domain the customer points at it with
+Chosen option: "Served by CMOKit's own deployment, at a custom domain the customer points at it with
 a record at their own DNS provider", because it gives the customer their own domain while their
 domain and its DNS stay where they are, as landing page platforms such as Unbounce do.
 
-> A hosted customer's landing page, waitlist, referral links and messages are served by CMOkit's own
+> A hosted customer's landing page, waitlist, referral links and messages are served by CMOKit's own
 > deployment on its own Cloudflare account. The customer gives their landing page a custom domain by
-> adding a record at their own DNS provider, and moves no domain or DNS to CMOkit. A self-hosted
+> adding a record at their own DNS provider, and moves no domain or DNS to CMOKit. A self-hosted
 > adopter deploys the same packages to an account and domain of its own, as before.
 
 ### Consequences
@@ -57,30 +57,30 @@ domain and its DNS stay where they are, as landing page platforms such as Unboun
 * Good, because the customer's whole setup stays the account, the subscription and the connections
   `HST-01` names, plus one DNS record for their domain.
 * Good, because the engine's packages stay the same for hosted and self-hosted use (`HST-11`).
-* Bad, because CMOkit has to serve and certify domains it does not hold, which cmokit.ai, already on
-  CMOkit's account, does not exercise. That is built before the second customer.
+* Bad, because CMOKit has to serve and certify domains it does not hold, which cmokit.ai, already on
+  CMOKit's account, does not exercise. That is built before the second customer.
 
 ### Confirmation
 
-Enforced by review: nothing in hosted CMOkit's setup asks a customer to move a domain or change more
+Enforced by review: nothing in hosted CMOKit's setup asks a customer to move a domain or change more
 than the one record for their custom domain.
 
 ## Pros and Cons of the Options
 
-### Served by CMOkit's own deployment, at a custom domain the customer points at it with a record at their own DNS provider
+### Served by CMOKit's own deployment, at a custom domain the customer points at it with a record at their own DNS provider
 
 * Good, because it meets every driver.
-* Bad, because serving a domain CMOkit does not hold is work cmokit.ai does not need.
+* Bad, because serving a domain CMOKit does not hold is work cmokit.ai does not need.
 
-### Served by CMOkit at an address on CMOkit's own domain only
+### Served by CMOKit at an address on CMOKit's own domain only
 
 * Good, because it needs no custom domain work at all.
 * Bad, because the customer's landing page would not be at their own domain, which `HST-18` requires.
 
-### The customer's domain moved to CMOkit's Cloudflare account, with an edge in front of it
+### The customer's domain moved to CMOKit's Cloudflare account, with an edge in front of it
 
 * Good, because a Worker route on the customer's zone is how a self-hosted adopter runs today.
-* Bad, because the customer would move their domain or its DNS to CMOkit, which `HST-01` rules out.
+* Bad, because the customer would move their domain or its DNS to CMOKit, which `HST-01` rules out.
 
 ### The customer's own Cloudflare account, as for a self-hosted adopter
 
@@ -90,7 +90,7 @@ than the one record for their custom domain.
 
 ## More Information
 
-**Follow-on obligations.** How CMOkit serves and certifies a customer's custom domain is a decision
+**Follow-on obligations.** How CMOKit serves and certifies a customer's custom domain is a decision
 of its own, made before the second customer. ADR-0016's account of what is hosted points here.
 
 **Reversal cost.** Low: a customer's custom domain is one record they can point elsewhere.

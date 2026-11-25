@@ -87,7 +87,7 @@ test('a dry run says what would change and changes nothing', async () => {
   assert.deepEqual(tool.changes, []);
 });
 
-test('an experiment CMOkit did not create is refused, and nothing else changes', async () => {
+test('an experiment CMOKit did not create is refused, and nothing else changes', async () => {
   const tool = standIn([{
     id: 1, description: 'Made by hand', feature_flag_key: 'landing',
     feature_flag: { id: 2, filters: { multivariate: { variants: [] } } }, metrics: [],

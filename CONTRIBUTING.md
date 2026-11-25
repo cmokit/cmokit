@@ -1,4 +1,4 @@
-# Contributing to CMOkit
+# Contributing to CMOKit
 
 Thanks for your interest. Bug reports, documentation fixes and code are all welcome.
 
@@ -11,7 +11,7 @@ them here would give them a second home to drift from.
 Read [`CLAUDE.md`](CLAUDE.md). Every rule in it cites the decision record holding its reasoning. If
 a task appears to require breaking a rule, ask rather than working around it.
 
-[How CMOkit fits around a site](docs/explanation/architecture.md) shows the moving parts: the edge
+[How CMOKit fits around a site](docs/explanation/architecture.md) shows the moving parts: the edge
 and lifecycle Workers, the site on its host, and the tools behind them.
 
 ## Reporting a bug
@@ -51,7 +51,7 @@ terminal, and Claude Code never sees your GitHub credentials. Claude Code does t
 4. **Paste this prompt:**
 
 ````text
-Set me up to contribute to CMOkit. Do not use any GitHub credentials, and do not commit, push or
+Set me up to contribute to CMOKit. Do not use any GitHub credentials, and do not commit, push or
 open pull requests. Go one step at a time, and wait for me where a step needs me.
 
 1. Read CLAUDE.md and CONTRIBUTING.md.
@@ -100,7 +100,7 @@ its own proxy. To paste into a custom allow list, keeping the default list too:
 nodejs.org
 ```
 
-Nothing here needs a secret. Building and testing CMOkit calls no vendor: the tests use stand-ins
+Nothing here needs a secret. Building and testing CMOKit calls no vendor: the tests use stand-ins
 for PostHog, SendGrid and Cloudflare.
 
 ## Running the checks
@@ -144,5 +144,5 @@ approvals are made from a maintainer's own machine.
 
 ## Licensing
 
-CMOkit is [Apache 2.0](LICENSE). Contributions are accepted under the same license, which
+CMOKit is [Apache 2.0](LICENSE). Contributions are accepted under the same license, which
 Apache 2.0 § 5 makes the default. There is no separate CLA to sign.

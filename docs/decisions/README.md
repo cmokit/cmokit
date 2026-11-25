@@ -9,30 +9,30 @@ from [adr-template.md](adr-template.md).
 | [0002](0002-the-engine-is-a-dependency-a-site-is-content.md) | The engine is a dependency, and a site is content | Proposed |
 | [0003](0003-the-server-part-runs-on-cloudflare-workers.md) | The server part runs on Cloudflare Workers alone | Proposed |
 | [0004](0004-a-product-is-reached-by-calling-its-api.md) | A product's lifecycle is reached by calling its API, not by events it sends | Proposed |
-| [0005](0005-a-product-reports-usage-and-cmokit-acts-on-the-balance.md) | A product reports usage to CMOkit, which debits the customer's credit ledger and acts on its balance | Proposed |
-| [0006](0006-credits-are-a-ledger-of-cmokits-own-on-cloudflare.md) | Credits are a ledger of CMOkit's own, in a Durable Object per customer, and all of CMOkit's storage is on Cloudflare | Proposed |
+| [0005](0005-a-product-reports-usage-and-cmokit-acts-on-the-balance.md) | A product reports usage to CMOKit, which debits the customer's credit ledger and acts on its balance | Proposed |
+| [0006](0006-credits-are-a-ledger-of-cmokits-own-on-cloudflare.md) | Credits are a ledger of CMOKit's own, in a Durable Object per customer, and all of CMOKit's storage is on Cloudflare | Proposed |
 | [0007](0007-typescript-on-node-for-everything.md) | TypeScript on Node for everything | Proposed |
 | [0008](0008-the-environment-reaches-the-workers-through-variables-alone.md) | The deploying environment reaches the Workers through variables and secrets alone | Proposed |
 | [0009](0009-a-variant-is-a-page-the-edge-chooses.md) | A variant is a page of the site, and the edge chooses which one a visitor is served | Proposed |
 | [0010](0010-experiments-and-analytics-run-on-posthog.md) | Experiments and analytics run on PostHog, behind interfaces named for each job | Proposed |
 | [0011](0011-packages-publish-javascript-built-from-their-source.md) | Packages publish JavaScript built from their TypeScript, and the repository runs the source | Proposed |
 | [0012](0012-money-runs-on-stripe-alone.md) | Money runs on Stripe alone, behind a payments interface | Proposed |
-| [0013](0013-experiments-are-declared-in-configuration-and-synced-to-the-tool.md) | Experiments are declared in CMOkit's configuration, and the deploy makes the experiments tool match | Proposed |
-| [0014](0014-lead-messages-are-sequences-of-cmokits-own.md) | A lead's messages are a sequence declared in CMOkit's configuration, kept in a Durable Object per lead | Proposed |
+| [0013](0013-experiments-are-declared-in-configuration-and-synced-to-the-tool.md) | Experiments are declared in CMOKit's configuration, and the deploy makes the experiments tool match | Proposed |
+| [0014](0014-lead-messages-are-sequences-of-cmokits-own.md) | A lead's messages are a sequence declared in CMOKit's configuration, kept in a Durable Object per lead | Proposed |
 | [0015](0015-email-is-sent-through-sendgrid.md) | Email is sent through SendGrid, behind the messaging interface | Proposed |
-| [0016](0016-the-hosted-content-service-is-one-multi-tenant-deployment-on-cmokits-own-cloudflare.md) | The hosted content service is one multi-tenant deployment, on CMOkit's own Cloudflare account | Proposed |
-| [0017](0017-hosted-cmokit-is-billed-and-gated-by-cmokits-own-lifecycle.md) | Hosted CMOkit is billed and gated by CMOkit's own lifecycle, and meters nothing yet | Proposed |
-| [0018](0018-cmokit-accounts-sign-in-through-an-issuer-of-cmokits-own.md) | CMOkit accounts sign in through an issuer of CMOkit's own, with an email code, Google, GitHub or Meta, and no password | Proposed |
+| [0016](0016-the-hosted-content-service-is-one-multi-tenant-deployment-on-cmokits-own-cloudflare.md) | The hosted content service is one multi-tenant deployment, on CMOKit's own Cloudflare account | Proposed |
+| [0017](0017-hosted-cmokit-is-billed-and-gated-by-cmokits-own-lifecycle.md) | Hosted CMOKit is billed and gated by CMOKit's own lifecycle, and meters nothing yet | Proposed |
+| [0018](0018-cmokit-accounts-sign-in-through-an-issuer-of-cmokits-own.md) | CMOKit accounts sign in through an issuer of CMOKit's own, with an email code, Google, GitHub or Meta, and no password | Proposed |
 | [0019](0019-setup-is-a-conversation-that-hands-every-credential-to-a-page.md) | Setup is a conversation in Claude, and every credential is given on a page, never in the conversation | Proposed |
 | [0020](0020-the-hosted-content-service-publishes-to-no-site.md) | The hosted content service publishes to no site, and a piece's destination is any URL | Proposed |
 | [0021](0021-the-content-workflow-is-an-agent-skill-run-in-the-persons-own-claude.md) | The content workflow and its opinions are an agent skill, run in the person's own Claude | Proposed |
 | [0022](0022-the-content-plugin-is-a-second-plugin-beside-the-coding-agent-plugin.md) | The content plugin is a second plugin, beside the coding-agent plugin, in the same marketplace | Proposed |
-| [0023](0023-the-brand-context-is-kept-by-cmokits-server-and-read-through-its-connector.md) | The brand context is kept by CMOkit's server, versioned, and read through its connector before every draft | Proposed |
+| [0023](0023-the-brand-context-is-kept-by-cmokits-server-and-read-through-its-connector.md) | The brand context is kept by CMOKit's server, versioned, and read through its connector before every draft | Proposed |
 | [0024](0024-onboarding-picks-one-of-three-paths-by-what-the-brand-already-has.md) | Onboarding picks one of three paths by what the brand already has, and every path ends in the same closing steps | Proposed |
 | [0025](0025-the-weekly-review-steers-the-next-plan-and-proposes-brand-context-changes.md) | The weekly review learns from each piece's signals and results, steering the next plan and proposing brand context changes, under one rule of evidence | Proposed |
 | [0026](0026-pieces-come-in-four-formats-one-for-each-moment-of-what-is-sold.md) | Pieces come in four formats, one for each moment of what is sold | Proposed |
 | [0027](0027-visual-identity-and-visuals-are-the-persons-claude-design-system.md) | Visual identity lives in the person's Claude Design design system, and visuals are made in Claude Design from it | Proposed |
-| [0028](0028-editing-and-posting-stay-with-the-persons-own-tools.md) | Editing footage and posting stay with the person's own tools, and CMOkit records what was posted | Proposed |
+| [0028](0028-editing-and-posting-stay-with-the-persons-own-tools.md) | Editing footage and posting stay with the person's own tools, and CMOKit records what was posted | Proposed |
 | [0029](0029-a-small-remote-mcp-server-is-the-content-plugins-connector.md) | A small remote MCP server at one hosted address, where sign-in picks the customer, is the content plugin's connector, and checks tokens it does not issue | Proposed |
 | [0030](0030-the-content-server-keeps-each-customers-records-in-a-durable-object-of-its-own.md) | The content server keeps each customer's records in a Durable Object of its own, and stores nothing it can read elsewhere | Proposed |
 | [0031](0031-a-tracked-link-is-the-destination-with-utm-parameters-naming-the-piece.md) | A tracked link is the destination's own URL with UTM parameters naming the piece, so content needs none of the engine | Proposed |
@@ -44,15 +44,15 @@ from [adr-template.md](adr-template.md).
 | [0037](0037-platform-ai-content-rules-are-a-reviewed-file-in-the-skill-refreshed-monthly-in-ci.md) | Platforms' rules on AI-made content are a reviewed file in the content skill, refreshed monthly by a model in CI that proposes a pull request | Proposed |
 | [0038](0038-a-pull-request-is-opened-ready-for-review-and-merged-only-when-a-maintainer-says.md) | A pull request is opened ready for review, and merged only when a maintainer says so | Proposed |
 | [0039](0039-beta-terms-are-accepted-on-a-one-time-page-and-kept-with-the-customer.md) | Beta terms are accepted on a one-time page the conversation links to, and kept with the customer | Superseded by ADR-0047 |
-| [0040](0040-a-hosted-customers-landing-page-and-waitlist-are-served-by-cmokit-at-a-domain-the-customer-points-at-it.md) | A hosted customer's landing page and waitlist are served by CMOkit, at a custom domain the customer points at it | Proposed |
+| [0040](0040-a-hosted-customers-landing-page-and-waitlist-are-served-by-cmokit-at-a-domain-the-customer-points-at-it.md) | A hosted customer's landing page and waitlist are served by CMOKit, at a custom domain the customer points at it | Proposed |
 | [0041](0041-the-account-page-is-served-by-the-content-server-and-signs-in-through-the-issuer-as-an-oauth-client.md) | The account page is served by the content server, and signs in through the issuer as an OAuth client | Proposed |
-| [0042](0042-hosted-cmokit-is-priced-per-brand-and-cmokits-own-account-page-activates-its-waitlist.md) | Hosted CMOkit is priced per brand, and CMOkit's own account page activates its waitlist | Proposed |
+| [0042](0042-hosted-cmokit-is-priced-per-brand-and-cmokits-own-account-page-activates-its-waitlist.md) | Hosted CMOKit is priced per brand, and CMOKit's own account page activates its waitlist | Proposed |
 | [0043](0043-each-brands-waitlist-is-kept-by-the-content-server-and-any-page-on-its-sites-joins-it.md) | Each brand's waitlist is kept by the content server, and any page on the brand's sites joins it | Proposed |
 | [0044](0044-a-brands-people-move-through-one-funnel-and-the-waitlist-is-its-first-stage.md) | A brand's people move through one funnel, and the waitlist is its first stage | Proposed |
 | [0045](0045-a-brand-connects-instagram-through-unified-login-and-people-prove-their-handle-by-commenting-their-code.md) | A brand connects Instagram through Unified Login, and people prove their handle by commenting their code on its Reels | Proposed |
-| [0046](0046-cmokits-own-pages-share-one-stylesheet-from-its-design-system-and-serve-their-fonts-themselves.md) | CMOkit's own pages share one stylesheet from its design system, and serve their fonts themselves | Proposed |
+| [0046](0046-cmokits-own-pages-share-one-stylesheet-from-its-design-system-and-serve-their-fonts-themselves.md) | CMOKit's own pages share one stylesheet from its design system, and serve their fonts themselves | Proposed |
 | [0047](0047-beta-terms-are-accepted-with-a-box-on-the-sign-in-screen-and-kept-with-the-customer.md) | Beta terms are accepted with a box on the sign-in screen, and kept with the customer | Proposed |
-| [0048](0048-creators-sign-in-with-instagram-and-cmokits-waitlist-lets-them-in-by-the-handle-they-proved.md) | Creators sign in with Instagram, and CMOkit's waitlist lets them in by the handle they proved | Proposed |
+| [0048](0048-creators-sign-in-with-instagram-and-cmokits-waitlist-lets-them-in-by-the-handle-they-proved.md) | Creators sign in with Instagram, and CMOKit's waitlist lets them in by the handle they proved | Proposed |
 | [0049](0049-the-cards-claude-shows-are-mcp-apps-written-in-react-and-built-into-one-page-each.md) | The cards Claude shows are MCP Apps, written in React and built into one page each | Proposed |
 | [0050](0050-a-brands-funnel-counts-visits-from-its-waitlist-form-as-daily-counts-behind-a-store-interface.md) | A brand's funnel counts visits from its waitlist form, as daily counts behind a store interface | Proposed |
 | [0051](0051-the-account-page-is-react-rendered-on-the-server-and-hydrated-in-the-browser.md) | The account page is React, rendered on the server and hydrated in the browser | Proposed |

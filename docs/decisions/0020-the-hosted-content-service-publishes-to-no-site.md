@@ -17,7 +17,7 @@ customer's site or on a store, course or booking platform. Content works with no
 (`CNT-21`), and setup is an account, a subscription and, if the customer sells through one, its
 event platform (`HST-01`).
 
-Connecting a customer's site would let CMOkit publish pages to it, through a GitHub App for a site on
+Connecting a customer's site would let CMOKit publish pages to it, through a GitHub App for a site on
 GitHub Pages or through a host's or CMS's API elsewhere. Those differ by host: Webflow's API, for
 one, publishes CMS items but creates no new static pages, and several creator platforms have no
 public API. The engine already publishes to a site as a change to its repository or drafts in its
@@ -27,7 +27,7 @@ CMS, self-hosted (ADR-0002).
 
 * Setup stays an account, a subscription and an event platform (`HST-01`).
 * Nothing is built that content does not need.
-* CMOkit holds no access to a customer's site it does not use.
+* CMOKit holds no access to a customer's site it does not use.
 
 ## Considered Options
 
@@ -42,13 +42,13 @@ content needs only somewhere to send people, and every offer it promotes already
 
 > The hosted content service publishes nothing and holds no access to any site's repository, host or
 > CMS. Its one tie to a site is optional and read-only: the site's analytics, for a piece sent to a
-> page of a site running CMOkit's engine (ADR-0036). When a piece is planned, the person gives its
+> page of a site running CMOKit's engine (ADR-0036). When a piece is planned, the person gives its
 > destination, or the event platform supplies it (ADR-0032), and the content server builds its
 > tracked link from that URL (ADR-0031).
 
 ### Consequences
 
-* Good, because setup has one step fewer, and CMOkit holds no access to anyone's site.
+* Good, because setup has one step fewer, and CMOKit holds no access to anyone's site.
 * Good, because there is no adapter per host to build or keep working.
 * Bad, because an offer with no page of its own cannot be promoted until the person makes one.
 

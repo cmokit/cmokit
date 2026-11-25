@@ -13,7 +13,7 @@ decision-makers: [Geoff]
 
 A piece has one destination and one tracked link, which differs only by the platform it is posted on
 (`CNT-12`). Results are read per piece, format and audience (`CNT-19`). Content works with none of
-CMOkit's experiment features configured, and where CMOkit's measurement is present a piece's link
+CMOKit's experiment features configured, and where CMOKit's measurement is present a piece's link
 joins it (`CNT-21`). For an event, the conversion is a registration on the event platform (`CNT-11`).
 
 Where measurement is present, the edge records the UTM parameters and ad click ids a page was
@@ -31,7 +31,7 @@ share one profile link, a click is attributed to whichever piece's link the prof
 
 * No part of the engine is needed to attribute a piece (`CNT-21`).
 * Where the engine is present, a piece is a channel like any other (`MSR-01`).
-* The destination's own records attribute its conversions, with no copy kept by CMOkit.
+* The destination's own records attribute its conversions, with no copy kept by CMOKit.
 * Built the same way every time, never typed by a model.
 * Nothing to host for a link to work.
 
@@ -39,7 +39,7 @@ share one profile link, a click is attributed to whichever piece's link the prof
 
 * The destination's own URL with UTM parameters naming the platform, the promoted thing and the piece, built by
   the server
-* A short link of CMOkit's per piece, redirecting to the destination
+* A short link of CMOKit's per piece, redirecting to the destination
 * A promo code per piece
 * Attribution per offer only, with no piece in the link
 
@@ -64,7 +64,7 @@ them, and nothing has to be hosted for them to work.
 > funnel sends people to a page the engine serves, and the engine records them.
 >
 > A destination is always another system, and conversions are always the destination's to record.
-> The tracked link carries the piece to it; CMOkit reads the count through an adapter where one
+> The tracked link carries the piece to it; CMOKit reads the count through an adapter where one
 > exists, and otherwise the person reports it from the destination's own dashboard. Views and other
 > attention are the social platform's numbers, which the person reports too. The piece's id joins
 > each result to its format and audience.
@@ -85,7 +85,7 @@ them, and nothing has to be hosted for them to work.
   sent people there are undercounted.
 * Bad, because a destination that drops query parameters, or a viewer who types the address, loses
   the piece.
-* Bad, because conversions at a destination CMOkit has no adapter for are counted only if the person
+* Bad, because conversions at a destination CMOKit has no adapter for are counted only if the person
   reports them from that destination's dashboard.
 
 ### Confirmation
@@ -100,11 +100,11 @@ and nothing else changed in the destination's URL.
 * Good, because it meets every driver.
 * Bad, because attribution through a shared profile link is approximate.
 
-### A short link of CMOkit's per piece, redirecting to the destination
+### A short link of CMOKit's per piece, redirecting to the destination
 
 * Good, because it counts clicks, survives destinations that drop parameters, and a stable profile
   link could redirect to whichever piece is current.
-* Bad, because CMOkit would serve every visitor's first request, and a short link is one more
+* Bad, because CMOKit would serve every visitor's first request, and a short link is one more
   domain for viewers to trust. It is premature until the profile link's approximation is shown to
   matter.
 

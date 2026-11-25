@@ -11,7 +11,7 @@ export type ToolState = 'draft' | 'running' | 'ended';
 export interface ToolExperiment {
   id: string;
   flag: string;
-  /** True when CMOkit's sync created it, so the sync may change it. */
+  /** True when CMOKit's sync created it, so the sync may change it. */
   managed: boolean;
   state: ToolState;
   /** Each variant's percentage, `control` included. */
@@ -110,7 +110,7 @@ export function plan(config: Resolved, held: ToolExperiment[]): Plan {
     const where = `experiment "${e.flag}"`;
     const same = held.filter((h) => h.flag === e.flag);
     if (same.some((h) => !h.managed)) {
-      problems.push(`${where}: the tool holds an experiment on this flag that CMOkit did not create; use another flag`);
+      problems.push(`${where}: the tool holds an experiment on this flag that CMOKit did not create; use another flag`);
       continue;
     }
     if (same.length > 1) {

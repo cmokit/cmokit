@@ -802,7 +802,7 @@ export class Customer {
       const code = text.match(/[A-Za-z0-9]+/g)?.find((word) => codes.has(word));
       if (!code) continue;
       if (this.#sql.all('SELECT 1 FROM waitlist WHERE instagram = ? AND instagram_id IS NOT NULL', username).length > 0) continue;
-      // instagram_id marks a proved handle; a commenter has no ID CMOkit can read, so it holds the handle.
+      // instagram_id marks a proved handle; a commenter has no ID CMOKit can read, so it holds the handle.
       this.#sql.all('UPDATE waitlist SET instagram = ?, instagram_id = ? WHERE code = ?', username, username, code);
       codes.delete(code);
     }

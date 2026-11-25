@@ -42,7 +42,7 @@ navigation nor data loading.
 > The page's source is `packages/content/apps/portal/`, in React and TSX, with shared components in
 > `apps/ui/` and the look's `apps/theme.css`. The content package's build runs Vite twice: once for
 > the browser script and stylesheet, once to bundle the server's renderer with both as text, written
-> to `dist/apps/portal.js`. The content server takes it as `portal`; hosted CMOkit's adapter passes
+> to `dist/apps/portal.js`. The content server takes it as `portal`; hosted CMOKit's adapter passes
 > it in. For each request the server builds the page's view, renders it with `renderToString`,
 > embeds the view as JSON, and serves the script at `/portal.js`, cached for a year at its current
 > version. The policy allows scripts from the server's own origin only. The brand context's sections

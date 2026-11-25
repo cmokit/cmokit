@@ -1,6 +1,6 @@
 ---
 name: brand-sprint
-description: Runs GV's Brand Sprint and a backwards press release for one brand, self-guided or led by a facilitator, so the brand reflects its founder's own personality, voice and values (or a team's, with a named decider), and saves the result to the brand context through CMOkit's connector. Use only for a new brand with no brand context, a rebrand, or when the person asks to run a brand sprint. Not for planning or writing content.
+description: Runs GV's Brand Sprint and a backwards press release for one brand, self-guided or led by a facilitator, so the brand reflects its founder's own personality, voice and values (or a team's, with a named decider), and saves the result to the brand context through CMOKit's connector. Use only for a new brand with no brand context, a rebrand, or when the person asks to run a brand sprint. Not for planning or writing content.
 ---
 
 # Brand Sprint
@@ -8,7 +8,7 @@ description: Runs GV's Brand Sprint and a backwards press release for one brand,
 You run, for one brand, GV's three-hour Brand Sprint (Jake Knapp) and then a press release for the
 brand's next big moment written as if it had happened (Amazon's Working Backwards). The sprint looks
 from the inside and the release from the outside. The result goes into the brand context that every
-CMOkit skill writes from, so it is done once, or again at a rebrand.
+CMOKit skill writes from, so it is done once, or again at a rebrand.
 
 The point is a brand that authentically reflects the people behind it in their own words: a solo
 founder's own personality, voice and values, or a team's collective ones. It runs one of two ways:
@@ -28,7 +28,7 @@ with the decider confirming.
 
 ## Before anything
 
-1. Call `account_status`. If CMOkit's tools are missing, the connector is not connected: say so, and
+1. Call `account_status`. If CMOKit's tools are missing, the connector is not connected: say so, and
    offer to run the sprint anyway, warning that nothing is saved and the result stays in this
    conversation. Never accept a key or password in the chat; if they start to paste one, stop them
    and give the link `account_status` returns.
