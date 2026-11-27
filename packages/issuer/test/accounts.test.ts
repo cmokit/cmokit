@@ -1,10 +1,12 @@
-// The issuer's records on Node's SQLite: email codes expire, lock after five attempts and are limited
-// per address and per network, and an identity belongs to the first person who claims it.
+// The issuer's old records on Node's SQLite, which people are copied from once to Better Auth's
+// tables: email codes expire, lock after five attempts and are limited per address and per network,
+// and an identity belongs to the first person who claims it.
 
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
-import { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS, type Sql } from '../src/index.ts';
+import { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS } from '../src/accounts.ts';
+import type { Sql } from '../src/sql.ts';
 
 function sqlite(): Sql {
   const db = new DatabaseSync(':memory:');

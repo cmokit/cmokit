@@ -38,9 +38,11 @@ grants no posting.
 Claude registers with an authorization server by a Client ID Metadata Document that Anthropic hosts,
 when the server advertises support for one, and otherwise by dynamic client registration, which the
 MCP specification of 2026-07-28 deprecates. Its redirect is `https://claude.ai/api/mcp/auth_callback`,
-and it requires PKCE with S256. Cloudflare's OAuth library makes a Worker an OAuth 2.1 authorization
-server; from its 1.0 release it runs the authorization server and the resource server as separate
-Workers, and supports Client ID Metadata Documents.
+and it requires PKCE with S256. Better Auth is a TypeScript library for accounts and sign-in that runs
+inside a Worker, on D1: people with several ways in, sign-in sessions, email codes and social
+providers, and, through its `@better-auth/oauth-provider` and `@better-auth/cimd` plugins, an OAuth
+2.1 authorization server that supports Client ID Metadata Documents. Keycloak, Ory, Zitadel,
+Authentik, Logto and SuperTokens are each a separate server with a database of its own.
 
 CFOKit, a separate product, chose Keycloak behind a written contract: a complete identity provider,
 with passwords, second factors and passkeys, which CMOKit would not have to write. CFOKit runs it as
@@ -58,9 +60,11 @@ to start is a sign-in that times out".
 
 ## Considered Options
 
-* An issuer Worker of CMOKit's own, on Cloudflare's OAuth library, offering an email code, Google,
-  GitHub and Facebook Login
-* Keycloak, run as CFOKit runs it
+* An issuer Worker of CMOKit's own, on Better Auth, offering an email code, Google, GitHub and
+  Facebook Login
+* Cloudflare's OAuth library, with accounts and ways in of CMOKit's own
+* Keycloak, run as CFOKit runs it, or another identity server such as Ory, Zitadel, Authentik, Logto
+  or SuperTokens
 * Sharing CFOKit's issuer
 * A bought identity service, such as Clerk, Auth0, WorkOS or Stytch
 * Passwords, as well as or instead of email codes
@@ -70,11 +74,11 @@ to start is a sign-in that times out".
 
 ## Decision Outcome
 
-Chosen option: "An issuer Worker of CMOKit's own, on Cloudflare's OAuth library, offering an email
-code, Google, GitHub and Facebook Login", because it is the only option that scales to zero on
-Cloudflare, stores no password, and leaves the protocol's hard parts to a maintained library.
+Chosen option: "An issuer Worker of CMOKit's own, on Better Auth, offering an email code, Google,
+GitHub and Facebook Login", because it is the only option that scales to zero on Cloudflare, stores
+no password, and leaves accounts, ways in, codes, sessions and the protocol to a maintained library.
 
-> CMOKit's issuer is a Worker of its own, built on Cloudflare's OAuth library, and the only part of
+> CMOKit's issuer is a Worker of its own, built on Better Auth, and the only part of
 > CMOKit that issues tokens; every other part only checks them (ADR-0029). Its sign-in page offers
 > four ways in, asking for nothing beyond identity:
 >
@@ -84,16 +88,20 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 > * **Email**: the person enters an address and is sent a six-digit code through the messaging
 >   interface's sending service (ADR-0015), with a sending key of the issuer's own. The code is
 >   transactional mail: it belongs to no unsubscribe group, so unsubscribing from a lead's sequence
->   never stops a sign-in. The code is kept hashed, expires after ten minutes and allows five
->   attempts, and sending is limited per address and per network. The page says the same whether or
+>   never stops a sign-in. The code expires after ten minutes and allows five attempts, and sending
+>   is limited per address and per network. The page says the same whether or
 >   not the address has an account.
 >
 > CMOKit keeps no password. An account is a person, found by the sign-in identity they used: a
-> provider and its stable subject id, or an email address proven by code. Accounts are never merged
-> by matching email; a signed-in person adds another way in themselves, on the account page, and from
-> then on it signs them in to that same account. A way in that reached an account with nothing in it
-> moves over, and that empty account is deleted; one that reaches an account with brands is not
-> added. A proven email address lets them back in when a provider fails them. The first sign-in creates the account, which becomes
+> provider and its stable subject id, or an email address proven by code. An account has at most one
+> email address. Signing in with Google or GitHub at an address the provider says is verified reaches
+> the account that already proved that address, and adds the provider to it; Facebook's and
+> Instagram's addresses are never taken as verified, so they join no account by themselves. Otherwise
+> a signed-in person adds another way in themselves, on the account page, and from then on it signs
+> them in to that same account. A way in that reached an account with nothing in it moves over, with
+> its address when the account has none, and that empty account is deleted; one that reaches an
+> account with brands, or a second address, is not added. A proven email address lets them back in
+> when a provider fails them. The first sign-in creates the account, which becomes
 > a user of a customer at that customer's first checkout (ADR-0017), by invitation, or, for a person
 > activated without a checkout, at their first call (ADR-0017). Activation is decided by the email
 > address the person proved; a provider's address counts only when the provider says it is verified.
@@ -118,7 +126,7 @@ sequenceDiagram
   participant S as Content server
   participant I as Issuer
   participant X as Google, GitHub, Meta or email code
-  participant K as OAUTH_KV and person objects
+  participant K as D1, through Better Auth
 
   U->>C: add the cmokit-content plugin, then connect its connector (ADR-0034)
   C->>S: /customers/slug/mcp, no token
@@ -128,8 +136,8 @@ sequenceDiagram
   I-->>U: sign-in page
   U->>X: sign in
   X-->>I: identity, proven email
-  I->>K: person and identity objects, first time only (ADR-0030)
-  I->>K: grant and token, hashed (ADR-0035)
+  I->>K: person and way in, first time only
+  I->>K: consent and token, hashed (ADR-0035)
   I-->>C: token naming the person
   C->>S: MCP call with the token
   S->>I: check the token, audience (ADR-0029)
@@ -139,17 +147,20 @@ sequenceDiagram
 
 ### Consequences
 
-* Good, because sign-in costs nothing while nobody signs in: no Java server and no database.
+* Good, because sign-in costs nothing while nobody signs in: no Java server and no database server,
+  only D1 (ADR-0035).
 * Good, because no password is stored, reset or open to credential stuffing.
 * Good, because Claude registers by its published identity, and dynamic registration remains only
   for the clients that need it, behind the same limit on redirects.
-* Bad, because CMOKit owns security-critical code: the sign-in page, the provider callbacks, the email
-  codes and account linking. It is tested against a written list of attacks: guessing codes, flooding
-  an inbox, finding out who has an account, forging a sign-in, redirecting it elsewhere, and taking
-  over an account by linking.
+* Bad, because CMOKit still owns security-critical code: the sign-in pages, the limits on sending
+  codes and on redirects, and adding a way in. Better Auth owns the codes, the provider callbacks,
+  sessions, linking and the protocol. It is tested against a written list of attacks: guessing codes,
+  flooding an inbox, finding out who has an account, forging a sign-in, redirecting it elsewhere, and
+  taking over an account by linking.
 * Bad, because an email code is as safe as the person's mailbox, and CMOKit offers no second factor
   of its own; Google, GitHub and Meta offer theirs.
-* Bad, because the library keeps its tokens in Workers KV, not a Durable Object (ADR-0035).
+* Bad, because a sign-in at an address a provider verifies joins the account that proved it, so the
+  account is as safe as the weaker of the two mailboxes.
 * Neutral, because a self-hoster registers OAuth clients at each provider they want, and needs a
   sending key for email codes.
 
@@ -158,18 +169,25 @@ sequenceDiagram
 Tests sign in through stand-ins for each provider and for the messaging interface, and assert: the
 scopes asked for are exactly those above; a code expires, locks after five attempts, and is limited
 per address and network, and is sent outside every unsubscribe group; the page answers alike for
-known and unknown addresses; a second provider
-with the same email does not join an account by itself; and a client naming any other redirect is
-refused.
+known and unknown addresses; Google at an address a code proved reaches the same account; a second
+address is not added to an account; and a client naming any other redirect is refused.
 
 ## Pros and Cons of the Options
 
-### An issuer Worker of CMOKit's own, on Cloudflare's OAuth library, offering an email code, Google, GitHub and Facebook Login
+### An issuer Worker of CMOKit's own, on Better Auth, offering an email code, Google, GitHub and Facebook Login
 
 * Good, because it meets every driver.
-* Bad, because the sign-in page and its four flows are CMOKit's to keep secure.
+* Bad, because the sign-in pages are CMOKit's to keep secure.
 
-### Keycloak, run as CFOKit runs it
+### Cloudflare's OAuth library, with accounts and ways in of CMOKit's own
+
+* Good, because the library is Cloudflare's own and was built for Workers.
+* Bad, because it is only the protocol: accounts, linking ways in, email codes and sessions were
+  CMOKit's own code, which a maintained library already does.
+* Bad, because its tokens are in Workers KV, where a revocation can take a minute to reach every
+  location.
+
+### Keycloak, run as CFOKit runs it, or another identity server such as Ory, Zitadel, Authentik, Logto or SuperTokens
 
 * Good, because it is a complete identity provider: passwords, resets, second factors, passkeys,
   social sign-in and an admin console, none of them written by CMOKit.
@@ -229,12 +247,11 @@ Google's [OpenID Connect](https://developers.google.com/identity/openid-connect/
 [verification requirements](https://support.google.com/cloud/answer/13463073); GitHub's
 [OAuth scopes](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps);
 Claude Code's [MCP documentation](https://code.claude.com/docs/en/mcp);
-Cloudflare's [workers-oauth-provider](https://github.com/cloudflare/workers-oauth-provider) and
-[its 1.0 release](https://developers.cloudflare.com/changelog/post/2026-10-01-workers-oauth-provider-1x/);
+the source of Better Auth 1.7.28 and its `@better-auth/oauth-provider` and `@better-auth/cimd`
+plugins, as installed;
 the MCP specification's [client registration, 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration).
-Meta's, Google's, GitHub's and Claude Code's pages were read directly on 2026-11-06. Cloudflare's
-pages and the MCP specification were not read on 2026-11-06; they were read through search extracts
-on 2026-10-30. Anthropic's [connector authentication](https://claude.com/docs/connectors/building/authentication)
+Meta's, Google's, GitHub's and Claude Code's pages were read directly on 2026-11-06, and Better
+Auth's source on 2026-11-27. The MCP specification was read through search extracts on 2026-10-30. Anthropic's [connector authentication](https://claude.com/docs/connectors/building/authentication)
 was read directly. CFOKit's records on its [identity provider](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0019-identity-provider-conformance-contract.md),
 its [production deployment](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0060-production-is-one-gcp-project-deployed-on-merge.md)
 and its [redirect restriction](https://github.com/cfokit/cfokit/blob/main/docs/decisions/0064-a-registered-client-redirects-only-to-a-known-host.md)

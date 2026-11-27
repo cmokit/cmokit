@@ -193,7 +193,7 @@ export function accountFor(env: ContentEnv): AccountOptions | undefined {
   return {
     origin: new URL(env.APP_URL).origin,
     exchange: async (form) => {
-      const response = await fetchIssuer(`${env.ISSUER_URL.replace(/\/$/, '')}/oauth/token`, {
+      const response = await fetchIssuer(`${env.ISSUER_URL.replace(/\/$/, '')}/oauth2/token`, {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
         body: form.toString(),

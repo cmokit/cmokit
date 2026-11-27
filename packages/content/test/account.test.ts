@@ -85,7 +85,7 @@ test('signing in sends the person to the issuer with PKCE, and the callback keep
   const start = await get('/signin');
   assert.equal(start.status, 302);
   const authorize = new URL(start.headers.get('location')!);
-  assert.equal(`${authorize.origin}${authorize.pathname}`, `${ISSUER}/authorize`);
+  assert.equal(`${authorize.origin}${authorize.pathname}`, `${ISSUER}/oauth2/authorize`);
   assert.equal(authorize.searchParams.get('client_id'), `${APP}/client.json`);
   assert.equal(authorize.searchParams.get('redirect_uri'), `${APP}/callback`);
   assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256');
@@ -375,7 +375,7 @@ test('Account lists the ways in to this account, and adding one goes to the sign
   const away = await post('/ways', {}, session('ada-token'));
   assert.equal(away.status, 302);
   const authorize = new URL(away.headers.get('location')!);
-  assert.equal(`${authorize.origin}${authorize.pathname}`, `${ISSUER}/authorize`);
+  assert.equal(`${authorize.origin}${authorize.pathname}`, `${ISSUER}/oauth2/authorize`);
   assert.equal(authorize.searchParams.get('link'), 'link-for-ada');
   assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256');
   assert.match(away.headers.get('set-cookie')!, /^__Host-cmokit-signin=/);

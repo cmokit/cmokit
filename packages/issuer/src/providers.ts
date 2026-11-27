@@ -1,37 +1,52 @@
-// The providers a person can sign in with besides an email code (ADR-0018). Google by OpenID Connect
-// (`openid`, `email`, `profile`), GitHub by OAuth (`read:user`, `user:email`) and Meta by Facebook
-// Login (`public_profile`, `email`) each ask for identity alone. Instagram, the creators' own way in,
-// goes through the Meta app's Unified Login configuration, which decides what it asks for; the issuer
-// reads the Instagram account's ID and handle and keeps no token (ADR-0048). Each is offered only when
-// its client is configured. An identity is the provider and its stable subject id; an email address
-// comes with it only when the provider says it is verified, and it never joins one account to another.
+// The providers a person can sign in with besides an email code (ADR-0018), as Better Auth's own:
+// Google by OpenID Connect, GitHub by OAuth and Meta by Facebook Login each ask for identity alone.
+// Instagram, the creators' own way in, goes through the Meta app's Unified Login configuration, which
+// decides what it asks for; the issuer reads the Instagram account's ID and handle (ADR-0048). Each is
+// offered only when its client is configured, and each sends the person back to `<issuer>/callback`,
+// the one redirect every provider's console names. An email address comes with a sign-in only when the
+// provider says it is verified; Facebook's and Instagram's sign-ins carry a stand-in address that
+// never counts as proven. The issuer keeps no provider's token.
 
 export interface ProviderClient {
   id: string;
   secret: string;
 }
 
-export interface Signed {
-  /** The provider's stable id for the person, which names the sign-in identity. */
-  subject: string;
-  /** An address the provider says is verified, or null. */
-  email: string | null;
-  /**
-   * For an Instagram sign-in, the Instagram account the person's Meta login shared: its ID, and its
-   * handle without the @ and in lower case, which a waitlist proved (ADR-0048).
-   */
-  instagram?: { id: string; handle: string };
+/** The providers a deployment has set up, each with its client. */
+export interface ProviderSettings {
+  google?: ProviderClient;
+  github?: ProviderClient;
+  facebook?: ProviderClient;
+  /** The content server's Meta app, with the sign-in's own Unified Login configuration (ADR-0048). */
+  instagram?: ProviderClient & { config: string };
 }
 
-export interface Provider {
-  name: 'google' | 'github' | 'meta' | 'instagram';
-  label: string;
-  scopes: string[];
-  /** Where to send the browser, with the state and, where the provider takes one, a PKCE challenge. */
-  authorizeUrl(options: { state: string; challenge: string; redirectUri: string }): string;
-  /** Exchanges the code the provider sent back, and reads who signed in. */
-  identify(options: { code: string; verifier: string; redirectUri: string }): Promise<Signed>;
+/** The ways in the sign-in page offers, by Better Auth's provider id, with Instagram first (ADR-0048). */
+export const WAYS = [
+  { name: 'instagram', label: 'Instagram' },
+  { name: 'google', label: 'Google' },
+  { name: 'github', label: 'GitHub' },
+  { name: 'facebook', label: 'Facebook' },
+] as const;
+
+export type Way = (typeof WAYS)[number]['name'];
+
+/** An Instagram account a person signed in with: its ID, and its handle without the @ and in lower case. */
+export interface InstagramAccount {
+  id: string;
+  handle: string;
 }
+
+/** The domain of the stand-in addresses of people whose provider gave no verified address. */
+export const NO_EMAIL = 'no-email.cmokit.invalid';
+
+/** A stand-in address, unique to a provider's subject, that is never taken as proven. */
+export function standIn(provider: string, subject: string): string {
+  return `${provider}-${subject.toLowerCase().replace(/[^a-z0-9]/g, '')}@${NO_EMAIL}`;
+}
+
+/** The Graph API version CMOKit calls, as the content server's Instagram connection does (ADR-0045). */
+const GRAPH = 'https://graph.facebook.com/v27.0';
 
 type Fetch = typeof fetch;
 
@@ -40,98 +55,31 @@ async function json(response: Response, what: string): Promise<any> {
   return response.json();
 }
 
-export function google(client: ProviderClient, send: Fetch = fetch): Provider {
-  const scopes = ['openid', 'email', 'profile'];
-  return {
-    name: 'google', label: 'Google', scopes,
-    authorizeUrl: ({ state, challenge, redirectUri }) => `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-      client_id: client.id, redirect_uri: redirectUri, response_type: 'code', scope: scopes.join(' '),
-      state, code_challenge: challenge, code_challenge_method: 'S256',
-    })}`,
-    async identify({ code, verifier, redirectUri }) {
-      const token = await json(await send('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ code, client_id: client.id, client_secret: client.secret, redirect_uri: redirectUri, grant_type: 'authorization_code', code_verifier: verifier }),
-      }), 'Google token');
-      const user = await json(await send('https://openidconnect.googleapis.com/v1/userinfo', {
-        headers: { authorization: `Bearer ${token.access_token}` },
-      }), 'Google userinfo');
-      if (typeof user.sub !== 'string' || !user.sub) throw new Error('Google sent no subject');
-      return { subject: user.sub, email: user.email_verified === true && typeof user.email === 'string' ? user.email.toLowerCase() : null };
-    },
-  };
-}
-
-export function github(client: ProviderClient, send: Fetch = fetch): Provider {
-  const scopes = ['read:user', 'user:email'];
-  const headers = (token: string) => ({ authorization: `Bearer ${token}`, accept: 'application/vnd.github+json', 'user-agent': 'CMOKit' });
-  return {
-    name: 'github', label: 'GitHub', scopes,
-    authorizeUrl: ({ state, challenge, redirectUri }) => `https://github.com/login/oauth/authorize?${new URLSearchParams({
-      client_id: client.id, redirect_uri: redirectUri, scope: scopes.join(' '), state,
-      code_challenge: challenge, code_challenge_method: 'S256',
-    })}`,
-    async identify({ code, verifier, redirectUri }) {
-      const token = await json(await send('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ client_id: client.id, client_secret: client.secret, code, redirect_uri: redirectUri, code_verifier: verifier }),
-      }), 'GitHub token');
-      if (typeof token.access_token !== 'string') throw new Error('GitHub sent no token');
-      const user = await json(await send('https://api.github.com/user', { headers: headers(token.access_token) }), 'GitHub user');
-      if (typeof user.id !== 'number' && typeof user.id !== 'string') throw new Error('GitHub sent no user id');
-      const emails = await json(await send('https://api.github.com/user/emails', { headers: headers(token.access_token) }), 'GitHub emails') as { email: string; primary: boolean; verified: boolean }[];
-      const primary = emails.find((e) => e.primary && e.verified);
-      return { subject: String(user.id), email: primary ? primary.email.toLowerCase() : null };
-    },
-  };
-}
-
-/** Facebook Login's manual flow, with the app's secret; the address it returns is not taken as verified. */
-export function meta(client: ProviderClient, send: Fetch = fetch): Provider {
-  const scopes = ['public_profile', 'email'];
-  return {
-    name: 'meta', label: 'Facebook', scopes,
-    authorizeUrl: ({ state, redirectUri }) => `https://www.facebook.com/dialog/oauth?${new URLSearchParams({
-      client_id: client.id, redirect_uri: redirectUri, response_type: 'code', scope: scopes.join(','), state,
-    })}`,
-    async identify({ code, redirectUri }) {
-      const token = await json(await send(`https://graph.facebook.com/oauth/access_token?${new URLSearchParams({
-        client_id: client.id, client_secret: client.secret, redirect_uri: redirectUri, code,
-      })}`), 'Facebook token');
-      if (typeof token.access_token !== 'string') throw new Error('Facebook sent no token');
-      const user = await json(await send('https://graph.facebook.com/me?fields=id', {
-        headers: { authorization: `Bearer ${token.access_token}` },
-      }), 'Facebook user');
-      if (typeof user.id !== 'string' || !user.id) throw new Error('Facebook sent no user id');
-      return { subject: user.id, email: null };
-    },
-  };
-}
-
-/** The Graph API version CMOKit calls, as the content server's Instagram connection does (ADR-0045). */
-const GRAPH = 'https://graph.facebook.com/v27.0';
-
 /**
  * Instagram through the Meta app's Facebook Login for Business configuration made under API setup
  * with Unified login (ADR-0048): the configuration, not a scope list, says what Meta asks for. The
- * person's own Meta login names the identity, not a business account they manage, which others may
- * manage too; the Instagram account it shared comes with it, by its ID and handle. The token is used
- * for those reads and kept nowhere.
+ * person's own Meta login names the account, not a business account they manage, which others may
+ * manage too; the Instagram account it shared comes with it, by its ID and handle, and is passed to
+ * `shared`.
  */
-export function instagram(client: ProviderClient & { config: string }, send: Fetch = fetch): Provider {
+export function instagramProvider(client: ProviderClient & { config: string }, redirectURI: string, shared: (metaId: string, account: InstagramAccount) => Promise<void>, send: Fetch = (input, init) => fetch(input, init)) {
   return {
-    name: 'instagram', label: 'Instagram', scopes: [],
-    authorizeUrl: ({ state, redirectUri }) => `https://www.facebook.com/dialog/oauth?${new URLSearchParams({
-      client_id: client.id, config_id: client.config, redirect_uri: redirectUri, response_type: 'code', state,
-    })}`,
-    async identify({ code, redirectUri }) {
+    providerId: 'instagram',
+    clientId: client.id,
+    clientSecret: client.secret,
+    authorizationUrl: 'https://www.facebook.com/dialog/oauth',
+    authorizationUrlParams: { config_id: client.config },
+    redirectURI,
+    pkce: false,
+    async getToken({ code }: { code: string }) {
       const token = await json(await send(`${GRAPH}/oauth/access_token?${new URLSearchParams({
-        client_id: client.id, client_secret: client.secret, redirect_uri: redirectUri, code,
+        client_id: client.id, client_secret: client.secret, redirect_uri: redirectURI, code,
       })}`), 'Instagram token');
       if (typeof token.access_token !== 'string') throw new Error('Instagram sent no token');
-      const headers = { authorization: `Bearer ${token.access_token}` };
+      return { accessToken: token.access_token as string, tokenType: 'bearer' };
+    },
+    async getUserInfo(tokens: { accessToken?: string }) {
+      const headers = { authorization: `Bearer ${tokens.accessToken}` };
       const user = await json(await send(`${GRAPH}/me?fields=id`, { headers }), 'Meta user');
       if ((typeof user.id !== 'string' && typeof user.id !== 'number') || !user.id) throw new Error('Meta sent no user id');
       const accounts = await json(await send(`${GRAPH}/me/assigned_instagram_accounts?fields=id,username`, { headers }), 'Instagram accounts');
@@ -139,7 +87,25 @@ export function instagram(client: ProviderClient & { config: string }, send: Fet
       if (!account || (typeof account.id !== 'string' && typeof account.id !== 'number') || typeof account.username !== 'string' || !account.username) {
         throw new Error('No Instagram account was shared');
       }
-      return { subject: String(user.id), email: null, instagram: { id: String(account.id), handle: account.username.replace(/^@/, '').toLowerCase() } };
+      const id = String(user.id);
+      const handle = account.username.replace(/^@/, '').toLowerCase();
+      await shared(id, { id: String(account.id), handle });
+      return { id, email: standIn('instagram', id), emailVerified: false, name: handle };
     },
+  };
+}
+
+/** Better Auth's own providers for Google, GitHub and Facebook, each sent back to the one callback. */
+export function socialProviders(settings: ProviderSettings, redirectURI: string) {
+  return {
+    ...(settings.google ? { google: { clientId: settings.google.id, clientSecret: settings.google.secret, redirectURI } } : {}),
+    ...(settings.github ? { github: { clientId: settings.github.id, clientSecret: settings.github.secret, redirectURI } } : {}),
+    ...(settings.facebook ? {
+      facebook: {
+        clientId: settings.facebook.id, clientSecret: settings.facebook.secret, redirectURI,
+        // Facebook's address is not taken as verified, so it never joins one account to another.
+        mapProfileToUser: (profile: { id?: string; sub?: string }) => ({ email: standIn('facebook', String(profile.id ?? profile.sub)), emailVerified: false }),
+      },
+    } : {}),
   };
 }

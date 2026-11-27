@@ -109,7 +109,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
   const signIn = async (link?: string): Promise<Response> => {
     const state = random(16);
     const verifier = random(32);
-    const authorize = new URL(`${context.issuer.replace(/\/$/, '')}/authorize`);
+    const authorize = new URL(`${context.issuer.replace(/\/$/, '')}/oauth2/authorize`);
     for (const [name, value] of Object.entries({
       response_type: 'code', client_id: clientId, redirect_uri: redirectUri, state,
       code_challenge: await challenge(verifier), code_challenge_method: 'S256', resource: context.audience,

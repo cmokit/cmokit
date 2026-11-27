@@ -36,10 +36,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json"
   },
-  "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^1.2.4"
-  },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@better-auth/cimd": "^1.7.28",
+    "@better-auth/oauth-provider": "^1.7.28",
+    "better-auth": "^1.7.28"
   }
 }

@@ -13,7 +13,7 @@ export interface SendGridCodeOptions {
 }
 
 export function sendgridCodes(options: SendGridCodeOptions): CodeMail {
-  const send = options.fetch ?? fetch;
+  const send: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
   return {
     async sendCode(to, code) {
       const text = `Your CMOKit sign-in code is ${code}.\n\nIt works for ten minutes. If you didn't ask for it, you can ignore this email.`;

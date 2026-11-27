@@ -52,7 +52,7 @@ jobs:
         run: |
           secrets="$RUNNER_TEMP/issuer-secrets.json"
           node -e '
-            const names = ["SENDGRID_API_KEY", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_SECRET", "META_APP_SECRET", "INSTAGRAM_APP_SECRET"];
+            const names = ["CREDENTIAL_KEY", "SENDGRID_API_KEY", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_SECRET", "META_APP_SECRET", "INSTAGRAM_APP_SECRET"];
             const set = Object.fromEntries(names.filter((n) => process.env[n]).map((n) => [n, process.env[n]]));
             require("fs").writeFileSync(process.argv[1], JSON.stringify(set));
           ' "$secrets"
@@ -71,6 +71,8 @@ jobs:
           { [ -n "$META_APP_ID" ] && [ -n "$META_APP_SECRET" ]; } || echo "::notice::Sign-in with Facebook is off; set META_APP_ID and META_APP_SECRET."
           { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && [ -n "$INSTAGRAM_CONFIG_ID" ]; } || echo "::notice::Sign-in with Instagram is off; set INSTAGRAM_APP_ID, INSTAGRAM_SIGN_IN_CONFIG_ID and INSTAGRAM_APP_SECRET."
         env:
+          # Better Auth's secret and the copy's token are derived from it (worker.ts).
+          CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -119,3 +121,16 @@ jobs:
           INSTAGRAM_APP_ID: ${{ vars.INSTAGRAM_APP_ID }}
           INSTAGRAM_CONFIG_ID: ${{ vars.INSTAGRAM_CONFIG_ID }}
           INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
+
+      # Copies people from the issuer's old records into Better Auth's tables, keeping each person's id,
+      # ways in, address, brands and Instagram account (ADR-0018). A person already copied is left alone,
+      # so every deploy runs it and only the first copies anyone. The report names people by id only.
+      - name: Copy people into Better Auth
+        run: |
+          token=$(node -e 'const c = require("crypto"); process.stdout.write(Buffer.from(c.hkdfSync("sha256", process.env.CREDENTIAL_KEY, "", "cmokit copy", 32)).toString("base64url"))')
+          echo "::add-mask::$token"
+          curl --fail-with-body --silent --show-error -X POST -H "authorization: Bearer $token" https://auth.cmokit.ai/copy | tee "$RUNNER_TEMP/copy.json"
+          echo
+          node -e 'const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); if (r.failed.length) { console.log("::error::" + r.failed.length + " people were not copied; run the workflow again."); process.exit(1); }' "$RUNNER_TEMP/copy.json"
+        env:
+          CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
