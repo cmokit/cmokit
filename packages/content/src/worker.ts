@@ -20,6 +20,7 @@
 // brand connects its Instagram, and people on its waitlist comment their code on its Reels (ADR-0045). The only host-specific code in the content server lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
+import { publishedTerms } from '@cmokit/issuer';
 import { fontResponse, type Fonts } from '@cmokit/issuer/look';
 import { Customer as CustomerLogic, Refusal } from './customer.ts';
 import { createContentServer, type AccountOptions, type Apps, type Billing, type CustomerPages, type Portal, type Tokens } from './index.ts';
@@ -47,10 +48,11 @@ export interface ContentEnv {
    * call, with a first brand made for them. A variable.
    */
   ACTIVATED_EMAILS?: string;
-  /** Where the terms every user accepts are published, as a closed beta's (ADR-0047). The issuer reads the same variable. A variable. */
+  /**
+   * Where the terms every user accepts are published, as a closed beta's; their version is read from
+   * the page, and a user accepts each new version (ADR-0047). The issuer reads the same variable. A variable.
+   */
   TERMS_URL?: string;
-  /** The terms' current version; a user accepts each new version. A variable. */
-  TERMS_VERSION?: string;
   /** Where the account page is served, as https://app.cmokit.ai; no account page without it (ADR-0041). A variable. */
   APP_URL?: string;
   /**
@@ -332,6 +334,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
     async fetch(request: Request, env: ContentEnv): Promise<Response> {
       const font = fontResponse(request, options.fonts);
       if (font) return font;
+      const terms = await publishedTerms(env.TERMS_URL);
       const handle = createContentServer({
         issuer: env.ISSUER_URL,
         audience: env.AUDIENCE,
@@ -340,7 +343,7 @@ export function createContentWorker(options: { tokens(env: ContentEnv): Tokens; 
         customersOf: env.ISSUER ? (person) => env.ISSUER!.customers(person) : undefined,
         billing: lifecycleBilling(env),
         activate: activation(env),
-        ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
+        ...(terms ? { terms } : {}),
         account: accountWith(env),
         join: { allow: env.JOINS ? async (key) => (await env.JOINS!.limit({ key })).success : undefined },
         instagram: instagramFor(env),

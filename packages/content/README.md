@@ -47,7 +47,7 @@ becomes CMOKit's customer at their first call, with no checkout: the server make
 brand, with them as its first user. On the account page they add more brands (ADR-0042), and each
 brand runs a waitlist of its own: its users list the brand's site addresses, paste the form the
 page gives them into any page on those sites, which posts to `/join/<brand>`, and activate people
-from the ranked list (ADR-0043). With `TERMS_URL` and `TERMS_VERSION` set, each user
+from the ranked list (ADR-0043). With `TERMS_URL` set, each user
 accepts the beta terms by ticking a box at sign-in, recorded with the customer at their first call,
 or, if their connection is older than the box, on a one-time page before using anything but
 `account_status` (ADR-0047). The

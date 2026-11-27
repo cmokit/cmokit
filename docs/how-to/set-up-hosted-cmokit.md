@@ -142,12 +142,12 @@ into your site. Your account page lists everyone who joins, most referrals first
 button for each. Activating someone lets them sign in and use CMOKit. CMOKit sends no email yet, so
 tell them yourself.
 
-To ask every user to accept the beta terms first, publish them, then save the variable `TERMS_URL`
-with their address and `TERMS_VERSION` with their version, such as the date they were published,
-and deploy again. The sign-in screen then has a box to accept them, which must be ticked to sign
+To ask every user to accept the beta terms first, publish them with a line "Version" and their
+version, such as the date they were published, then save the variable `TERMS_URL` with their
+address and deploy again. The sign-in screen then has a box to accept them, which must be ticked to sign
 in. Anyone whose Claude connected before the box existed is asked once, by a link in the
-conversation, or can reconnect and tick it. When you change the terms, change the version, and
-everyone accepts again.
+conversation, or can reconnect and tick it. When you change the terms, change the version on the
+page and publish it: within five minutes everyone is asked to accept again, with no deploy.
 
 ### Instagram on the waitlist
 
