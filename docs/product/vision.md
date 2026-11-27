@@ -61,9 +61,15 @@ stays open source, and anyone can still run the engine, and the content service,
 * **Set up by talking to Claude.** The customer sets CMOKit up in a conversation in Claude.
 * **An account page of their own.** At `app.cmokit.ai`, a customer views and manages its profile,
   its brand context and the settings its skills use.
-* **Signing in is only signing in.** A CMOKit account signs in with an email address, Google, GitHub
-  or Meta. Signing in identifies the person and grants nothing else; anything more, such as
-  connecting an event platform, is asked for on its own, when it is needed.
+* **One account, many brands.** A person has one CMOKit account, and it holds every brand they run
+  or help run, each with its own social media connections, or none yet. They switch between their
+  brands on the account page, and a brand's user invites the people who help with it, who each keep
+  their own account.
+* **Signing in is only signing in.** A CMOKit account signs in with Instagram, an email address,
+  Google, GitHub or Meta, and the person adds more ways in on the account page, each reaching the same
+  account. Signing in identifies the person and grants nothing else; anything more, such as
+  connecting a brand's Instagram or an event platform, is asked for on its own, when it is needed, and
+  never becomes a way in.
 * **Their own Claude does the thinking.** A solo creator runs CMOKit from the Claude account they
   already have, through its plugins and connectors, beside any others they use. CMOKit's hosted
   services run no inference, so what they cost is storage, compute and bought tools, which is why the

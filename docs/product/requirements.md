@@ -132,13 +132,13 @@ What hosted CMOKit must do, and how a customer is set up for it. A self-hosted a
 | Id | Requirement | Priority | Status |
 |---|---|---|---|
 | **HST-01** | CMOKit's content service is offered hosted. A customer sets it up with a CMOKit account, a subscription and, where it has them, its event platform and its site's analytics, and nothing more: no terminal, no repository work and no Cloudflare account of the customer's own. | Must | Proposed |
-| **HST-02** | A person creates a CMOKit account and signs in to it with an email address, or with Google, GitHub or Meta. Signing in identifies the person and grants CMOKit nothing else at that provider. | Must | Proposed |
+| **HST-02** | A person has one CMOKit account. They create it and sign in to it with an email address, or with Instagram, Google, GitHub or Meta, and add more ways in on the account page, each of which signs them in to that same account. Signing in identifies the person and grants CMOKit nothing else at that provider. Signing in with Instagram identifies the person by their own Meta login, not by a business account they manage, which others may manage too. | Must | Proposed |
 | **HST-03** | Setup is a conversation in the person's own Claude, including subscribing and connecting the event platform and the site's analytics. | Must | Proposed |
 | **HST-04** | A credential a customer gives CMOKit never passes through a conversation with a model. It is granted through the vendor's own authorization, or entered on a page of CMOKit's that the conversation links to, and it is held for that customer alone, encrypted, never logged and never shown again. | Must | Proposed |
 | **HST-05** | A person's Claude reaches CMOKit on their behalf through an authorization the person grants by signing in and can revoke, never through a key the person copies. | Must | Proposed |
 | **HST-08** | A solo creator runs CMOKit from the Claude account they already have, through its plugins and connectors, alongside any other plugins they use. | Must | Proposed |
 | **HST-09** | CMOKit's hosted services run no model inference. Model work happens in the customer's own Claude account, so what the hosted services cost is storage, compute and bought tools. | Must | Proposed |
-| **HST-10** | Each customer's data, credentials and connections are kept apart from every other customer's: nothing done for one customer reads or changes another's. A person who is a user of several customers acts for one at a time, and chooses which. | Must | Proposed |
+| **HST-10** | Each customer's data, credentials and connections are kept apart from every other customer's: nothing done for one customer reads or changes another's. A person who is a user of several customers acts for one at a time, and chooses which. Once signed in, they switch between their brands on the account page in one step, without signing in again. | Must | Proposed |
 | **HST-11** | Everything the hosted offering does, anyone can do by deploying the same open-source packages to a Cloudflare account of their own. No feature is hosted only. | Must | Proposed |
 | **HST-12** | A customer subscribes to hosted CMOKit, and manages and cancels its subscription, without contacting anyone. | Must | Proposed |
 | **HST-13** | A customer can export everything CMOKit holds for it, in a readable form, and close its account, which deletes what CMOKit holds. | Must | Proposed |
@@ -147,6 +147,9 @@ What hosted CMOKit must do, and how a customer is set up for it. A self-hosted a
 | **HST-16** | A hosted customer's landing page, waitlist, referral links and messages are run for it by CMOKit, with no Cloudflare account, repository or deploy of the customer's own, and no domain or DNS moved to CMOKit. | Must | Proposed |
 | **HST-17** | A customer views and manages its profile, its brand context and the settings its CMOKit skills use, on CMOKit's account page at `app.cmokit.ai`, where an activated person's account is. | Must | Proposed |
 | **HST-18** | A hosted customer gives its CMOKit-hosted landing page a custom domain of its own by adding a record at its own DNS provider, as landing page platforms such as Unbounce allow. cmokit.ai, CMOKit's own, is the first; every customer after it needs this. | Must | Proposed |
+| **HST-19** | One account supports several brands, and each brand has its own social media connections. A brand may have none yet: its brand context, content and landing page work without them. | Must | Proposed |
+| **HST-20** | Connecting a brand's social media account lets CMOKit work with it for that brand. It never makes that account anyone's way in. | Must | Proposed |
+| **HST-21** | A brand's user invites another person to it, such as a creator inviting someone who helps run their brand, or a client inviting the marketing associate who runs its campaigns. Each keeps their own account. | Must | Proposed |
 
 ## Content (`CNT-`)
 

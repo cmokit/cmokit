@@ -7,14 +7,14 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOKit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
+// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), `waysIn` and `startLink` for the ways in a person has and adds on the account page (ADR-0018), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { OAuthAuthorizationServer, authorizationErrorRedirect, type AuthRequest as LibraryRequest } from '@cloudflare/workers-oauth-provider';
 import { Identity as IdentityLogic, Person as PersonLogic } from './accounts.ts';
 import { fontResponse, type Fonts } from './look.ts';
-import { allowedRedirect, createSignIn, type Accounts, type Brand, type Grant, type IdentityRecords, type InstagramAccount, type PersonRecords, type SignInOAuth } from './index.ts';
+import { allowedRedirect, createSignIn, startLink, type Accounts, type Brand, type Grant, type IdentityRecords, type InstagramAccount, type PersonRecords, type SignInOAuth } from './index.ts';
 import { github, google, instagram, meta, type Provider } from './providers.ts';
 import { sendgridCodes } from './sendgrid.ts';
 import { publishedTerms } from './terms.ts';
@@ -77,6 +77,8 @@ export interface IssuerEntrypoint {
     nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
     email(person: string): Promise<string | null>;
     instagram(person: string): Promise<InstagramAccount | null>;
+    waysIn(person: string): Promise<string[]>;
+    startLink(person: string): Promise<string>;
     deletePerson(person: string): Promise<void>;
   };
 }
@@ -126,7 +128,7 @@ const servers = new Map<string, OAuthAuthorizationServer<IssuerEnv>>();
 
 /** The OAuth library's authorization server, for this deployment's issuer and audience. */
 export function authorizationServer(env: IssuerEnv): OAuthAuthorizationServer<IssuerEnv> {
-  const key = `${env.ISSUER_URL} ${env.AUDIENCE}`;
+  const key = `${env.ISSUER_URL} ${env.AUDIENCE} ${env.APP_URL ?? ''}`;
   let server = servers.get(key);
   if (!server) {
     server = new OAuthAuthorizationServer<IssuerEnv>({
@@ -168,10 +170,7 @@ async function signInFor(env: IssuerEnv) {
     completeAuthorization: (options) => helpers.completeAuthorization(options),
     declined: (request) => authorizationErrorRedirect(request, 'access_denied'),
   };
-  const accounts: Accounts = {
-    identity: (name) => stub<IdentityRecords>(env.IDENTITIES, name, IDENTITY_CALLS),
-    person: (id) => stub<PersonRecords>(env.PEOPLE, id, PERSON_CALLS),
-  };
+  const accounts = accountsFor(env);
   return createSignIn({
     issuer: env.ISSUER_URL,
     oauth,
@@ -181,7 +180,15 @@ async function signInFor(env: IssuerEnv) {
     network: (request) => request.headers.get('cf-connecting-ip') ?? 'unknown',
     redirects: appRedirects(env),
     ...(terms ? { terms } : {}),
+    forget: (person) => deletePerson(env, person),
   });
+}
+
+function accountsFor(env: IssuerEnv): Accounts {
+  return {
+    identity: (name) => stub<IdentityRecords>(env.IDENTITIES, name, IDENTITY_CALLS),
+    person: (id) => stub<PersonRecords>(env.PEOPLE, id, PERSON_CALLS),
+  };
 }
 
 /** Forgets a person's sign-in records and revokes their grants (ADR-0053). */
@@ -245,6 +252,16 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
     /** The Instagram account a person last signed in with, for activation by a proven handle (ADR-0048). */
     instagram(person: string): Promise<InstagramAccount | null> {
       return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).instagram();
+    }
+
+    /** The ways in a person signs in to their account with, by the identity each names, for the account page. */
+    async waysIn(person: string): Promise<string[]> {
+      return (await stub<PersonRecords & { identities(): Promise<string[]> }>(this.env.PEOPLE, person, PERSON_CALLS).identities()) ?? [];
+    }
+
+    /** A one-time value the account page sends a person to the sign-in with, to add a way in to their account (ADR-0018). */
+    startLink(person: string): Promise<string> {
+      return startLink(accountsFor(this.env), person);
     }
 
     /**

@@ -28,6 +28,13 @@ export interface AccountOptions {
   email(person: string): Promise<string | null>;
   /** The Instagram handle a person last signed in with, if any, shown when they proved no address (ADR-0048). */
   handle?(person: string): Promise<string | null>;
+  /** The ways in a person signs in to their account with, by the identity each names (ADR-0018). */
+  waysIn?(person: string): Promise<string[]>;
+  /**
+   * A one-time value that sends the person to the sign-in to add another way in to their own account
+   * (ADR-0018). Absent when ways in cannot be added here.
+   */
+  addWay?(person: string): Promise<string>;
   /**
    * Makes another brand, a customer of its own with the person as its first user, and returns its
    * slug (ADR-0042). Absent when users cannot add brands here.
@@ -65,7 +72,7 @@ export interface AccountContext {
 const SESSION = '__Host-cmokit-session';
 const SIGNIN = '__Host-cmokit-signin';
 const SIGNIN_SECONDS = 600;
-const PATHS = new Set(['/portal.js', '/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect', '/account/delete']);
+const PATHS = new Set(['/portal.js', '/', '/waitlist', '/account', '/client.json', '/signin', '/callback', '/signout', '/export', '/brands', '/brands/name', '/waitlist/activate', '/waitlist/sites', '/instagram/connect', '/instagram/count', '/instagram/disconnect', '/account/delete', '/ways']);
 const BRAND_NAME = /^[\p{L}\p{N}][\p{L}\p{N} .&'-]{0,59}$/u;
 
 /** Whether a path is the account page's; every other path falls through to the content server. */
@@ -98,16 +105,20 @@ export async function handleAccount(request: Request, url: URL, account: Account
     });
   }
 
-  if (route === 'GET /signin') {
+  /** Sends the browser to the issuer's sign-in; `link` makes the way in chosen there one more into the person's account. */
+  const signIn = async (link?: string): Promise<Response> => {
     const state = random(16);
     const verifier = random(32);
     const authorize = new URL(`${context.issuer.replace(/\/$/, '')}/authorize`);
     for (const [name, value] of Object.entries({
       response_type: 'code', client_id: clientId, redirect_uri: redirectUri, state,
       code_challenge: await challenge(verifier), code_challenge_method: 'S256', resource: context.audience,
+      ...(link ? { link } : {}),
     })) authorize.searchParams.set(name, value);
     return redirect(authorize.toString(), cookie(SIGNIN, `${state}.${verifier}`, SIGNIN_SECONDS));
-  }
+  };
+
+  if (route === 'GET /signin') return signIn();
 
   if (route === 'GET /callback') {
     const [state, verifier] = (readCookie(request, SIGNIN) ?? '').split('.');
@@ -129,7 +140,7 @@ export async function handleAccount(request: Request, url: URL, account: Account
     return response;
   }
 
-  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count', 'POST /instagram/disconnect', 'POST /account/delete'].includes(route);
+  const changes = ['POST /brands', 'POST /brands/name', 'POST /waitlist/activate', 'POST /waitlist/sites', 'POST /instagram/connect', 'POST /instagram/count', 'POST /instagram/disconnect', 'POST /account/delete', 'POST /ways'].includes(route);
   const tab = ({ 'GET /': 'home', 'GET /waitlist': 'waitlist', 'GET /account': 'account' } as Record<string, AccountTab>)[route];
   if (!tab && route !== 'GET /export' && !changes) return new Response('Not found', { status: 404 });
   // A change comes only from the account page's own forms; the session cookie is SameSite=Lax too. The
@@ -144,6 +155,12 @@ export async function handleAccount(request: Request, url: URL, account: Account
   const session = readCookie(request, SESSION);
   const checked = session ? await context.tokens.check(session) : undefined;
   if (!checked || checked.audience !== context.audience) return redirect('/signin', cookie(SESSION, '', 0));
+
+  // Adding a way in goes through the sign-in, which adds the way chosen to this person's account (ADR-0018).
+  if (route === 'POST /ways') {
+    if (!account.addWay) return new Response('Not found', { status: 404 });
+    return signIn(await account.addWay(checked.person));
+  }
 
   // Deleting the account comes before finding the brand to show, which could make one (ADR-0053).
   if (route === 'POST /account/delete') {
@@ -242,6 +259,11 @@ export async function handleAccount(request: Request, url: URL, account: Account
   const handle = email || !account.handle ? null : await account.handle(checked.person);
   const shown = notice(url);
   const view: AccountView = { email, ...(handle ? { handle } : {}), ...(shown ? { notice: shown } : {}) };
+  if (account.waysIn) {
+    const instagram = account.handle ? await account.handle(checked.person) : null;
+    view.ways = (await account.waysIn(checked.person)).map((name) => wayLabel(name, instagram));
+    view.addWay = Boolean(account.addWay);
+  }
   // A user of CMOKit's own brand cannot delete it from here, so the page offers them no delete.
   if (account.deleteAccount && !(slug !== undefined && slug === account.cmokitWaitlist)) view.deletable = true;
   if (!customer && !context.billing) {
@@ -333,6 +355,15 @@ async function challenge(verifier: string): Promise<string> {
 
 function base64url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** How the account page names a way in, from the identity it names (ADR-0018). */
+export function wayLabel(identity: string, instagram: string | null = null): string {
+  const [provider] = identity.split(':', 1);
+  const rest = identity.slice(provider.length + 1);
+  if (provider === 'email') return rest;
+  if (provider === 'instagram') return instagram ? `Instagram (@${instagram})` : 'Instagram';
+  return ({ github: 'GitHub', google: 'Google', meta: 'Facebook' } as Record<string, string>)[provider] ?? provider;
 }
 
 function cookie(name: string, value: string, seconds: number): string {

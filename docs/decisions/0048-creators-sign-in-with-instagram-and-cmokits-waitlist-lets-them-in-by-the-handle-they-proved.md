@@ -52,10 +52,11 @@ that signs a creator in with the account the waitlist already proved.
 > for Business configuration made for sign-in, apart from the brand connection's, and the app allows
 > the issuer's own callback as a redirect beside the account page's. Instagram
 > is the sign-in screen's first and primary button, and the other ways in follow as plain buttons.
-> The issuer trades the code for a token, reads the Instagram account the person shared, by its ID
-> and handle, and keeps the token nowhere. The identity is named by the account's ID, so a person who
-> changes their handle is the same person; their person record keeps the handle they last signed in
-> with. Instagram proves no email address. At a person's first call, the content server lets them in
+> The issuer trades the code for a token, reads the person's own Meta login and the Instagram account
+> they shared, by its ID and handle, and keeps the token nowhere. The identity is named by the Meta
+> login, not by the Instagram account, which other people may manage too, so a person who changes
+> their handle or manages several accounts is the same person, and two people who manage one account
+> are two people; their person record keeps the account and handle they last signed in with. Instagram proves no email address. At a person's first call, the content server lets them in
 > when a user of the brand `WAITLIST_CUSTOMER` names activated a person on its waitlist whose proved
 > handle is the one they signed in with. The first Instagram account to sign in with that handle is
 > written on that person's waitlist record, and from then on that record lets in that account alone,
@@ -76,13 +77,14 @@ what Meta grants is the configuration's to say, and CMOKit uses it for that one 
 * Bad, because the token Meta issues can do more than identify the person, though CMOKit discards it.
 * Bad, because creators sign in only as testers until Meta's App Review and Business Verification
   pass.
-* Neutral, because a person who signs in with Instagram and with GitHub has two accounts, as ADR-0018
-  has for any two ways in.
+* Neutral, because a person who signs in with Instagram and with GitHub reaches one account once they
+  add one as a way in from the account page, as ADR-0018 has it for any two ways in.
 
 ### Confirmation
 
 A test of the issuer asserts that Instagram leads the screen as its primary button, goes through the
-configuration with no scope list, names the person by the account's ID across a changed handle, and
+configuration with no scope list, names the person by their Meta login across a changed handle and
+two Meta logins that share an account as two people, and
 that Google is not offered in an in-app browser. Tests of the content server assert that a person is
 let in only once their handle is proved and they are activated, that the first account keeps the
 place by its ID, and that another account with the same handle is not let in.

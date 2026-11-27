@@ -107,6 +107,39 @@ export interface SignInOptions<R extends AuthRequest> {
   redirects?: readonly string[];
   /** Absent when nobody accepts terms at sign-in, as when the server is self-hosted (ADR-0047). */
   terms?: SignInTerms;
+  /**
+   * Deletes an account that has no brands, when a way in that reaches it is added to another
+   * person's account (ADR-0018). Absent, such a way in is not added.
+   */
+  forget?(person: string): Promise<void>;
+}
+
+/** How long a value from the account page lets a person add a way in to their account. */
+export const LINK_LIFETIME = 10 * 60_000;
+
+async function sha256(text: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));
+  return [...digest].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * A one-time value the account page sends a signed-in person to the sign-in with, so the way in
+ * they choose is added to their own account (ADR-0018). It names when it expires, and the issuer
+ * keeps only its hash, with the person.
+ */
+export async function startLink(accounts: Accounts, person: string, now = Date.now()): Promise<string> {
+  const value = `${now + LINK_LIFETIME}.${base64url(crypto.getRandomValues(new Uint8Array(24)))}`;
+  await accounts.identity(`link:${await sha256(value)}`).claim(person);
+  return value;
+}
+
+/** The person a value from startLink names, once, or undefined when it is unknown, used or expired. */
+async function redeemLink(accounts: Accounts, value: string, now: number): Promise<string | undefined> {
+  const expires = Number(value.split('.')[0]);
+  const records = accounts.identity(`link:${await sha256(value)}`);
+  const person = await records.person();
+  await records.erase();
+  return person && Number.isFinite(expires) && expires > now ? person : undefined;
 }
 
 /**
@@ -128,8 +161,11 @@ export function allowedRedirect(uri: string, extra: readonly string[] = []): boo
 
 const ADDRESS = /^[^\s@<>()",;:\\[\]]+@[^\s@<>()",;:\\[\]]+\.[^\s@<>()",;:\\[\]]+$/;
 
-/** Each step of a sign-in carries the version of the terms the person ticked, if any were asked for. */
-type Upstream = { terms?: string } & (
+/**
+ * Each step of a sign-in carries the version of the terms the person ticked, if any were asked for,
+ * and, when they are adding a way in to the account they are signed in to, the value that says so.
+ */
+type Upstream = { terms?: string; link?: string } & (
   | { way: 'google' | 'github' | 'meta' | 'instagram'; verifier: string }
   | { way: 'email'; address: string }
   | { way: 'choose'; person: string; customers: string[] });
@@ -175,12 +211,12 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
   const providers = [...options.providers].sort((a, b) => Number(b.name === 'instagram') - Number(a.name === 'instagram'));
 
   /** The sign-in screen; `from` is the browser's own request, which says whether Google can work there. */
-  async function signIn(from: Request, request: R, headers: Headers, problem?: string): Promise<Response> {
+  async function signIn(from: Request, request: R, headers: Headers, problem?: string, link?: string): Promise<Response> {
     const client = await oauth.describeConsent(request);
     const consent = await oauth.beginConsent(request);
     const ways = providers.filter((p) => !(p.name === 'google' && inAppBrowser(from))).map((p) => ({ name: p.name, label: p.label }));
     const own = (options.redirects ?? []).includes(request.redirectUri);
-    return signInPage({ client, own, handle: consent.handle, ways, email: Boolean(options.mail), terms: options.terms, problem, headers: merge(headers, consent.headers) });
+    return signInPage({ client, own, handle: consent.handle, ways, email: Boolean(options.mail), terms: options.terms, problem, ...(own && link ? { link } : {}), headers: merge(headers, consent.headers) });
   }
 
   async function start(request: Request): Promise<Response> {
@@ -189,7 +225,7 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     if (!client || !client.redirectUris.every((uri) => allowedRedirect(uri, options.redirects))) {
       return problemPage('This app sends sign-ins somewhere CMOKit does not allow, so it cannot connect.');
     }
-    return signIn(request, parsed, new Headers());
+    return signIn(request, parsed, new Headers(), undefined, new URL(request.url).searchParams.get('link') ?? undefined);
   }
 
   async function chooseWay(request: Request): Promise<Response> {
@@ -198,11 +234,12 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     const way = String(form.get('way') ?? '');
     if (way === 'cancel') return new Response(null, { status: 302, headers: (await oauth.denyConsent(request, handle)).headers });
     const approved = await oauth.approveConsent(request, handle);
+    const link = (options.redirects ?? []).includes(approved.request.redirectUri) && form.get('link') ? { link: String(form.get('link')) } : {};
 
     // While terms are asked for, no way in goes on until the box is ticked (ADR-0047).
     const { terms } = options;
-    if (terms && form.get('terms') !== 'yes') return signIn(request, approved.request, approved.headers, 'Tick the box to accept the beta terms, then sign in.');
-    const accepted = terms ? { terms: terms.version } : {};
+    if (terms && form.get('terms') !== 'yes') return signIn(request, approved.request, approved.headers, 'Tick the box to accept the beta terms, then sign in.', link.link);
+    const accepted = { ...(terms ? { terms: terms.version } : {}), ...link };
 
     const provider = options.providers.find((p) => p.name === way);
     if (provider) {
@@ -213,17 +250,17 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
 
     if (way === 'email' && options.mail) {
       const address = String(form.get('address') ?? '').trim().toLowerCase();
-      if (!ADDRESS.test(address) || address.length > 254) return signIn(request, approved.request, approved.headers, 'That email address does not look right.');
+      if (!ADDRESS.test(address) || address.length > 254) return signIn(request, approved.request, approved.headers, 'That email address does not look right.', link.link);
       const at = now();
       const allowed = await accounts.identity(`network:${options.network(request)}`).allow(SENDS_PER_NETWORK, at);
       const code = allowed ? await accounts.identity(`email:${address}`).issueCode(at) : undefined;
-      if (!code) return signIn(request, approved.request, approved.headers, 'Too many codes were sent. Try again in an hour, or use another way in.');
+      if (!code) return signIn(request, approved.request, approved.headers, 'Too many codes were sent. Try again in an hour, or use another way in.', link.link);
       await options.mail.sendCode(address, code);
       const upstream = await oauth.beginUpstream(approved.request, { data: { way: 'email', address, ...accepted } satisfies Upstream, headers: approved.headers });
       return codePage({ address, state: upstream.state, headers: upstream.headers });
     }
 
-    return signIn(request, approved.request, approved.headers, 'Choose a way to sign in.');
+    return signIn(request, approved.request, approved.headers, 'Choose a way to sign in.', link.link);
   }
 
   async function enterCode(request: Request): Promise<Response> {
@@ -232,12 +269,12 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     const { address } = resumed.data;
     const code = String((await request.formData()).get('code') ?? '');
     const checked = await accounts.identity(`email:${address}`).checkCode(code, now());
-    if (checked === 'ok') return signedIn(resumed.request, `email:${address}`, address, resumed.headers, resumed.data.terms);
+    if (checked === 'ok') return signedIn(resumed.request, `email:${address}`, address, resumed.headers, resumed.data);
     if (checked === 'wrong') {
       const again = await oauth.beginUpstream(resumed.request, { data: resumed.data, headers: resumed.headers });
       return codePage({ address, state: again.state, problem: "That code doesn't match. Check it and try again.", headers: again.headers });
     }
-    return signIn(request, resumed.request, resumed.headers, 'That code expired or was tried too many times. Ask for a new one.');
+    return signIn(request, resumed.request, resumed.headers, 'That code expired or was tried too many times. Ask for a new one.', resumed.data.link);
   }
 
   async function returned(request: Request): Promise<Response> {
@@ -253,13 +290,32 @@ export function createSignIn<R extends AuthRequest>(options: SignInOptions<R>) {
     } catch {
       return problemPage(`Signing in with ${provider.label} didn't work.`, 502, resumed.headers);
     }
-    const account = signed.handle ? { id: signed.subject, handle: signed.handle } : undefined;
-    return signedIn(resumed.request, `${provider.name}:${signed.subject}`, signed.email, resumed.headers, resumed.data.terms, account);
+    return signedIn(resumed.request, `${provider.name}:${signed.subject}`, signed.email, resumed.headers, resumed.data, signed.instagram);
   }
 
-  /** Finds or makes the person an identity belongs to, then routes them to their customer. */
-  async function signedIn(request: R, identity: string, email: string | null, headers: Headers, terms?: string, instagram?: InstagramAccount): Promise<Response> {
-    const person = await accounts.identity(identity).claim(crypto.randomUUID());
+  /**
+   * Finds or makes the person an identity belongs to, then routes them to their customer. When the
+   * person is adding a way in from their account page, the identity joins their own account: an
+   * account it reached that has no brands is deleted, and one that has brands keeps it (ADR-0018).
+   */
+  async function signedIn(request: R, identity: string, email: string | null, headers: Headers, steps: { terms?: string; link?: string }, instagram?: InstagramAccount): Promise<Response> {
+    const { terms } = steps;
+    let person: string;
+    if (steps.link) {
+      const owner = await redeemLink(accounts, steps.link, now());
+      if (!owner) return problemPage('This page expired. Go back to your account page and add the way in again.', 400, headers);
+      const held = await accounts.identity(identity).person();
+      if (held && held !== owner) {
+        if (!options.forget || (await accounts.person(held).customers()).length > 0) {
+          return problemPage('That sign-in already reaches another CMOKit account that has brands, so it was not added to yours.', 409, headers);
+        }
+        await options.forget(held);
+      }
+      person = await accounts.identity(identity).claim(owner);
+      if (person !== owner) return problemPage('That sign-in already reaches another CMOKit account, so it was not added to yours.', 409, headers);
+    } else {
+      person = await accounts.identity(identity).claim(crypto.randomUUID());
+    }
     const records = accounts.person(person);
     await records.addIdentity(identity, email, now(), instagram);
     const brands = await records.brands();
