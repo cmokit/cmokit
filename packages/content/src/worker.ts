@@ -88,6 +88,10 @@ export interface IssuerBinding {
   instagram?(person: string): Promise<{ id: string; handle: string } | null>;
   /** Deletes a person's sign-in records and revokes every token issued to them (ADR-0053). */
   deletePerson?(person: string): Promise<void>;
+  /** The ways in a person signs in to their account with, by the identity each names (ADR-0018). */
+  waysIn?(person: string): Promise<string[]>;
+  /** A one-time value that lets the sign-in add a way in to this person's account (ADR-0018). */
+  startLink?(person: string): Promise<string>;
 }
 
 // The lifecycle's own routes, as @cmokit/cli names them; the content server does not depend on it.
@@ -201,6 +205,8 @@ export function accountFor(env: ContentEnv): AccountOptions | undefined {
     },
     email: (person) => issuer.email(person),
     ...(issuer.instagram ? { handle: async (person: string) => (await issuer.instagram!(person))?.handle ?? null } : {}),
+    ...(issuer.waysIn ? { waysIn: (person: string) => issuer.waysIn!(person) } : {}),
+    ...(issuer.startLink ? { addWay: (person: string) => issuer.startLink!(person) } : {}),
   };
 }
 

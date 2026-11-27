@@ -18,12 +18,13 @@ const tokens: Tokens = {
   },
 };
 
-async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string; brandsOf?: Record<string, string[]>; deletable?: boolean } = {}) {
+async function server(options: { terms?: boolean; brands?: boolean; cmokit?: string; brandsOf?: Record<string, string[]>; deletable?: boolean; ways?: boolean } = {}) {
   const acme = await readyCustomer();
   const exchanged: URLSearchParams[] = [];
   const added: [string, string][] = [];
   const renamed: [string, string, string][] = [];
   const deleted: string[] = [];
+  const links: string[] = [];
   const names: Record<string, string> = { 'cfo-kit-0a1b2c': 'CFO Kit' };
   const handle = createContentServer({
     issuer: ISSUER, audience: ORIGIN, tokens, portal,
@@ -43,6 +44,11 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
         renameBrand: async (person: string, slug: string, name: string) => { renamed.push([person, slug, name]); names[slug] = name; },
       } : {}),
       ...(options.cmokit ? { cmokitWaitlist: options.cmokit } : {}),
+      ...(options.ways ? {
+        handle: async (person: string) => (person === 'ada' ? 'ada.makes' : null),
+        waysIn: async (person: string) => (person === 'ada' ? ['email:ada@example.com', 'github:42', 'instagram:meta-ada'] : []),
+        addWay: async (person: string) => { links.push(person); return `link-for-${person}`; },
+      } : {}),
       ...(options.deletable ? {
         deleteAccount: async (person: string) => {
           if (person === 'ada' && options.cmokit === 'acme') throw new Refusal('This account runs CMOKit\'s own waitlist, so it cannot be deleted here.');
@@ -55,7 +61,7 @@ async function server(options: { terms?: boolean; brands?: boolean; cmokit?: str
   const post = (path: string, form: Record<string, string>, cookie: string, origin = APP) => handle(new Request(`${APP}${path}`, {
     method: 'POST', body: new URLSearchParams(form), headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' },
   }));
-  return { handle, get, post, exchanged, added, renamed, deleted, acme: acme.customer };
+  return { handle, get, post, exchanged, added, renamed, deleted, links, acme: acme.customer };
 }
 
 const session = (token: string) => `__Host-cmokit-session=${token}`;
@@ -355,4 +361,29 @@ test('there is no delete where the account page is not given one', async () => {
   const { get, post } = await server();
   assert.doesNotMatch(words(await (await get('/account', session('ada-token'))).text()), /Delete your account/);
   assert.equal((await post('/account/delete', { confirm: 'delete' }, session('ada-token'))).status, 404);
+});
+
+test('Account lists the ways in to this account, and adding one goes to the sign-in with a link to this person', async () => {
+  const { get, post, links } = await server({ ways: true });
+  const account = words(await (await get('/account', session('ada-token'))).text());
+  assert.match(account, /Ways in Each of these signs you in to this same account\. ada@example\.com GitHub Instagram \(@ada\.makes\) Add a way in/);
+
+  assert.equal((await post('/ways', {}, session('ada-token'), 'https://evil.example')).status, 403);
+  assert.equal((await post('/ways', {}, session('forged'))).headers.get('location'), '/signin', 'no session, no link');
+  assert.deepEqual(links, []);
+
+  const away = await post('/ways', {}, session('ada-token'));
+  assert.equal(away.status, 302);
+  const authorize = new URL(away.headers.get('location')!);
+  assert.equal(`${authorize.origin}${authorize.pathname}`, `${ISSUER}/authorize`);
+  assert.equal(authorize.searchParams.get('link'), 'link-for-ada');
+  assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256');
+  assert.match(away.headers.get('set-cookie')!, /^__Host-cmokit-signin=/);
+  assert.deepEqual(links, ['ada']);
+});
+
+test('there are no ways in to add where the account page is not given them', async () => {
+  const { get, post } = await server();
+  assert.doesNotMatch(words(await (await get('/account', session('ada-token'))).text()), /Ways in/);
+  assert.equal((await post('/ways', {}, session('ada-token'))).status, 404);
 });

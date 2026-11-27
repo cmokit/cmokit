@@ -90,8 +90,10 @@ Cloudflare, stores no password, and leaves the protocol's hard parts to a mainta
 >
 > CMOKit keeps no password. An account is a person, found by the sign-in identity they used: a
 > provider and its stable subject id, or an email address proven by code. Accounts are never merged
-> by matching email; a signed-in person adds another way in themselves, and a proven email address
-> lets them back in when a provider fails them. The first sign-in creates the account, which becomes
+> by matching email; a signed-in person adds another way in themselves, on the account page, and from
+> then on it signs them in to that same account. A way in that reached an account with nothing in it
+> moves over, and that empty account is deleted; one that reaches an account with brands is not
+> added. A proven email address lets them back in when a provider fails them. The first sign-in creates the account, which becomes
 > a user of a customer at that customer's first checkout (ADR-0017), by invitation, or, for a person
 > activated without a checkout, at their first call (ADR-0017). Activation is decided by the email
 > address the person proved; a provider's address counts only when the provider says it is verified.

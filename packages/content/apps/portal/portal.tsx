@@ -433,6 +433,15 @@ function AccountTabView({ c, name, view }: { c: Customer; name: string; view: Ac
     <div className="space-y-4">
       <H1>Account</H1>
       <SignedIn view={view} />
+      {view.ways && (
+        <Section title="Ways in">
+          <p>Each of these signs you in to this same account.</p>
+          <ul className="list-disc space-y-2 pl-5">
+            {view.ways.map((w) => <li key={w}>{w}</li>)}
+          </ul>
+          {view.addWay && <Post action="/ways"><Wide>Add a way in</Wide></Post>}
+        </Section>
+      )}
       <p>Brand: {name}.</p>
       {(c.addBrand || c.rename || others.length > 0) && (
         <Section title="Brands">

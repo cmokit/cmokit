@@ -485,10 +485,11 @@ test('a person with two brands who ticked the terms keeps the version through ch
 
 const META_APP = { INSTAGRAM_APP_ID: 'ig-app', INSTAGRAM_APP_SECRET: 'ig-secret', INSTAGRAM_CONFIG_ID: 'ig-config' };
 
-/** Signs in with Instagram from Claude's first request, with Meta answering for the given account. */
-async function instagramSignIn(worker: any, account: { id: string; username: string }) {
+/** Signs in with Instagram from Claude's first request, with Meta answering for the given login and account. */
+async function instagramSignIn(worker: any, account: { id: string; username: string }, user = 'meta-ada') {
   const net = outside({
     'https://graph.facebook.com/v27.0/oauth/access_token': { access_token: 'ig-access' },
+    'https://graph.facebook.com/v27.0/me?': { id: user },
     'https://graph.facebook.com/v27.0/me/assigned_instagram_accounts': { data: [account] },
   });
   try {
@@ -507,7 +508,7 @@ async function instagramSignIn(worker: any, account: { id: string; username: str
   }
 }
 
-test('Instagram leads the sign-in screen, goes through the Unified Login configuration, and names the person by their Instagram account', async () => {
+test('Instagram leads the sign-in screen, goes through the Unified Login configuration, and names the person by their own Meta login', async () => {
   const { worker } = setup({ ...META_APP, GITHUB_CLIENT_ID: 'h-id', GITHUB_CLIENT_SECRET: 'h-secret' });
   const first = await instagramSignIn(worker, { id: '17841400000000001', username: 'Ada.Makes' });
   assert.ok(first.signIn.indexOf('value="instagram" class="primary"') < first.signIn.indexOf('value="github"'), 'Instagram is the first, primary button');
@@ -521,14 +522,98 @@ test('Instagram leads the sign-in screen, goes through the Unified Login configu
   assert.equal(exchange.searchParams.get('code'), 'ig-code');
 
   const { props } = (await worker.validateToken(AUDIENCE, first.token))!;
+  assert.deepEqual(await worker.waysIn(props.person), ['instagram:meta-ada']);
   assert.deepEqual(await worker.instagram(props.person), { id: '17841400000000001', handle: 'ada.makes' });
   assert.ok(!(await worker.email(props.person)), "Instagram proves no email address");
 
-  // A changed handle is the same person, found by the account's ID, with the handle they have now.
+  // A changed handle is the same person, found by their Meta login, with the handle they have now.
   const again = await instagramSignIn(worker, { id: '17841400000000001', username: 'ada_creates' });
   const later = (await worker.validateToken(AUDIENCE, again.token))!.props;
   assert.equal(later.person, props.person);
   assert.deepEqual(await worker.instagram(props.person), { id: '17841400000000001', handle: 'ada_creates' });
+
+  // Someone else who manages the same business account is someone else.
+  const other = await instagramSignIn(worker, { id: '17841400000000001', username: 'ada_creates' }, 'meta-bea');
+  assert.notEqual((await worker.validateToken(AUDIENCE, other.token))!.props.person, props.person);
+});
+
+const APP = 'https://app.example';
+
+/**
+ * Adds an email address as a way in from the account page: the page's own client sends the link the
+ * issuer gave it to the sign-in, and the code that address receives finishes it.
+ */
+async function addWay(worker: any, link: string, address: string, mail: any[]) {
+  const { body: client } = await register(worker, [`${APP}/callback`]);
+  const go = browser(worker);
+  const url = new URL(await authorizeUrl(client.client_id!, `${APP}/callback`, 'v'.repeat(64)), ISSUER);
+  url.searchParams.set('link', link);
+  const signIn = await (await go(url.pathname + url.search)).text();
+  const codePage = await (await go('/authorize', { form: { handle: hidden(signIn, 'handle'), way: 'email', address, link: hidden(signIn, 'link') } })).text();
+  const done = await go(`/code?state=${encodeURIComponent(stateIn(codePage))}`, { form: { code: mail.at(-1).subject.slice(0, 6) } });
+  return { signIn, done };
+}
+
+test('a way in added from the account page reaches the same account, and an empty account that held it is deleted', async () => {
+  const { worker, identities } = setup({ APP_URL: APP });
+  const net = outside();
+  const personOf = async (identity: string) => (await (await identities.get(identity).fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string | null }).result;
+  try {
+    await emailSignIn(worker, 'ada@example.com', net.mail);
+    const ada = (await personOf('email:ada@example.com'))!;
+    await worker.addCustomer(ada, 'acme');
+
+    // An address nobody signs in with yet.
+    const added = await addWay(worker, await worker.startLink(ada), 'ada@work.example', net.mail);
+    assert.match(added.signIn, /Add a way in/);
+    assert.equal(added.done.status, 302);
+    assert.ok(added.done.headers.get('location')!.startsWith(`${APP}/callback?`));
+    assert.equal(await personOf('email:ada@work.example'), ada);
+
+    // An address that signed in to an account with nothing in it: that account goes.
+    await emailSignIn(worker, 'ada@home.example', net.mail);
+    const empty = (await personOf('email:ada@home.example'))!;
+    assert.notEqual(empty, ada);
+    await addWay(worker, await worker.startLink(ada), 'ada@home.example', net.mail);
+    assert.equal(await personOf('email:ada@home.example'), ada);
+    assert.deepEqual(await worker.waysIn(empty), []);
+    assert.deepEqual((await worker.waysIn(ada)).sort(), ['email:ada@example.com', 'email:ada@home.example', 'email:ada@work.example']);
+  } finally {
+    net.restore();
+  }
+});
+
+test('a way in that reaches an account with brands is not added, and a link works once and not after it expires', async () => {
+  const { worker, identities } = setup({ APP_URL: APP });
+  const net = outside();
+  const personOf = async (identity: string) => (await (await identities.get(identity).fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string | null }).result;
+  try {
+    await emailSignIn(worker, 'ada@example.com', net.mail);
+    const ada = (await personOf('email:ada@example.com'))!;
+    await emailSignIn(worker, 'bea@example.com', net.mail);
+    const bea = (await personOf('email:bea@example.com'))!;
+    await worker.addCustomer(bea, 'globex');
+
+    const refused = await addWay(worker, await worker.startLink(ada), 'bea@example.com', net.mail);
+    assert.equal(refused.done.status, 409);
+    assert.match(await refused.done.text(), /already reaches another CMOKit account that has brands/);
+    assert.equal(await personOf('email:bea@example.com'), bea);
+
+    const link = await worker.startLink(ada);
+    await addWay(worker, link, 'ada@work.example', net.mail);
+    const reused = await addWay(worker, link, 'ada@other.example', net.mail);
+    assert.match(await reused.done.text(), /This page expired/);
+    assert.equal(await personOf('email:ada@other.example'), null);
+
+    const now = Date.now;
+    Date.now = () => now() - 11 * 60_000;
+    const stale = await worker.startLink(ada).finally(() => { Date.now = now; });
+    const expired = await addWay(worker, stale, 'ada@late.example', net.mail);
+    assert.match(await expired.done.text(), /This page expired/);
+    assert.equal(await personOf('email:ada@late.example'), null);
+  } finally {
+    net.restore();
+  }
 });
 
 test("Google is not offered in Instagram's or Facebook's in-app browser, where it refuses to sign anyone in", async () => {

@@ -42,13 +42,17 @@ export function signInPage(options: {
   /** The beta terms to accept before signing in, when the deployment asks for them (ADR-0047). */
   terms?: { url: string; version: string };
   problem?: string;
+  /** Set when a person signed in to the account page is adding a way in to their account (ADR-0018). */
+  link?: string;
   headers: Headers;
 }): Response {
   const { client, handle } = options;
   const who = client.clientDomain
     ? `<strong>${escape(client.clientName)}</strong>, from ${escape(client.clientDomain)},`
     : `<strong>${escape(client.clientName)}</strong> (this app named itself, so its name isn't verified)`;
-  const intro = options.own
+  const intro = options.link
+    ? '<p>Choose the way in to add to the CMOKit account you are signed in to. After this, it signs you in to that same account.</p>'
+    : options.own
     ? '<p>Sign in to see your CMOKit account.</p>'
     : `<p>Sign in to connect ${who} to your CMOKit account. Access goes to <strong>${escape(client.redirectHost)}</strong>.</p>`;
   // A required box: no way in goes on without it, though Cancel still does.
@@ -58,12 +62,12 @@ export function signInPage(options: {
   const email = options.email ? `<label for="address">Or get a code by email</label>
 <input id="address" name="address" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
 <button name="way" value="email"${options.ways.some((w) => w.name === 'instagram') ? '' : ' class="primary"'}>Email me a code</button>` : '';
-  return page('Sign in to CMOKit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
+  return page(options.link ? 'Add a way in' : 'Sign in to CMOKit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
 ${intro}
 ${client.redirectIsLoopback ? '<p><strong>This sends access to an app on your computer.</strong> Continue only if you just started connecting from it.</p>' : ''}
 <form method="post" action="/authorize">
 <input type="hidden" name="handle" value="${escape(handle)}">
-${terms}${ways}
+${options.link ? `<input type="hidden" name="link" value="${escape(options.link)}">\n` : ''}${terms}${ways}
 ${email}
 <button name="way" value="cancel" formnovalidate>Cancel</button>
 </form>

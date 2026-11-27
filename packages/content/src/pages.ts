@@ -74,6 +74,10 @@ export interface AccountView {
   join?: string | null;
   /** Whether the person can delete their account here (ADR-0053). */
   deletable?: boolean;
+  /** The ways in the person signs in to their account with, as the page names them (ADR-0018). */
+  ways?: string[];
+  /** Whether the person can add another way in here. */
+  addWay?: boolean;
   customer?: {
     /** The brand's slug, the name it goes by when signing in and in settings. */
     slug: string;

@@ -16,8 +16,11 @@ export interface Signed {
   subject: string;
   /** An address the provider says is verified, or null. */
   email: string | null;
-  /** The Instagram handle, without its @ and in lower case, for an Instagram sign-in (ADR-0048). */
-  handle?: string;
+  /**
+   * For an Instagram sign-in, the Instagram account the person's Meta login shared: its ID, and its
+   * handle without the @ and in lower case, which a waitlist proved (ADR-0048).
+   */
+  instagram?: { id: string; handle: string };
 }
 
 export interface Provider {
@@ -113,8 +116,9 @@ const GRAPH = 'https://graph.facebook.com/v27.0';
 /**
  * Instagram through the Meta app's Facebook Login for Business configuration made under API setup
  * with Unified login (ADR-0048): the configuration, not a scope list, says what Meta asks for. The
- * person's Instagram account's ID names the identity, and its handle comes with it; the token is used
- * for that one read and kept nowhere.
+ * person's own Meta login names the identity, not a business account they manage, which others may
+ * manage too; the Instagram account it shared comes with it, by its ID and handle. The token is used
+ * for those reads and kept nowhere.
  */
 export function instagram(client: ProviderClient & { config: string }, send: Fetch = fetch): Provider {
   return {
@@ -127,14 +131,15 @@ export function instagram(client: ProviderClient & { config: string }, send: Fet
         client_id: client.id, client_secret: client.secret, redirect_uri: redirectUri, code,
       })}`), 'Instagram token');
       if (typeof token.access_token !== 'string') throw new Error('Instagram sent no token');
-      const accounts = await json(await send(`${GRAPH}/me/assigned_instagram_accounts?fields=id,username`, {
-        headers: { authorization: `Bearer ${token.access_token}` },
-      }), 'Instagram accounts');
+      const headers = { authorization: `Bearer ${token.access_token}` };
+      const user = await json(await send(`${GRAPH}/me?fields=id`, { headers }), 'Meta user');
+      if ((typeof user.id !== 'string' && typeof user.id !== 'number') || !user.id) throw new Error('Meta sent no user id');
+      const accounts = await json(await send(`${GRAPH}/me/assigned_instagram_accounts?fields=id,username`, { headers }), 'Instagram accounts');
       const account = ((accounts.data ?? []) as { id?: unknown; username?: unknown }[])[0];
       if (!account || (typeof account.id !== 'string' && typeof account.id !== 'number') || typeof account.username !== 'string' || !account.username) {
         throw new Error('No Instagram account was shared');
       }
-      return { subject: String(account.id), email: null, handle: account.username.replace(/^@/, '').toLowerCase() };
+      return { subject: String(user.id), email: null, instagram: { id: String(account.id), handle: account.username.replace(/^@/, '').toLowerCase() } };
     },
   };
 }
