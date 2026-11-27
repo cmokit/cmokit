@@ -142,9 +142,10 @@ into your site. Your account page lists everyone who joins, most referrals first
 button for each. Activating someone lets them sign in and use CMOKit. CMOKit sends no email yet, so
 tell them yourself.
 
-To ask every user to accept the beta terms first, publish them with a line "Version" and their
-version, such as the date they were published, then save the variable `TERMS_URL` with their
-address and deploy again. The sign-in screen then has a box to accept them, which must be ticked to sign
+Every user is asked to accept the beta terms published at `https://cmokit.ai/beta-terms/`, the
+`TERMS_URL` in both `hosted/*/wrangler.jsonc` files. The page must keep a line "Version" and their
+version, such as the date they were published. To publish them somewhere else, change that address
+in both files and merge. The sign-in screen then has a box to accept them, which must be ticked to sign
 in. Anyone whose Claude connected before the box existed is asked once, by a link in the
 conversation, or can reconnect and tick it. When you change the terms, change the version on the
 page and publish it: within five minutes everyone is asked to accept again, with no deploy.

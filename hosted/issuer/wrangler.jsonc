@@ -15,7 +15,9 @@
     "ISSUER_URL": "https://auth.cmokit.ai",
     "AUDIENCE": "https://mcp.cmokit.ai/mcp",
     "MAIL_FROM": "signin@cmokit.ai",
-    "APP_URL": "https://app.cmokit.ai"
+    "APP_URL": "https://app.cmokit.ai",
+    // The beta terms; their version is read from the page itself (ADR-0047).
+    "TERMS_URL": "https://cmokit.ai/beta-terms/"
   },
   // The OAuth library's grants, codes and hashed tokens. The first deploy creates the namespace.
   "kv_namespaces": [{ "binding": "OAUTH_KV" }],
