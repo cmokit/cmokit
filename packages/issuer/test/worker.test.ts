@@ -571,3 +571,48 @@ test('deleting a person erases their records and identities, and revokes every t
     net.restore();
   }
 });
+
+test("connecting a brand's Instagram makes signing in with it reach the person who connected it, with their brands", async () => {
+  const { worker } = setup({ ...META_APP });
+  const net = outside();
+  let owner: string;
+  try {
+    const signedIn = await emailSignIn(worker, 'ada@example.com', net.mail);
+    owner = (await worker.validateToken(AUDIENCE, await tokenFor(worker, signedIn.done.headers.get('location')!, signedIn.clientId, signedIn.verifier)))!.userId;
+    await worker.addCustomer(owner, 'acme');
+  } finally {
+    net.restore();
+  }
+
+  // She signed in with Instagram first, which made an empty account of its own.
+  const stray = await instagramSignIn(worker, { id: '17841400000000001', username: 'Ada.Makes' });
+  const strayPerson = (await worker.validateToken(AUDIENCE, stray.token))!.userId;
+  assert.notEqual(strayPerson, owner);
+
+  // Connecting the Instagram account to her brand links it to her, and the empty account is gone.
+  assert.equal(await worker.linkInstagram(owner, '17841400000000001', '@Ada.Makes'), true);
+  assert.equal(await worker.validateToken(AUDIENCE, stray.token) ?? null, null, 'the empty account is signed out');
+  assert.deepEqual(await worker.instagram(owner), { id: '17841400000000001', handle: 'ada.makes' });
+  const again = await instagramSignIn(worker, { id: '17841400000000001', username: 'ada.makes' });
+  assert.deepEqual((await worker.validateToken(AUDIENCE, again.token))!.props, { person: owner, customer: 'acme' });
+  assert.equal(await worker.linkInstagram(owner, '17841400000000001', 'ada.makes'), true, 'safe to repeat');
+});
+
+test("an Instagram account that signs in to an account with brands is not moved by someone else connecting it", async () => {
+  const { worker } = setup({ ...META_APP });
+  const first = await instagramSignIn(worker, { id: '17841400000000002', username: 'bea' });
+  const bea = (await worker.validateToken(AUDIENCE, first.token))!.userId;
+  await worker.addCustomer(bea, 'bea-brand');
+  assert.equal(await worker.linkInstagram('someone-else', '17841400000000002', 'bea'), false);
+  const again = await instagramSignIn(worker, { id: '17841400000000002', username: 'bea' });
+  assert.deepEqual((await worker.validateToken(AUDIENCE, again.token))!.props, { person: bea, customer: 'bea-brand' });
+  assert.deepEqual(await worker.customers(bea), ['bea-brand']);
+});
+
+test('an Instagram account nobody signed in with becomes a way into the account that connected it', async () => {
+  const { worker, addCustomer } = setup({ ...META_APP });
+  await addCustomer('cy', 'cy-brand');
+  assert.equal(await worker.linkInstagram('cy', '17841400000000003', 'cy.studio'), true);
+  const signedIn = await instagramSignIn(worker, { id: '17841400000000003', username: 'cy.studio' });
+  assert.deepEqual((await worker.validateToken(AUDIENCE, signedIn.token))!.props, { person: 'cy', customer: 'cy-brand' });
+});

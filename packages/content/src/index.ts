@@ -120,6 +120,11 @@ export interface ContentServerOptions {
    * account page.
    */
   instagram?: InstagramApp;
+  /**
+   * Makes the Instagram account a person connected to their brand a way into their own account, so
+   * signing in with it reaches the same brands, activation and terms (ADR-0054); absent, it is not.
+   */
+  linkInstagram?(person: string, id: string, handle: string): Promise<boolean>;
   /** The built cards Claude shows beside tools' results; absent, tools answer in text alone (ADR-0049). */
   apps?: Apps;
   /** The built account page, in React (ADR-0051); absent, the account origin serves no page. */
@@ -174,7 +179,7 @@ export function createContentServer(options: ContentServerOptions) {
     const { account } = options;
     const instagram = account ? options.instagram : undefined;
     if (instagram && url.origin === account!.origin && url.pathname === INSTAGRAM_CALLBACK && request.method === 'GET') {
-      return instagramCallback(url, instagram, options.customer, account!.origin);
+      return instagramCallback(url, instagram, options.customer, account!.origin, options.linkInstagram);
     }
     if (account && url.origin === account.origin && isAccountPath(url.pathname)) {
       try {
@@ -401,7 +406,7 @@ async function respond(
  * Where Meta sends a brand's user back after they connected the brand's Instagram. Either way they go
  * back to the account page, which says whether it worked.
  */
-async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: ContentServerOptions['customer'], origin: string): Promise<Response> {
+async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: ContentServerOptions['customer'], origin: string, link?: ContentServerOptions['linkInstagram']): Promise<Response> {
   const state = url.searchParams.get('state')?.match(INSTAGRAM_STATE);
   if (!state) return gonePage();
   const customer = customerOf(state[1]);
@@ -413,6 +418,7 @@ async function instagramCallback(url: URL, instagram: InstagramApp, customerOf: 
   try {
     const connected = await instagram.connect(code);
     await customer.instagramSave(start.person, connected.id, connected.username, connected.token);
+    await link?.(start.person, connected.id, connected.username);
   } catch (error) {
     if ((error as Error).name === 'InstagramError') return back('failed');
     throw error;

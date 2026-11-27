@@ -22,7 +22,7 @@ function fakeInstagram() {
   return { app, comments, read };
 }
 
-function setup(withApp = true) {
+function setup(withApp = true, linkInstagram?: (person: string, id: string, handle: string) => Promise<boolean>) {
   let now = T0;
   const { app, comments, read } = fakeInstagram();
   const customer = new Customer(sqlite(), { vault: aesGcmVault(KEY), events: eventsStandIn().events, instagram: app, now: () => now });
@@ -31,6 +31,7 @@ function setup(withApp = true) {
     customer: () => customer,
     account: { origin: APP, exchange: async () => undefined, email: async () => 'ada@example.com' },
     ...(withApp ? { instagram: app } : {}),
+    ...(linkInstagram ? { linkInstagram } : {}),
   });
   const join = async (fields: Record<string, string>) => (await handle(new Request(`${APP}/join/acme`, {
     method: 'POST', body: new URLSearchParams(fields), headers: { origin: SITE, accept: 'application/json' },
@@ -62,6 +63,14 @@ test('the brand connects its Instagram through Meta\'s login, and its account an
   assert.equal((await customer.instagramAccount())!.username, 'acmebrand');
   assert.equal((await post('/instagram/count')).headers.get('location'), '/waitlist?instagram=counted');
   assert.deepEqual(read, ['portfolio-token 999'], 'the brand\'s own account is read with the kept token');
+});
+
+test('connecting the brand\'s Instagram makes that account a way into the person\'s own sign-in', async () => {
+  const linked: string[] = [];
+  const { customer, connectBrand } = setup(true, async (person, id, handle) => { linked.push(`${person} ${id} ${handle}`); return true; });
+  await customer.addUser('ada');
+  assert.equal((await connectBrand()).headers.get('location'), `${APP}/waitlist?instagram=connected`);
+  assert.deepEqual(linked, ['ada 999 acmebrand'], 'the person who connected it, and the account Meta shared');
 });
 
 test('the brand disconnects its Instagram: the account and its token are forgotten, and it can connect again', async () => {

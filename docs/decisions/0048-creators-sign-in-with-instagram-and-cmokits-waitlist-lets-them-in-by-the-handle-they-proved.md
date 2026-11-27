@@ -77,7 +77,7 @@ what Meta grants is the configuration's to say, and CMOKit uses it for that one 
 * Bad, because creators sign in only as testers until Meta's App Review and Business Verification
   pass.
 * Neutral, because a person who signs in with Instagram and with GitHub has two accounts, as ADR-0018
-  has for any two ways in.
+  has for any two ways in, unless they connected that Instagram account to their brand (ADR-0054).
 
 ### Confirmation
 

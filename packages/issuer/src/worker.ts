@@ -7,7 +7,7 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOKit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
+// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), `linkInstagram` when a person connects their brand's Instagram (ADR-0054), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
@@ -77,6 +77,7 @@ export interface IssuerEntrypoint {
     nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
     email(person: string): Promise<string | null>;
     instagram(person: string): Promise<InstagramAccount | null>;
+    linkInstagram(person: string, id: string, handle: string): Promise<boolean>;
     deletePerson(person: string): Promise<void>;
   };
 }
@@ -197,6 +198,27 @@ export async function deletePerson(env: IssuerEnv, person: string): Promise<void
   } while (cursor);
 }
 
+/**
+ * Makes signing in with an Instagram account a way into the account of the person who connected it to
+ * their brand (ADR-0054). An identity nobody has signed in with becomes theirs. One that signed in to
+ * an account with no brands, as when the person signed in with Instagram before connecting it, has
+ * that empty account deleted first, which signs it out, and then becomes theirs. One that belongs to
+ * an account with brands is left as it is, and false is returned. Safe to repeat.
+ */
+export async function linkInstagram(env: IssuerEnv, person: string, account: InstagramAccount, now = Date.now()): Promise<boolean> {
+  const name = `instagram:${account.id}`;
+  const identity = stub<IdentityRecords>(env.IDENTITIES, name, IDENTITY_CALLS);
+  const owner = (await identity.person()) ?? null;
+  if (owner && owner !== person) {
+    const brands = await stub<PersonRecords>(env.PEOPLE, owner, PERSON_CALLS).customers();
+    if ((brands ?? []).length > 0) return false;
+    await deletePerson(env, owner);
+  }
+  if ((await identity.claim(person)) !== person) return false;
+  await stub<PersonRecords>(env.PEOPLE, person, PERSON_CALLS).addIdentity(name, null, now, account);
+  return true;
+}
+
 export interface ValidatedToken {
   props: Grant;
   audience: string;
@@ -245,6 +267,11 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
     /** The Instagram account a person last signed in with, for activation by a proven handle (ADR-0048). */
     instagram(person: string): Promise<InstagramAccount | null> {
       return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).instagram();
+    }
+
+    /** What the content server calls when a person connects their brand's Instagram account (ADR-0054). */
+    linkInstagram(person: string, id: string, handle: string): Promise<boolean> {
+      return linkInstagram(this.env, person, { id, handle: handle.replace(/^@/, '').toLowerCase() });
     }
 
     /**
