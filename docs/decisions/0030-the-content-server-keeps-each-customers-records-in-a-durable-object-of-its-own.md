@@ -13,8 +13,8 @@ decision-makers: [Geoff]
 
 The content server (ADR-0029) has to keep, per customer: the brand context and its versions
 (ADR-0023), the pieces with their signals and posts (`CNT-07`, `CNT-17`, ADR-0025), and the customer's
-connections, some of them credentials (`HST-04`). Beside it, the issuer keeps each person's sign-in
-identities, pending email codes and the customers the person belongs to (ADR-0018). Nothing done for one customer reaches another's records
+connections, some of them credentials (`HST-04`). Beside it, the issuer keeps each person, their
+ways in and the customers they belong to, in D1 through Better Auth (ADR-0018, ADR-0035). Nothing done for one customer reaches another's records
 (`HST-10`); a customer exports everything and closes its account, which deletes it (`HST-13`); and
 nothing runs or is billed while a customer is idle (`NFR-06`).
 
@@ -34,13 +34,13 @@ few thousand words, a few versions a month, and a handful of pieces a week.
 
 ## Considered Options
 
-* A Durable Object per customer and one per person, holding only CMOKit's own records
+* A Durable Object per customer, holding only CMOKit's own records
 * One Cloudflare D1 database for every customer, each row keyed by customer
 * A copy of each customer's events and guests, kept in step with the event platform
 
 ## Decision Outcome
 
-Chosen option: "A Durable Object per customer and one per person, holding only CMOKit's own records",
+Chosen option: "A Durable Object per customer, holding only CMOKit's own records",
 because it gives each customer storage no other customer's request can address, on the store CMOKit
 already relies on, and keeps the least.
 
@@ -53,14 +53,9 @@ already relies on, and keeps the least.
 > vendor, an identifier such as a Luma calendar or a PostHog project, and any credential; and its
 > access as the lifecycle last set it (ADR-0017).
 >
-> **A person's object**, the issuer's, named by the person's id, holds the person's sign-in
-> identities, their proven email address and the customers they belong to. The customer's object is
-> the authority on who its users are; the person's list is an index of it, written in the same step,
-> for a person to choose between their customers (`HST-10`).
->
-> **A sign-in identity's object**, the issuer's, named by a provider and its subject id, or by
-> `email:` and an address, holds the person it belongs to and, for an address, its pending code:
-> hashed, with its expiry and the attempts left, and deleted when used or expired.
+> **A person's brands**, kept by the issuer beside the person (ADR-0035), list the customers they
+> belong to. The customer's object is the authority on who its users are; the person's list is an
+> index of it, written in the same step, for a person to choose between their customers (`HST-10`).
 >
 > **Credentials** are encrypted with AES-GCM under a key that is a Worker secret of the deployment,
 > and are decrypted only to call their vendor.
@@ -90,7 +85,7 @@ on a database client.
 
 ## Pros and Cons of the Options
 
-### A Durable Object per customer and one per person, holding only CMOKit's own records
+### A Durable Object per customer, holding only CMOKit's own records
 
 * Good, because it meets every driver.
 * Bad, because a question across customers means reading every customer's object.
@@ -113,7 +108,7 @@ Sources: Cloudflare's [Durable Objects pricing](https://developers.cloudflare.co
 read through search extracts on 2026-10-30.
 
 **Follow-on obligations.** The encryption key's entry in the deployment reference, and how it is
-rotated. The tokens the issuer issues are kept by Cloudflare's OAuth library in Workers KV
+rotated. People, their ways in and the tokens the issuer issues are kept in D1 through Better Auth
 (ADR-0035), not in these objects.
 
 **Reversal cost.** Moderate: the logic stays behind its SQL interface, and another store needs an

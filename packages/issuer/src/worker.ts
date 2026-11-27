@@ -4,25 +4,40 @@
 //   export { Identity, Person };
 //   export default Issuer;
 //
-// with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
-// the OAuth library's namespace as OAUTH_KV, which no code of CMOKit's reads or writes (ADR-0035).
-// `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), `waysIn` and `startLink` for the ways in a person has and adds on the account page (ADR-0018), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
-// the deployment reference. The only host-specific code in the issuer lives here.
+// with a D1 database bound as DB, where Better Auth keeps people, their ways in, sign-in sessions and
+// the OAuth server's clients and hashed tokens (ADR-0035). `Identity` (IDENTITIES), `Person` (PEOPLE)
+// and the old OAuth library's namespace OAUTH_KV hold the records people were kept in before Better
+// Auth; the issuer only reads them, to copy people across once, and erases them when a person deletes
+// their account. `Issuer` serves the sign-in pages and the OAuth endpoints, and gives the content
+// server's Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a
+// service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout
+// (CUS-03, ADR-0048), `waysIn` and `startLink` for the ways in a person has and adds on the account
+// page (ADR-0018), and `deletePerson` when a person deletes their account (ADR-0053). Every variable
+// and secret it reads is in the deployment reference. The only host-specific code in the issuer lives
+// here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { OAuthAuthorizationServer, authorizationErrorRedirect, type AuthRequest as LibraryRequest } from '@cloudflare/workers-oauth-provider';
 import { Identity as IdentityLogic, Person as PersonLogic } from './accounts.ts';
+import { copyPeople, type OldPerson } from './copy.ts';
+import { createIssuer, type Brand, type InstagramAccount, type Issuer as IssuerLogic, type ValidatedToken } from './index.ts';
 import { fontResponse, type Fonts } from './look.ts';
-import { allowedRedirect, createSignIn, startLink, type Accounts, type Brand, type Grant, type IdentityRecords, type InstagramAccount, type PersonRecords, type SignInOAuth } from './index.ts';
-import { github, google, instagram, meta, type Provider } from './providers.ts';
+import type { ProviderSettings } from './providers.ts';
 import { sendgridCodes } from './sendgrid.ts';
 import { publishedTerms } from './terms.ts';
 import type { Sql } from './sql.ts';
 
+export type { ValidatedToken } from './index.ts';
+
 export interface IssuerEnv {
-  /** The OAuth library's grants, codes and hashed tokens (ADR-0035). */
-  OAUTH_KV: unknown;
+  /** Better Auth's database (ADR-0035). */
+  DB: unknown;
+  /**
+   * The content server's key, from which the issuer derives the secret Better Auth signs its cookies
+   * and steps with, and the token that runs the copy of people. A secret.
+   */
+  CREDENTIAL_KEY: string;
+  /** The old OAuth library's grants, read once to find the people to copy. */
+  OAUTH_KV: KvNamespace;
   IDENTITIES: DurableObjectNamespace;
   PEOPLE: DurableObjectNamespace;
   /** The issuer's own address. A variable. */
@@ -50,6 +65,11 @@ export interface IssuerEnv {
   APP_URL?: string;
   /** Where the beta terms every person accepts at sign-in are published; their version is read from the page (ADR-0047). A variable. */
   TERMS_URL?: string;
+}
+
+export interface KvNamespace {
+  list(options: { prefix?: string; cursor?: string }): Promise<{ keys: { name: string }[]; list_complete: boolean; cursor?: string }>;
+  delete(key: string): Promise<void>;
 }
 
 export interface DurableObjectNamespace {
@@ -114,40 +134,29 @@ function stub<T>(namespace: DurableObjectNamespace, name: string, calls: readonl
   }])) as T;
 }
 
-function providersFor(env: IssuerEnv): Provider[] {
-  const providers: Provider[] = [];
-  const ig = { id: env.INSTAGRAM_APP_ID?.trim(), secret: env.INSTAGRAM_APP_SECRET?.trim(), config: env.INSTAGRAM_CONFIG_ID?.trim() };
-  if (ig.id && ig.secret && ig.config) providers.push(instagram({ id: ig.id, secret: ig.secret, config: ig.config }));
-  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) providers.push(google({ id: env.GOOGLE_CLIENT_ID, secret: env.GOOGLE_CLIENT_SECRET }));
-  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) providers.push(github({ id: env.GITHUB_CLIENT_ID, secret: env.GITHUB_CLIENT_SECRET }));
-  if (env.META_APP_ID && env.META_APP_SECRET) providers.push(meta({ id: env.META_APP_ID, secret: env.META_APP_SECRET }));
-  return providers;
+interface OldPersonRecords {
+  identities(): Promise<string[]>;
+  email(): Promise<string | null>;
+  instagram(): Promise<InstagramAccount | null>;
+  brands(): Promise<Brand[]>;
+  erase(): Promise<string[]>;
 }
 
-const servers = new Map<string, OAuthAuthorizationServer<IssuerEnv>>();
+function providersFor(env: IssuerEnv): ProviderSettings {
+  const ig = { id: env.INSTAGRAM_APP_ID?.trim(), secret: env.INSTAGRAM_APP_SECRET?.trim(), config: env.INSTAGRAM_CONFIG_ID?.trim() };
+  return {
+    ...(ig.id && ig.secret && ig.config ? { instagram: { id: ig.id, secret: ig.secret, config: ig.config } } : {}),
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? { google: { id: env.GOOGLE_CLIENT_ID, secret: env.GOOGLE_CLIENT_SECRET } } : {}),
+    ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET ? { github: { id: env.GITHUB_CLIENT_ID, secret: env.GITHUB_CLIENT_SECRET } } : {}),
+    ...(env.META_APP_ID && env.META_APP_SECRET ? { facebook: { id: env.META_APP_ID, secret: env.META_APP_SECRET } } : {}),
+  };
+}
 
-/** The OAuth library's authorization server, for this deployment's issuer and audience. */
-export function authorizationServer(env: IssuerEnv): OAuthAuthorizationServer<IssuerEnv> {
-  const key = `${env.ISSUER_URL} ${env.AUDIENCE} ${env.APP_URL ?? ''}`;
-  let server = servers.get(key);
-  if (!server) {
-    server = new OAuthAuthorizationServer<IssuerEnv>({
-      issuer: env.ISSUER_URL,
-      resources: [env.AUDIENCE],
-      // Claude registers by its Client ID Metadata Document; a client that cannot, such as a coding
-      // agent, registers dynamically. Either way every redirect it names must be allowed (ADR-0018).
-      clientIdMetadataDocumentEnabled: true,
-      clientRegistrationEndpoint: '/register',
-      clientRegistrationCallback: ({ clientMetadata }) => {
-        const uris = clientMetadata.redirect_uris;
-        if (!Array.isArray(uris) || uris.length === 0 || !uris.every((uri) => typeof uri === 'string' && allowedRedirect(uri, appRedirects(env)))) {
-          return { code: 'invalid_redirect_uri', description: "Redirects are allowed only to Claude's callback or a loopback address", status: 400 };
-        }
-      },
-    });
-    servers.set(key, server);
-  }
-  return server;
+/** A key derived from the content server's, for one purpose, in base64url (RFC 5869). */
+export async function derivedKey(credentialKey: string, purpose: string): Promise<string> {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(credentialKey), 'HKDF', false, ['deriveBits']);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: new TextEncoder().encode(purpose) }, base, 256));
+  return btoa(String.fromCharCode(...bits)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /** The account page's callback, the one redirect beside Claude's and loopback this deployment allows. */
@@ -155,59 +164,71 @@ export function appRedirects(env: IssuerEnv): string[] {
   return env.APP_URL ? [`${new URL(env.APP_URL).origin}/callback`] : [];
 }
 
-async function signInFor(env: IssuerEnv) {
-  const terms = await publishedTerms(env.TERMS_URL);
-  const helpers = authorizationServer(env).getOAuthApi(env);
-  const oauth: SignInOAuth<LibraryRequest> = {
-    parseAuthRequest: (request) => helpers.parseAuthRequest(request),
-    lookupClient: (clientId) => helpers.lookupClient(clientId),
-    describeConsent: (request) => helpers.describeConsent(request),
-    beginConsent: (request) => helpers.beginConsent(request),
-    approveConsent: (request, handle) => helpers.approveConsent(request, handle),
-    denyConsent: (request, handle) => helpers.denyConsent(request, handle),
-    beginUpstream: (request, options) => helpers.beginUpstream(request, options),
-    finishUpstream: (request) => helpers.finishUpstream(request),
-    completeAuthorization: (options) => helpers.completeAuthorization(options),
-    declined: (request) => authorizationErrorRedirect(request, 'access_denied'),
-  };
-  const accounts = accountsFor(env);
-  return createSignIn({
-    issuer: env.ISSUER_URL,
-    oauth,
-    accounts,
-    mail: env.SENDGRID_API_KEY && env.MAIL_FROM ? sendgridCodes({ key: env.SENDGRID_API_KEY, from: env.MAIL_FROM }) : undefined,
-    providers: providersFor(env),
-    network: (request) => request.headers.get('cf-connecting-ip') ?? 'unknown',
-    redirects: appRedirects(env),
-    ...(terms ? { terms } : {}),
-    forget: (person) => deletePerson(env, person),
-  });
+/** One issuer per deployment's settings and database, made on first use. */
+const issuers = new WeakMap<object, Promise<IssuerLogic>>();
+function issuerFor(env: IssuerEnv): Promise<IssuerLogic> {
+  let made = issuers.get(env.DB as object);
+  if (!made) {
+    made = (async () => createIssuer({
+      issuer: env.ISSUER_URL,
+      audience: env.AUDIENCE,
+      secret: await derivedKey(env.CREDENTIAL_KEY, 'cmokit better auth'),
+      database: env.DB,
+      providers: providersFor(env),
+      ...(env.SENDGRID_API_KEY && env.MAIL_FROM ? { mail: sendgridCodes({ key: env.SENDGRID_API_KEY, from: env.MAIL_FROM }) } : {}),
+      redirects: appRedirects(env),
+      terms: () => publishedTerms(env.TERMS_URL),
+      ...(env.APP_URL ? { appUrl: env.APP_URL } : {}),
+    }))();
+    made.catch(() => issuers.delete(env.DB as object));
+    issuers.set(env.DB as object, made);
+  }
+  return made;
 }
 
-function accountsFor(env: IssuerEnv): Accounts {
-  return {
-    identity: (name) => stub<IdentityRecords>(env.IDENTITIES, name, IDENTITY_CALLS),
-    person: (id) => stub<PersonRecords>(env.PEOPLE, id, PERSON_CALLS),
-  };
-}
-
-/** Forgets a person's sign-in records and revokes their grants (ADR-0053). */
-export async function deletePerson(env: IssuerEnv, person: string): Promise<void> {
-  const identities = await stub<PersonRecords>(env.PEOPLE, person, PERSON_CALLS).erase();
-  for (const name of identities ?? []) await stub<IdentityRecords>(env.IDENTITIES, name, IDENTITY_CALLS).erase();
-  const helpers = authorizationServer(env).getOAuthApi(env);
+/** The people the old records know: each one the old OAuth library ever granted a token to. */
+async function oldPeople(env: IssuerEnv): Promise<Set<string>> {
+  const people = new Set<string>();
   let cursor: string | undefined;
   do {
-    const page = await helpers.listUserGrants(person, cursor ? { cursor } : {});
-    for (const grant of page.items) await helpers.revokeGrant(grant.id, person);
-    cursor = page.cursor;
+    const page = await env.OAUTH_KV.list({ prefix: 'grant:', ...(cursor ? { cursor } : {}) });
+    for (const { name } of page.keys) people.add(name.split(':')[1]!);
+    cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
+  return people;
 }
 
-export interface ValidatedToken {
-  props: Grant;
-  audience: string;
-  userId: string;
+async function readOld(env: IssuerEnv, person: string): Promise<OldPerson> {
+  const old = stub<OldPersonRecords>(env.PEOPLE, person, PERSON_CALLS);
+  return { identities: (await old.identities()) ?? [], email: (await old.email()) ?? null, instagram: (await old.instagram()) ?? null, brands: (await old.brands()) ?? [] };
+}
+
+/**
+ * Copies people from the old records, answering what it copied by person id alone. It runs once the
+ * deploy that brings Better Auth is done, with a token derived from the content server's key, and
+ * again safely: people already copied are left alone. A body may name more people by id.
+ */
+async function copy(request: Request, env: IssuerEnv): Promise<Response> {
+  const expected = `Bearer ${await derivedKey(env.CREDENTIAL_KEY, 'cmokit copy')}`;
+  if (request.headers.get('authorization') !== expected) return new Response('Not found', { status: 404 });
+  const body = (await request.json().catch(() => ({}))) as { people?: unknown };
+  const people = await oldPeople(env);
+  if (Array.isArray(body.people)) for (const id of body.people) if (typeof id === 'string' && id) people.add(id);
+  const report = await copyPeople(await issuerFor(env), people, (person) => readOld(env, person));
+  return Response.json(report);
+}
+
+/** Forgets a person's sign-in records, old and new, and every token issued to them (ADR-0053). Safe to repeat. */
+export async function deletePerson(env: IssuerEnv, person: string): Promise<void> {
+  await (await issuerFor(env)).deletePerson(person);
+  const identities = await stub<OldPersonRecords>(env.PEOPLE, person, PERSON_CALLS).erase();
+  for (const name of identities ?? []) await stub<{ erase(): Promise<void> }>(env.IDENTITIES, name, IDENTITY_CALLS).erase();
+  let cursor: string | undefined;
+  do {
+    const page = await env.OAUTH_KV.list({ prefix: `grant:${person}:`, ...(cursor ? { cursor } : {}) });
+    for (const { name } of page.keys) await env.OAUTH_KV.delete(name);
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
 }
 
 /** `fonts` are the sign-in pages' two fonts, served at `/fonts/`; without them the pages use the system font (ADR-0046). */
@@ -216,58 +237,59 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
     async fetch(request: Request): Promise<Response> {
       const font = fontResponse(request, options.fonts);
       if (font) return font;
-      return (await (await signInFor(this.env))(request)) ?? authorizationServer(this.env).fetch(request, this.env, this.ctx);
+      const url = new URL(request.url);
+      if (request.method === 'POST' && url.pathname === '/copy') return copy(request, this.env);
+      return (await issuerFor(this.env)).fetch(request);
     }
 
     /** What the content server calls over its service binding to check a token for its audience. */
-    validateToken(resource: string, token: string): Promise<ValidatedToken | null> {
-      return authorizationServer(this.env).validateToken<Grant>(resource, token, this.env);
+    async validateToken(resource: string, token: string): Promise<ValidatedToken | null> {
+      return (await issuerFor(this.env)).validateToken(resource, token);
     }
 
     /** The customers a person is a user of, for a token that names none. */
-    customers(person: string): Promise<string[]> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).customers();
+    async customers(person: string): Promise<string[]> {
+      return (await issuerFor(this.env)).customers(person);
     }
 
     /** The customers a person is a user of, each with the name the person gave it, for the account page. */
-    brands(person: string): Promise<Brand[]> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).brands();
+    async brands(person: string): Promise<Brand[]> {
+      return (await issuerFor(this.env)).brands(person);
     }
 
     /** What the content server calls when it makes a customer for a person (ADR-0017), with the brand's name if it has one. */
-    addCustomer(person: string, customer: string, name?: string): Promise<void> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).addCustomer(customer, Date.now(), name);
+    async addCustomer(person: string, customer: string, name?: string): Promise<void> {
+      return (await issuerFor(this.env)).addCustomer(person, customer, name);
     }
 
     /** Names, or renames, one of a person's customers, as they see it; false when it is not theirs. */
-    nameCustomer(person: string, customer: string, name: string): Promise<boolean> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).nameCustomer(customer, name);
+    async nameCustomer(person: string, customer: string, name: string): Promise<boolean> {
+      return (await issuerFor(this.env)).nameCustomer(person, customer, name);
     }
 
     /** The email address a person proved when signing in, for activation without a checkout (CUS-03). */
-    email(person: string): Promise<string | null> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).email();
+    async email(person: string): Promise<string | null> {
+      return (await issuerFor(this.env)).email(person);
     }
 
     /** The Instagram account a person last signed in with, for activation by a proven handle (ADR-0048). */
-    instagram(person: string): Promise<InstagramAccount | null> {
-      return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).instagram();
+    async instagram(person: string): Promise<InstagramAccount | null> {
+      return (await issuerFor(this.env)).instagram(person);
     }
 
     /** The ways in a person signs in to their account with, by the identity each names, for the account page. */
     async waysIn(person: string): Promise<string[]> {
-      return (await stub<PersonRecords & { identities(): Promise<string[]> }>(this.env.PEOPLE, person, PERSON_CALLS).identities()) ?? [];
+      return (await issuerFor(this.env)).waysIn(person);
     }
 
     /** A one-time value the account page sends a person to the sign-in with, to add a way in to their account (ADR-0018). */
-    startLink(person: string): Promise<string> {
-      return startLink(accountsFor(this.env), person);
+    async startLink(person: string): Promise<string> {
+      return (await issuerFor(this.env)).startLink(person);
     }
 
     /**
-     * What the content server calls when a person deletes their account (ADR-0053): forgets each of
-     * their sign-in identities and their person's object, then revokes every grant, and so every
-     * token, issued to them. Safe to repeat.
+     * What the content server calls when a person deletes their account (ADR-0053): forgets their
+     * sign-in records, old and new, and every token issued to them. Safe to repeat.
      */
     async deletePerson(person: string): Promise<void> {
       await deletePerson(this.env, person);

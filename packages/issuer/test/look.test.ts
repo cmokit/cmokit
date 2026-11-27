@@ -32,8 +32,8 @@ test('fonts answer nothing but their two paths, and a deployment without them fa
 test('the sign-in pages wear the look under the wordmark, and load fonts only from their own origin', async () => {
   const client = { clientName: 'Claude', clientDomain: 'claude.ai', redirectHost: 'claude.ai', redirectIsLoopback: false };
   for (const response of [
-    signInPage({ client, handle: 'h', ways: [{ name: 'github', label: 'GitHub' }], email: false, headers: new Headers() }),
-    codePage({ address: 'ada@example.com', state: 's', headers: new Headers() }),
+    signInPage({ client, query: 'q', ways: [{ name: 'github', label: 'GitHub' }], email: false, headers: new Headers() }),
+    codePage({ address: 'ada@example.com', query: 'q', headers: new Headers() }),
   ]) {
     assert.equal(response.headers.get('content-security-policy'), "font-src 'self'; frame-ancestors 'none'");
     const body = await response.text();

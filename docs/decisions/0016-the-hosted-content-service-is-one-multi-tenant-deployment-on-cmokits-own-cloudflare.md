@@ -70,9 +70,8 @@ flowchart LR
   platforms["TikTok, Instagram, LinkedIn<br/>no integration"]
 
   subgraph cf["CMOKit's Cloudflare account, one multi-tenant deployment, no model"]
-    issuer["Issuer Worker<br/>workers-oauth-provider<br/>ADR-0018"]
-    kv[("Workers KV OAUTH_KV<br/>grants, hashed tokens<br/>ADR-0035")]
-    persondo[("Person and sign-in<br/>identity Durable Objects<br/>ADR-0030")]
+    issuer["Issuer Worker<br/>Better Auth<br/>ADR-0018"]
+    kv[("D1<br/>people, ways in, brands,<br/>hashed tokens<br/>ADR-0035")]
     server["Content server Worker<br/>remote MCP, /customers/slug/mcp<br/>8 tools, key-entry pages<br/>ADR-0019, ADR-0029"]
     custdo[("Customer Durable Object<br/>brand versions, pieces, users,<br/>encrypted connections, access<br/>ADR-0023, ADR-0030")]
     lifecycle["CMOKit lifecycle<br/>hosted CMOKit as a product<br/>ADR-0017"]
@@ -97,7 +96,6 @@ flowchart LR
   skill -- "MCP, OAuth token" --> server
   skill -- "OAuth, PKCE" --> issuer
   issuer --> kv
-  issuer --> persondo
   issuer --> idp
   issuer --> sendgrid
   server -- "checks tokens, service binding" --> issuer

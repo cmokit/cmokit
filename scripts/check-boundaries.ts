@@ -2,7 +2,8 @@
 // depends, directly or through another package, on neither the lifecycle nor a database client; no
 // package depends on a database client; the edge's, the lifecycle's and the content server's handlers
 // name no bought tool, only their adapters and the Workers that wire them do, and the issuer's likewise; only the
-// issuer names a KV namespace, and no code of CMOKit's reads or writes the OAuth library's (ADR-0035); and the edge
+// issuer names a KV namespace, the one its old OAuth library kept grants in, and only the issuer's Worker reads it,
+// to copy people across and to erase a person, and writes nothing to it (ADR-0035); and the edge
 // reaches nothing of
 // the command line's but its configuration, so it never holds the experiments tool's administrative
 // key. Also ADR-0022's: the content plugin declares no local MCP server, so everything in it works in
@@ -59,14 +60,16 @@ for (const pkg of ['edge', 'lifecycle', 'content', 'issuer']) {
   }
 }
 
-// Only the issuer names a KV namespace, its OAuth library's, and it hands the namespace to the library alone.
+// Only the issuer names a KV namespace, the old OAuth library's. Only its Worker lists that namespace's grants, for the
+// one-time copy of people, and deletes them, when a person is erased; nothing puts anything in it (ADR-0035).
 for (const dir of readdirSync(packages)) {
   const source = join(packages, dir, 'src');
   if (!existsSync(source)) continue;
   for (const file of readdirSync(source).filter((f) => f.endsWith('.ts'))) {
     const text = readFileSync(join(source, file), 'utf8');
     if (dir !== 'issuer' && /OAUTH_KV|KVNamespace/.test(text)) errors.push(`packages/${dir}/src/${file} names a KV namespace`);
-    if (/OAUTH_KV\s*\.\s*(get|put|list|delete|getWithMetadata)\b/.test(text)) errors.push(`packages/${dir}/src/${file} reads or writes the OAuth library's namespace`);
+    const reads = dir === 'issuer' && file === 'worker.ts' ? /OAUTH_KV\s*\.\s*(get|put|getWithMetadata)\b/ : /OAUTH_KV\s*\.\s*(get|put|list|delete|getWithMetadata)\b/;
+    if (reads.test(text)) errors.push(`packages/${dir}/src/${file} reads or writes the old OAuth library's namespace`);
   }
 }
 

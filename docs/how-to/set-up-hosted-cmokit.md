@@ -44,16 +44,18 @@ The name must match this guide exactly.
 1. In the Cloudflare dashboard, open **Workers & Pages**. Copy the **Account ID** from the right-hand
    side, and save it as the variable `CLOUDFLARE_ACCOUNT_ID`.
 2. Open **My Profile > API Tokens > Create Token**, and use the **Edit Cloudflare Workers** template.
-   Under **Account Resources**, pick your account. Under **Zone Resources**, pick `cmokit.ai`. Create
-   the token and save it as the secret `CLOUDFLARE_API_TOKEN`.
+   Under **Account Resources**, pick your account. Under **Zone Resources**, pick `cmokit.ai`. Under
+   **Permissions**, add **Account > D1 > Edit**, so the deploy can create the issuer's database.
+   Create the token and save it as the secret `CLOUDFLARE_API_TOKEN`.
 
-The template's permissions are Workers scripts, routes, KV and R2. If the first deploy reports that
+The template's permissions are Workers scripts, routes, KV and R2, with no D1. If the first deploy reports that
 it can't add the custom domain, edit the token to add **Zone > DNS > Edit** for `cmokit.ai`. This
 guide hasn't confirmed whether that permission is needed.
 
-## 2. The content server's credential key
+## 2. The credential key
 
-This key seals every customer's connected credentials, such as their event calendar's key. On a Mac,
+This key seals every customer's connected credentials, such as their event calendar's key, and the
+issuer derives its own secrets from it. On a Mac,
 open Terminal and run:
 
 ```

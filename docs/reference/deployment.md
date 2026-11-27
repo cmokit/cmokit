@@ -67,15 +67,18 @@ the content server and kept sealed in that customer's object.
 ## The issuer Worker
 
 The hosted service runs it beside the content server; a self-hoster deploys the same Worker from
-`@cmokit/issuer`. It needs the compatibility flag `global_fetch_strictly_public`, which the OAuth
-library requires to fetch a client's metadata document. Each sign-in provider's app sends people
+`@cmokit/issuer`. It needs the compatibility flags `global_fetch_strictly_public`, for Better Auth to
+fetch a client's metadata document, and `nodejs_compat`, for Better Auth's use of Node's
+`AsyncLocalStorage`. Each sign-in provider's app sends people
 back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not offered.
 
 | Name | Kind | Required | What it is |
 |---|---|---|---|
-| `OAUTH_KV` | KV namespace | Yes | The OAuth library's grants, codes and hashed tokens. No code of CMOKit's reads or writes it. |
-| `IDENTITIES` | Durable Object binding | Yes | Each way in (an email address or a provider's account) and the person it belongs to, its pending code and its send limit, in an object of its own. |
-| `PEOPLE` | Durable Object binding | Yes | Each person's ways in and customers, in an object of its own. |
+| `DB` | D1 database | Yes | Better Auth's people, ways in, sessions, clients, consents and hashed tokens, and each person's brands (ADR-0035). The issuer makes its tables on first use. |
+| `CREDENTIAL_KEY` | Worker secret | Yes | The content server's secret of the same name. Better Auth's secret, which signs its cookies and each sign-in's steps, and the token that runs the copy of people, are derived from it, so changing it signs everyone out of a sign-in under way. |
+| `OAUTH_KV` | KV namespace | Until the copy is checked | The old OAuth library's grants, from before Better Auth, which list the people to copy. Read only to copy people and to erase a person; nothing writes to it. |
+| `IDENTITIES` | Durable Object binding | Until the copy is checked | The old record of each way in and the person it belonged to, from before Better Auth. |
+| `PEOPLE` | Durable Object binding | Until the copy is checked | The old record of each person's ways in and customers, from before Better Auth. |
 | `ISSUER_URL` | Worker variable | Yes | The issuer's own address. |
 | `AUDIENCE` | Worker variable | Yes | The content server's `AUDIENCE`, the one audience the issuer issues tokens for. |
 | `SENDGRID_API_KEY` | Worker secret | For email codes | A SendGrid key with Mail Send access. |
@@ -86,7 +89,7 @@ back to `<ISSUER_URL>/callback`; a provider whose two values are not set is not 
 | `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | A Meta app with Facebook Login. |
 | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | Variable, secret | For Instagram | The content server's of the same names. |
 | `INSTAGRAM_CONFIG_ID` | Variable | For Instagram | The ID of a Facebook Login for Business configuration of that app's, made for sign-in. The app's Valid OAuth Redirect URIs must include `<ISSUER_URL>/callback`. With it and the two above, the sign-in screen leads with Continue with Instagram (ADR-0048). Until App Review passes, only people with a role on the Meta app can sign in this way. |
-| `TERMS_URL` | Worker variable | For a closed beta | The content server's of the same name, set in `hosted/issuer/wrangler.jsonc` for hosted CMOKit. When it is set, the sign-in screen has a box to accept the version the page names of the beta terms, which must be ticked to sign in, and the grant carries the version accepted (ADR-0047). |
+| `TERMS_URL` | Worker variable | For a closed beta | The content server's of the same name, set in `hosted/issuer/wrangler.jsonc` for hosted CMOKit. When it is set, the sign-in screen has a box to accept the version the page names of the beta terms, which must be ticked to sign in, and the token carries the version accepted (ADR-0047). |
 
 ## The deploy
 
@@ -115,8 +118,8 @@ up hosted CMOKit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | Name | Kind | Required | What it is |
 |---|---|---|---|
 | `CLOUDFLARE_ACCOUNT_ID` | Variable | Yes | CMOKit's own Cloudflare account. |
-| `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone. |
-| `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's secret of the same name. |
+| `CLOUDFLARE_API_TOKEN` | Secret | Yes | A Cloudflare API token from the "Edit Cloudflare Workers" template, for the account and the `cmokit.ai` zone, with the account permission D1 Edit added, so the deploy can create the issuer's database. |
+| `CREDENTIAL_KEY` | Secret | Yes | Deployed as the content server's and the issuer's secret of the same name. |
 | `ACTIVATED_EMAILS` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `WAITLIST_CUSTOMER` | Variable | For the closed beta | Deployed as the content server's variable of the same name. |
 | `INSTAGRAM_APP_ID`, `INSTAGRAM_CONFIG_ID`, `INSTAGRAM_APP_SECRET` | Variables, secret | For Connect Instagram | Deployed as the content server's of the same names; the app ID and secret also as the issuer's. |
@@ -125,6 +128,11 @@ up hosted CMOKit](../how-to/set-up-hosted-cmokit.md) says how to get each one.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Variable, secret | For Google | Deployed as the issuer's of the same names. |
 | `GH_CLIENT_ID`, `GH_CLIENT_SECRET` | Variable, secret | For GitHub | Deployed as the issuer's `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, since GitHub reserves names that start with `GITHUB_`. |
 | `META_APP_ID`, `META_APP_SECRET` | Variable, secret | For Meta | Deployed as the issuer's of the same names. |
+
+After both deploys, the workflow copies people from the issuer's old records into Better Auth's
+tables, with a token derived from `CREDENTIAL_KEY`, and prints a report that names people by id only.
+A person already copied is left alone, so every deploy runs it and only the first copies anyone; the
+step fails if anyone failed to copy, and running the workflow again copies them.
 
 The issuer's `ISSUER_URL`, `AUDIENCE`, `MAIL_FROM` and `APP_URL`, and the content server's
 `ISSUER_URL`, `AUDIENCE` and `APP_URL`, are in their `wrangler.jsonc`. The content server's `LIFECYCLE` binding names

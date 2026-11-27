@@ -47,13 +47,14 @@ lives with the customer.
 > five minutes, keeping the last version read when the page cannot be read and refusing to go on
 > when it has never been read, so publishing new terms is all it takes to ask everyone again. With
 > it set, the sign-in screen has a box, which must
-> be ticked to use any way in, linking to the terms and naming their version. The issuer
-> stores nothing about it: the grant it issues carries the version accepted, alongside the person
-> and their customer. At a person's first call with that grant, the content server records the
+> be ticked to use any way in, linking to the terms and naming their version. The issuer keeps
+> only the version the person last ticked, with the person, and the tokens it issues carry it,
+> alongside the person and their customer. At a person's first call with such a token, the content
+> server records the
 > person, the version and the time in the customer's Durable Object, as ADR-0039's page did, and the
 > record is in the customer's export. The screen cannot know who is signing in until they have
 > chosen a way in, so the box shows at every sign-in, not only the first. ADR-0039's one-time page
-> stays, for a connection made before the box existed or a grant carrying an older version: such a
+> stays, for a connection made before the box existed or a token carrying an older version: such a
 > user is still offered account_status alone until they accept there, or sign in again and tick the
 > box.
 
@@ -71,9 +72,9 @@ lives with the customer.
 ### Confirmation
 
 A test of the issuer asserts that, with the variables set, signing in without the box ticked is
-refused and sends no code, that ticking it puts the version in the grant, and that
-without the variables there is no box. A test of the content server asserts that a grant carrying
-the current version is recorded at the first call and appears in the export, and that a grant
+refused and sends no code, that ticking it puts the version in the token, and that
+without the variables there is no box. A test of the content server asserts that a token carrying
+the current version is recorded at the first call and appears in the export, and that a token
 carrying an older version is still asked to accept.
 
 ## Pros and Cons of the Options

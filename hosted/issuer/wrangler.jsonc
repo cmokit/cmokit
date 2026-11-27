@@ -5,8 +5,9 @@
   "compatibility_date": "2026-10-01",
   // The fonts of CMOKit's own look, bundled as bytes (ADR-0046).
   "rules": [{ "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }],
-  // The OAuth library fetches a client's metadata document, and needs this flag to do so.
-  "compatibility_flags": ["global_fetch_strictly_public"],
+  // Better Auth fetches a client's metadata document, which needs the first flag, and uses Node's
+  // AsyncLocalStorage, which needs the second.
+  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
   // A Worker custom domain: the deploy creates the DNS record and the certificate.
   "routes": [{ "pattern": "auth.cmokit.ai", "custom_domain": true }],
   "workers_dev": false,
@@ -19,7 +20,11 @@
     // The beta terms; their version is read from the page itself (ADR-0047).
     "TERMS_URL": "https://cmokit.ai/beta-terms/"
   },
-  // The OAuth library's grants, codes and hashed tokens. The first deploy creates the namespace.
+  // Better Auth's people, ways in, sessions, clients and hashed tokens, with CMOKit's brand index
+  // (ADR-0018, ADR-0035). The first deploy creates the database.
+  "d1_databases": [{ "binding": "DB", "database_name": "cmokit-issuer" }],
+  // The old records, from before Better Auth: the old OAuth library's grants, which list the people
+  // to copy, and one object per person and per way in. The copy reads them and leaves them as they are.
   "kv_namespaces": [{ "binding": "OAUTH_KV" }],
   "durable_objects": {
     "bindings": [

@@ -36,17 +36,18 @@ export function signInPage(options: {
   client: ClientFacts;
   /** Whether the client is this deployment's own account page, which needs no introduction. */
   own?: boolean;
-  handle: string;
+  /** The authorization request, as Better Auth signed it, which each step carries on. */
+  query: string;
   ways: { name: string; label: string }[];
   email: boolean;
   /** The beta terms to accept before signing in, when the deployment asks for them (ADR-0047). */
   terms?: { url: string; version: string };
   problem?: string;
   /** Set when a person signed in to the account page is adding a way in to their account (ADR-0018). */
-  link?: string;
-  headers: Headers;
+  link?: boolean;
+  headers?: Headers;
 }): Response {
-  const { client, handle } = options;
+  const { client } = options;
   const who = client.clientDomain
     ? `<strong>${escape(client.clientName)}</strong>, from ${escape(client.clientDomain)},`
     : `<strong>${escape(client.clientName)}</strong> (this app named itself, so its name isn't verified)`;
@@ -65,19 +66,21 @@ export function signInPage(options: {
   return page(options.link ? 'Add a way in' : 'Sign in to CMOKit', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
 ${intro}
 ${client.redirectIsLoopback ? '<p><strong>This sends access to an app on your computer.</strong> Continue only if you just started connecting from it.</p>' : ''}
-<form method="post" action="/authorize">
-<input type="hidden" name="handle" value="${escape(handle)}">
-${options.link ? `<input type="hidden" name="link" value="${escape(options.link)}">\n` : ''}${terms}${ways}
+<form method="post" action="/sign-in">
+<input type="hidden" name="oauth_query" value="${escape(options.query)}">
+${terms}${ways}
 ${email}
 <button name="way" value="cancel" formnovalidate>Cancel</button>
 </form>
 <p class="note">CMOKit keeps only who you are${options.terms ? ' and that you accepted the beta terms' : ''}. It keeps no password.</p>`, options.problem ? 400 : 200, options.headers);
 }
 
-export function codePage(options: { address: string; state: string; problem?: string; headers: Headers }): Response {
+export function codePage(options: { address: string; query: string; problem?: string; headers?: Headers }): Response {
   return page('Enter your code', `${options.problem ? `<p class="problem">${escape(options.problem)}</p>` : ''}
 <p>We sent a six-digit code to <strong>${escape(options.address)}</strong>. It works for ten minutes.</p>
-<form method="post" action="/code?state=${encodeURIComponent(options.state)}">
+<form method="post" action="/code">
+<input type="hidden" name="oauth_query" value="${escape(options.query)}">
+<input type="hidden" name="address" value="${escape(options.address)}">
 <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus>
 <button class="primary">Sign in</button>
 </form>`, options.problem ? 400 : 200, options.headers);
@@ -86,10 +89,11 @@ export function codePage(options: { address: string; state: string; problem?: st
 /** What a person sees for a brand they never named, such as the first one made when they were activated. */
 export const UNNAMED_BRAND = 'Unnamed brand';
 
-export function choosePage(options: { brands: { slug: string; name: string | null }[]; state: string; headers: Headers }): Response {
+export function choosePage(options: { brands: { slug: string; name: string | null }[]; query: string; headers?: Headers }): Response {
   const choices = options.brands.map((b, i) => `<label><input type="radio" name="customer" value="${escape(b.slug)}"${i === 0 ? ' checked' : ''}> ${escape(b.name ?? UNNAMED_BRAND)}</label>`).join('\n');
   return page('Which brand?', `<p>Your account has more than one CMOKit brand. This connection will serve the one you choose.</p>
-<form method="post" action="/choose?state=${encodeURIComponent(options.state)}">
+<form method="post" action="/choose">
+<input type="hidden" name="oauth_query" value="${escape(options.query)}">
 ${choices}
 <button class="primary">Continue</button>
 </form>`, 200, options.headers);

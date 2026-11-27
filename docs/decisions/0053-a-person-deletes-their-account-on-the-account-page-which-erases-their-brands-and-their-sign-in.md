@@ -17,9 +17,9 @@ customer's object has a whole-erase that nothing calls (ADR-0030).
 
 What CMOKit holds for one person is spread over several records. Each brand they run is a customer's
 object with its brand context, pieces, results, waitlist, visit counts and sealed credentials
-(ADR-0030, ADR-0043, ADR-0050). The issuer holds their person's object (sign-in identities, proven
-address, Instagram handle, their brands' index), one object per sign-in identity, and, in Workers KV,
-the OAuth library's grants and tokens issued to them (ADR-0035). CMOKit's own brand's waitlist holds
+(ADR-0030, ADR-0043, ADR-0050). The issuer holds, in D1 through Better Auth, the person, their ways
+in, proven address, sessions, their brands' index, and the consents and tokens issued to them, and
+still holds the records from before Better Auth that were copied from (ADR-0035). CMOKit's own brand's waitlist holds
 their entry, which lets them in again at their next sign-in while it stays activated (ADR-0043,
 ADR-0048). During the beta a brand has one user, the person who made it, though users are kept as a
 list (ADR-0030).
@@ -52,8 +52,8 @@ person does it themselves, and it reuses the account page's existing guard on ch
 > which erases the whole customer's object when they are its only user, and otherwise removes only
 > their user, terms, Claude and pending-link rows; their entry on CMOKit's own waitlist is deleted,
 > by their proven address and by the Instagram account they signed in with; then the issuer erases
-> each sign-in identity's object and their person's object, and revokes every grant the OAuth
-> library issued to them, which deletes its tokens. The session cookie is cleared, and the page says
+> the person's tokens, consents, sessions, ways in, brands' index, the Instagram account they last
+> shared and the person themselves, and erases their records from before Better Auth. The session cookie is cleared, and the page says
 > the account is deleted.
 >
 > A user of the brand named as CMOKit's own waitlist is refused, and is offered no delete.
@@ -98,8 +98,8 @@ and that after the issuer's delete the person's identities, records and tokens a
 
 ## More Information
 
-Cloudflare's OAuth library lists a person's grants with `listUserGrants` and revokes each with
-`revokeGrant`, read in version 1.2.4's type declarations on 2026-11-25.
+The issuer deletes each of Better Auth's tables' rows for the person by their id, since D1 is not
+relied on to cascade; a test asserts that a deleted person's token and refresh token stop working.
 
 **Reversal cost.** Low: the delete is one route, one call per record, and one issuer call.
 
