@@ -66,6 +66,7 @@ export interface IdentityRecords {
   allow(limit: number, now: number): Promise<boolean>;
   issueCode(now: number): Promise<string | undefined>;
   checkCode(code: string, now: number): Promise<CodeCheck>;
+  erase(): Promise<void>;
 }
 
 export interface PersonRecords {
@@ -76,6 +77,7 @@ export interface PersonRecords {
   brands(): Promise<Brand[]>;
   addCustomer(slug: string, now: number, name?: string): Promise<void>;
   nameCustomer(slug: string, name: string): Promise<boolean>;
+  erase(): Promise<string[]>;
 }
 
 /** The issuer's records, each in an object of its own (ADR-0030). */

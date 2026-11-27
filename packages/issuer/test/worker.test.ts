@@ -543,3 +543,31 @@ test("Google is not offered in Instagram's or Facebook's in-app browser, where i
     assert.match(inApp, /Continue with Instagram/);
   }
 });
+
+test('deleting a person erases their records and identities, and revokes every token issued to them', async () => {
+  const { worker, identities } = setup();
+  const net = outside();
+  try {
+    const signedIn = await emailSignIn(worker, 'ada@example.com', net.mail);
+    const token = await tokenFor(worker, signedIn.done.headers.get('location')!, signedIn.clientId, signedIn.verifier);
+    const person = (await worker.validateToken(AUDIENCE, token))!.userId;
+    await worker.addCustomer(person, 'acme');
+
+    await worker.deletePerson(person);
+    assert.equal(await worker.validateToken(AUDIENCE, token) ?? null, null, 'the token no longer works');
+    assert.deepEqual(await worker.customers(person), []);
+    assert.equal(await worker.email(person) ?? null, null);
+    const left = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string | null }).result;
+    assert.equal(left ?? null, null, 'the address names no one');
+    await worker.deletePerson(person);
+
+    // Signing in again at the same address makes a new person, with no brands.
+    const again = await emailSignIn(worker, 'ada@example.com', net.mail);
+    const fresh = await tokenFor(worker, again.done.headers.get('location')!, again.clientId, again.verifier);
+    const next = (await worker.validateToken(AUDIENCE, fresh))!;
+    assert.notEqual(next.userId, person);
+    assert.deepEqual(next.props, { person: next.userId, customer: null });
+  } finally {
+    net.restore();
+  }
+});

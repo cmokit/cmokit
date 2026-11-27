@@ -11,6 +11,7 @@ export const buttonVariants = cva(
         primary: 'bg-accent text-on-accent hover:bg-accent-strong',
         outline: 'border border-line bg-surface text-ink hover:bg-sunk',
         ghost: 'text-muted hover:bg-sunk hover:text-ink',
+        danger: 'border border-problem/40 bg-surface text-problem hover:bg-problem-bg',
       },
       size: {
         sm: 'h-9 px-3.5 text-xs',

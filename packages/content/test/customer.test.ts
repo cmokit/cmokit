@@ -170,3 +170,29 @@ test('export holds every record and no credential, and erasing leaves nothing', 
   }
   assert.equal(await customer.isUser('ada'), false);
 });
+
+test('leaving a brand as its only user erases it, and leaving one with another user keeps theirs', async () => {
+  const alone = await readyCustomer();
+  assert.deepEqual(await alone.customer.leave('ada'), { erased: true });
+  for (const table of ['users', 'connections', 'brand', 'pieces']) assert.deepEqual(alone.sql.all(`SELECT * FROM ${table}`), [], `${table} is empty`);
+
+  const shared = await readyCustomer();
+  await shared.customer.addUser('bob');
+  assert.deepEqual(await shared.customer.leave('ada'), { erased: false });
+  assert.equal(await shared.customer.isUser('ada'), false);
+  assert.equal(await shared.customer.isUser('bob'), true);
+  assert.equal(shared.sql.all('SELECT * FROM brand').length, 1, 'the brand stays for its other user');
+  assert.deepEqual(await shared.customer.leave('ada'), { erased: false }, 'leaving again is safe');
+});
+
+test('the waitlist forgets a person by address and by the Instagram account they signed in with', async () => {
+  const { customer, sql } = await readyCustomer();
+  await customer.waitlistJoin('Ada@Example.com');
+  await customer.waitlistJoin('cy@example.com');
+  sql.all("UPDATE waitlist SET instagram_user = 'ig-1' WHERE email = 'cy@example.com'");
+  await customer.waitlistJoin('dee@example.com');
+  await customer.waitlistForget('ada@example.com', 'ig-1');
+  assert.deepEqual(sql.all('SELECT email FROM waitlist').map((row) => row.email), ['dee@example.com']);
+  await customer.waitlistForget(null, null);
+  assert.equal(sql.all('SELECT email FROM waitlist').length, 1);
+});

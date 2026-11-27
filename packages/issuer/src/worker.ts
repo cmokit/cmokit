@@ -7,7 +7,7 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOKit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), and `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048). Every variable and secret it reads is in
+// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
@@ -78,11 +78,12 @@ export interface IssuerEntrypoint {
     nameCustomer(person: string, customer: string, name: string): Promise<boolean>;
     email(person: string): Promise<string | null>;
     instagram(person: string): Promise<InstagramAccount | null>;
+    deletePerson(person: string): Promise<void>;
   };
 }
 
-const IDENTITY_CALLS = ['person', 'claim', 'allow', 'issueCode', 'checkCode'] as const;
-const PERSON_CALLS = ['addIdentity', 'identities', 'email', 'instagram', 'customers', 'brands', 'addCustomer', 'nameCustomer'] as const;
+const IDENTITY_CALLS = ['person', 'claim', 'allow', 'issueCode', 'checkCode', 'erase'] as const;
+const PERSON_CALLS = ['addIdentity', 'identities', 'email', 'instagram', 'customers', 'brands', 'addCustomer', 'nameCustomer', 'erase'] as const;
 
 /** A Durable Object class that runs one logic class's calls, each a POST of its arguments as JSON. */
 function objectClass<L>(Logic: new (sql: Sql) => L, calls: readonly string[]): ObjectClass {
@@ -183,6 +184,19 @@ function signInFor(env: IssuerEnv) {
   });
 }
 
+/** Forgets a person's sign-in records and revokes their grants (ADR-0053). */
+export async function deletePerson(env: IssuerEnv, person: string): Promise<void> {
+  const identities = await stub<PersonRecords>(env.PEOPLE, person, PERSON_CALLS).erase();
+  for (const name of identities ?? []) await stub<IdentityRecords>(env.IDENTITIES, name, IDENTITY_CALLS).erase();
+  const helpers = authorizationServer(env).getOAuthApi(env);
+  let cursor: string | undefined;
+  do {
+    const page = await helpers.listUserGrants(person, cursor ? { cursor } : {});
+    for (const grant of page.items) await helpers.revokeGrant(grant.id, person);
+    cursor = page.cursor;
+  } while (cursor);
+}
+
 export interface ValidatedToken {
   props: Grant;
   audience: string;
@@ -231,6 +245,15 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
     /** The Instagram account a person last signed in with, for activation by a proven handle (ADR-0048). */
     instagram(person: string): Promise<InstagramAccount | null> {
       return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).instagram();
+    }
+
+    /**
+     * What the content server calls when a person deletes their account (ADR-0053): forgets each of
+     * their sign-in identities and their person's object, then revokes every grant, and so every
+     * token, issued to them. Safe to repeat.
+     */
+    async deletePerson(person: string): Promise<void> {
+      await deletePerson(this.env, person);
     }
   }
 
