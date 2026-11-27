@@ -17,6 +17,7 @@ import { fontResponse, type Fonts } from './look.ts';
 import { allowedRedirect, createSignIn, type Accounts, type Brand, type Grant, type IdentityRecords, type InstagramAccount, type PersonRecords, type SignInOAuth } from './index.ts';
 import { github, google, instagram, meta, type Provider } from './providers.ts';
 import { sendgridCodes } from './sendgrid.ts';
+import { publishedTerms } from './terms.ts';
 import type { Sql } from './sql.ts';
 
 export interface IssuerEnv {
@@ -47,10 +48,8 @@ export interface IssuerEnv {
   INSTAGRAM_CONFIG_ID?: string;
   /** Where the content server serves the account page, as https://app.cmokit.ai (ADR-0041). A variable. */
   APP_URL?: string;
-  /** Where the beta terms every person accepts at sign-in are published (ADR-0047). A variable. */
+  /** Where the beta terms every person accepts at sign-in are published; their version is read from the page (ADR-0047). A variable. */
   TERMS_URL?: string;
-  /** The terms' current version; with TERMS_URL, the sign-in screen asks for it. A variable. */
-  TERMS_VERSION?: string;
 }
 
 export interface DurableObjectNamespace {
@@ -154,7 +153,8 @@ export function appRedirects(env: IssuerEnv): string[] {
   return env.APP_URL ? [`${new URL(env.APP_URL).origin}/callback`] : [];
 }
 
-function signInFor(env: IssuerEnv) {
+async function signInFor(env: IssuerEnv) {
+  const terms = await publishedTerms(env.TERMS_URL);
   const helpers = authorizationServer(env).getOAuthApi(env);
   const oauth: SignInOAuth<LibraryRequest> = {
     parseAuthRequest: (request) => helpers.parseAuthRequest(request),
@@ -180,7 +180,7 @@ function signInFor(env: IssuerEnv) {
     providers: providersFor(env),
     network: (request) => request.headers.get('cf-connecting-ip') ?? 'unknown',
     redirects: appRedirects(env),
-    ...(env.TERMS_URL && env.TERMS_VERSION ? { terms: { url: env.TERMS_URL, version: env.TERMS_VERSION } } : {}),
+    ...(terms ? { terms } : {}),
   });
 }
 
@@ -209,7 +209,7 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
     async fetch(request: Request): Promise<Response> {
       const font = fontResponse(request, options.fonts);
       if (font) return font;
-      return (await signInFor(this.env)(request)) ?? authorizationServer(this.env).fetch(request, this.env, this.ctx);
+      return (await (await signInFor(this.env))(request)) ?? authorizationServer(this.env).fetch(request, this.env, this.ctx);
     }
 
     /** What the content server calls over its service binding to check a token for its audience. */

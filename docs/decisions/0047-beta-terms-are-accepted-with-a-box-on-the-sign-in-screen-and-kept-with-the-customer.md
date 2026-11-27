@@ -42,8 +42,11 @@ Chosen option: "A box on the sign-in screen, with the version carried in the gra
 the content server", because the person ticks it on a screen they see anyway, and the record still
 lives with the customer.
 
-> The issuer takes the same two variables as the content server, `TERMS_URL` and `TERMS_VERSION`,
-> and asks for nothing when either is unset. With both set, the sign-in screen has a box, which must
+> The issuer takes the same variable as the content server, `TERMS_URL`, and asks for nothing when
+> it is unset. Both read the terms' version from the published page's line "Version …", again every
+> five minutes, keeping the last version read when the page cannot be read and refusing to go on
+> when it has never been read, so publishing new terms is all it takes to ask everyone again. With
+> it set, the sign-in screen has a box, which must
 > be ticked to use any way in, linking to the terms and naming their version. The issuer
 > stores nothing about it: the grant it issues carries the version accepted, alongside the person
 > and their customer. At a person's first call with that grant, the content server records the
@@ -60,8 +63,9 @@ lives with the customer.
 * Good, because the record is where ADR-0039 put it, so exports and the one-time page need no
   change.
 * Bad, because a person who has accepted ticks the box again at each sign-in.
-* Bad, because the issuer now reads the terms variables, so both Workers must be deployed with the
-  same values.
+* Good, because new terms take effect within five minutes of being published, with no variable to
+  change or deploy to run.
+* Bad, because the published page must keep its line "Version …", and both Workers read it.
 * Neutral, because a person who is a user of two customers is still recorded once for each.
 
 ### Confirmation

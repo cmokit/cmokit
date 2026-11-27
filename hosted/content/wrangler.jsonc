@@ -17,7 +17,9 @@
   "vars": {
     "ISSUER_URL": "https://auth.cmokit.ai",
     "AUDIENCE": "https://mcp.cmokit.ai/mcp",
-    "APP_URL": "https://app.cmokit.ai"
+    "APP_URL": "https://app.cmokit.ai",
+    // The beta terms; their version is read from the page itself (ADR-0047).
+    "TERMS_URL": "https://cmokit.ai/beta-terms/"
   },
   "durable_objects": { "bindings": [{ "name": "CUSTOMERS", "class_name": "Customer" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Customer"] }],

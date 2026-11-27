@@ -17,6 +17,7 @@ import { SENDS_PER_NETWORK, type Brand, type CodeCheck, type InstagramAccount } 
 export { CODE_ATTEMPTS, CODE_LIFETIME, Identity, Person, SENDS_PER_ADDRESS, SENDS_PER_NETWORK, type Brand, type CodeCheck, type InstagramAccount } from './accounts.ts';
 export { github, google, instagram, meta, type Provider, type ProviderClient, type Signed } from './providers.ts';
 export type { Row, Sql } from './sql.ts';
+export { publishedTerms, termsVersion, TERMS_REFRESH } from './terms.ts';
 
 /** The authorization request as the OAuth library parsed it; this handler reads only these fields. */
 export interface AuthRequest {

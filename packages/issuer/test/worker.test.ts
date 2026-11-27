@@ -127,7 +127,7 @@ function outside(answers: Record<string, unknown> = {}) {
       return new Response(null, { status: 202 });
     }
     const answer = Object.entries(answers).find(([prefix]) => url.startsWith(prefix));
-    if (answer) return Response.json(answer[1]);
+    if (answer) return typeof answer[1] === 'string' ? new Response(answer[1], { headers: { 'content-type': 'text/html' } }) : Response.json(answer[1]);
     throw new Error(`unexpected fetch ${url}`);
   };
   return { mail, calls, restore: () => { globalThis.fetch = real; } };
@@ -429,8 +429,8 @@ test("the account page's callback is allowed only where the deployment names it"
 });
 
 test('while terms are asked for, no way in goes on until the box is ticked, and the grant carries the version ticked', async () => {
-  const { worker, identities } = setup({ TERMS_URL: 'https://cmokit.example/beta-terms/', TERMS_VERSION: '2026-11-11' });
-  const net = outside();
+  const { worker, identities } = setup({ TERMS_URL: 'https://cmokit.example/beta-terms/' });
+  const net = outside({ 'https://cmokit.example/beta-terms/': '<main><h1>Beta terms</h1><p>Version 2026-11-11</p></main>' });
   try {
     const { body: client } = await register(worker, [CLAUDE]);
     const go = browser(worker);
@@ -467,8 +467,8 @@ test('without terms, the sign-in screen has no box and the grant names no versio
 });
 
 test('a person with two brands who ticked the terms keeps the version through choosing a brand', async () => {
-  const { worker, identities, addCustomer } = setup({ TERMS_URL: 'https://cmokit.example/beta-terms/', TERMS_VERSION: '2026-11-11' });
-  const net = outside();
+  const { worker, identities, addCustomer } = setup({ TERMS_URL: 'https://cmokit.example/beta-terms/' });
+  const net = outside({ 'https://cmokit.example/beta-terms/': '<main><h1>Beta terms</h1><p>Version 2026-11-11</p></main>' });
   try {
     await emailSignIn(worker, 'ada@example.com', net.mail, { terms: 'yes' });
     const person = (await (await identities.get('email:ada@example.com').fetch('https://object/person', { method: 'POST', body: '[]' })).json() as { result: string }).result;

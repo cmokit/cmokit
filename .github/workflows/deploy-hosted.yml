@@ -63,8 +63,6 @@ jobs:
           # Creators sign in with Instagram through the content server's Meta app, with a configuration of
           # the sign-in's own, whose redirect is the issuer's callback (ADR-0048).
           { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && [ -n "$INSTAGRAM_CONFIG_ID" ]; } && vars+=(--var "INSTAGRAM_APP_ID:$INSTAGRAM_APP_ID" --var "INSTAGRAM_CONFIG_ID:$INSTAGRAM_CONFIG_ID")
-          # The sign-in screen asks for the beta terms (ADR-0047), as the content server does.
-          [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] && vars+=(--var "TERMS_URL:$TERMS_URL" --var "TERMS_VERSION:$TERMS_VERSION")
           npx wrangler deploy --config hosted/issuer/wrangler.jsonc --secrets-file "$secrets" "${vars[@]}"
           rm "$secrets"
           [ -n "$SENDGRID_API_KEY" ] || echo "::notice::Sign-in by email code is off; set the secret SENDGRID_API_KEY."
@@ -85,8 +83,6 @@ jobs:
           # The sign-in's own Unified Login configuration, deployed as the issuer's INSTAGRAM_CONFIG_ID.
           INSTAGRAM_CONFIG_ID: ${{ vars.INSTAGRAM_SIGN_IN_CONFIG_ID }}
           INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
-          TERMS_URL: ${{ vars.TERMS_URL }}
-          TERMS_VERSION: ${{ vars.TERMS_VERSION }}
 
       # The billing lifecycle is CMOKit's own site's lifecycle Worker, which binds back to the content
       # server, so neither can be deployed first with the other's binding. Until it exists, the content
@@ -109,20 +105,16 @@ jobs:
           fi
           vars=()
           [ -n "$ACTIVATED_EMAILS" ] && vars+=(--var "ACTIVATED_EMAILS:$ACTIVATED_EMAILS")
-          [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] && vars+=(--var "TERMS_URL:$TERMS_URL" --var "TERMS_VERSION:$TERMS_VERSION")
           [ -n "$WAITLIST_CUSTOMER" ] && vars+=(--var "WAITLIST_CUSTOMER:$WAITLIST_CUSTOMER")
           instagram() { [ -n "$INSTAGRAM_APP_ID" ] && [ -n "$INSTAGRAM_APP_SECRET" ] && [ -n "$INSTAGRAM_CONFIG_ID" ]; }
           instagram && vars+=(--var "INSTAGRAM_APP_ID:$INSTAGRAM_APP_ID" --var "INSTAGRAM_CONFIG_ID:$INSTAGRAM_CONFIG_ID")
           npx wrangler deploy --config "$config" --secrets-file "$secrets" "${vars[@]}"
           rm "$secrets"
           [ -n "$ACTIVATED_EMAILS" ] || echo "::notice::Nobody is activated without a checkout; set the variable ACTIVATED_EMAILS."
-          [ -n "$TERMS_URL" ] && [ -n "$TERMS_VERSION" ] || echo "::notice::No beta terms are asked for; set the variables TERMS_URL and TERMS_VERSION."
           instagram || echo "::notice::Connect Instagram is off; set INSTAGRAM_APP_ID, INSTAGRAM_CONFIG_ID and INSTAGRAM_APP_SECRET."
         env:
           CREDENTIAL_KEY: ${{ secrets.CREDENTIAL_KEY }}
           ACTIVATED_EMAILS: ${{ vars.ACTIVATED_EMAILS }}
-          TERMS_URL: ${{ vars.TERMS_URL }}
-          TERMS_VERSION: ${{ vars.TERMS_VERSION }}
           WAITLIST_CUSTOMER: ${{ vars.WAITLIST_CUSTOMER }}
           INSTAGRAM_APP_ID: ${{ vars.INSTAGRAM_APP_ID }}
           INSTAGRAM_CONFIG_ID: ${{ vars.INSTAGRAM_CONFIG_ID }}
