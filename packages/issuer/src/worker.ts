@@ -7,7 +7,7 @@
 // with `Identity` bound as the Durable Object class IDENTITIES and `Person` as PEOPLE (ADR-0030), and
 // the OAuth library's namespace as OAUTH_KV, which no code of CMOKit's reads or writes (ADR-0035).
 // `Issuer` serves the sign-in pages and the library's endpoints, and gives the content server's
-// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), `linkInstagram` when a person connects their brand's Instagram (ADR-0054), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
+// Worker `validateToken`, `customers`, `brands`, `addCustomer` and `nameCustomer` over a service binding (ADR-0029, ADR-0017), `email` and `instagram` for activation without a checkout (CUS-03, ADR-0048), `linkInstagram` when a person connects their brand's Instagram (ADR-0048), and `deletePerson` when a person deletes their account (ADR-0053). Every variable and secret it reads is in
 // the deployment reference. The only host-specific code in the issuer lives here.
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
@@ -200,7 +200,7 @@ export async function deletePerson(env: IssuerEnv, person: string): Promise<void
 
 /**
  * Makes signing in with an Instagram account a way into the account of the person who connected it to
- * their brand (ADR-0054). An identity nobody has signed in with becomes theirs. One that signed in to
+ * their brand (ADR-0048). An identity nobody has signed in with becomes theirs. One that signed in to
  * an account with no brands, as when the person signed in with Instagram before connecting it, has
  * that empty account deleted first, which signs it out, and then becomes theirs. One that belongs to
  * an account with brands is left as it is, and false is returned. Safe to repeat.
@@ -269,7 +269,7 @@ export function createIssuerWorker(options: { fonts?: Fonts } = {}): { Issuer: I
       return stub<PersonRecords>(this.env.PEOPLE, person, PERSON_CALLS).instagram();
     }
 
-    /** What the content server calls when a person connects their brand's Instagram account (ADR-0054). */
+    /** What the content server calls when a person connects their brand's Instagram account (ADR-0048). */
     linkInstagram(person: string, id: string, handle: string): Promise<boolean> {
       return linkInstagram(this.env, person, { id, handle: handle.replace(/^@/, '').toLowerCase() });
     }

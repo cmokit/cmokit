@@ -62,7 +62,8 @@ stays open source, and anyone can still run the engine, and the content service,
 * **An account page of their own.** At `app.cmokit.ai`, a customer views and manages its profile,
   its brand context and the settings its skills use.
 * **Signing in is only signing in.** A CMOKit account signs in with an email address, Google, GitHub
-  or Meta. Signing in identifies the person and grants nothing else; anything more, such as
+  or Meta, and one person has one account whichever of their connected ways in they use. Signing in
+  identifies the person and grants nothing else; anything more, such as
   connecting an event platform, is asked for on its own, when it is needed.
 * **Their own Claude does the thinking.** A solo creator runs CMOKit from the Claude account they
   already have, through its plugins and connectors, beside any others they use. CMOKit's hosted

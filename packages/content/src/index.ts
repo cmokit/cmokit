@@ -122,7 +122,7 @@ export interface ContentServerOptions {
   instagram?: InstagramApp;
   /**
    * Makes the Instagram account a person connected to their brand a way into their own account, so
-   * signing in with it reaches the same brands, activation and terms (ADR-0054); absent, it is not.
+   * signing in with it reaches the same brands, activation and terms (ADR-0048); absent, it is not.
    */
   linkInstagram?(person: string, id: string, handle: string): Promise<boolean>;
   /** The built cards Claude shows beside tools' results; absent, tools answer in text alone (ADR-0049). */

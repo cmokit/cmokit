@@ -62,6 +62,10 @@ that signs a creator in with the account the waitlist already proved.
 > whatever its handle. Google is not offered in Instagram's or Facebook's in-app browser, where it
 > refuses to sign anyone in. Until Meta's App Review passes, only people with a role on the Meta app
 > can sign in with Instagram, so each beta creator is added as a tester.
+>
+> One person has one account. A person who signed up another way and connects an Instagram account
+> to their brand adds it as a way into that account. If that Instagram account already signed in to
+> an account with no brands, that empty account is deleted; one with brands is left alone.
 
 This replaces ADR-0018's rule that every sign-in grants nothing beyond identity, for Instagram alone:
 what Meta grants is the configuration's to say, and CMOKit uses it for that one read.
@@ -76,8 +80,8 @@ what Meta grants is the configuration's to say, and CMOKit uses it for that one 
 * Bad, because the token Meta issues can do more than identify the person, though CMOKit discards it.
 * Bad, because creators sign in only as testers until Meta's App Review and Business Verification
   pass.
-* Neutral, because a person who signs in with Instagram and with GitHub has two accounts, as ADR-0018
-  has for any two ways in, unless they connected that Instagram account to their brand (ADR-0054).
+* Good, because a person who signed up another way and connected their Instagram account to their
+  brand signs in with that Instagram account to the same account.
 
 ### Confirmation
 

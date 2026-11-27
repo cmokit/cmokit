@@ -86,7 +86,7 @@ export interface IssuerBinding {
   email(person: string): Promise<string | null>;
   /** The Instagram account a person last signed in with, if any (ADR-0048). */
   instagram?(person: string): Promise<{ id: string; handle: string } | null>;
-  /** Makes an Instagram account a person connected to their brand a way into their account (ADR-0054). */
+  /** Makes an Instagram account a person connected to their brand a way into their account (ADR-0048). */
   linkInstagram?(person: string, id: string, handle: string): Promise<boolean>;
   /** Deletes a person's sign-in records and revokes every token issued to them (ADR-0053). */
   deletePerson?(person: string): Promise<void>;

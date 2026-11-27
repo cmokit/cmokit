@@ -58,4 +58,3 @@ from [adr-template.md](adr-template.md).
 | [0051](0051-the-account-page-is-react-rendered-on-the-server-and-hydrated-in-the-browser.md) | The account page is React, rendered on the server and hydrated in the browser | Proposed |
 | [0052](0052-a-skill-is-evaluated-by-a-script-of-its-own-run-on-claude-only-when-a-maintainer-labels-the-pull-request.md) | A skill is evaluated by a script of its own, run on Claude only when a maintainer labels the pull request | Proposed |
 | [0053](0053-a-person-deletes-their-account-on-the-account-page-which-erases-their-brands-and-their-sign-in.md) | A person deletes their account on the account page, which erases their brands and their sign-in | Proposed |
-| [0054](0054-an-instagram-account-a-person-connects-to-their-brand-becomes-a-way-into-their-account.md) | An Instagram account a person connects to their brand becomes a way into their account | Proposed |
